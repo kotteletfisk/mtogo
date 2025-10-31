@@ -1,0 +1,16 @@
+name: "Sub-issue"
+description: "Child task linked to a parent issue"
+title: "[SUB-ISSUE] "
+labels: ["feature", "sub-issue", "priority:High", "priority:Medium", "priority:Low"]
+assignees: ["All devs"]
+
+body:
+  - type: textarea
+    id: task
+    attributes:
+      label: "Task"
+      description: "Describe the task you are solving?"
+      placeholder: "e.g. What task are you solving?"
+    validations:
+      required: true
+
