@@ -1,0 +1,40 @@
+name: "Bug Report"
+description: "Report a bug"
+title: "[BUG]"
+labels: ["bug"]
+assignees: ["All devs"]
+
+body:
+  - type: input
+    id: summary
+    attributes:
+      label: "Summary"
+      description: "A brief summary of the bug"
+      placeholder: "e.g. App crashes on login"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: "Expected Behavior"
+      description: "Describe what you expected to happen"
+      placeholder: "The app should log in successfully"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps_to_reproduce
+    attributes:
+      label: "Steps to Reproduce"
+      description: "List the steps to reproduce the bug"
+      placeholder: "1. Go to '...'\n2. Click on '...'\n3. See error"
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+        label: "Environment"
+        description: "Provide details about your environment (OS, browser, version, etc.)"
+        placeholder: "e.g. Windows 10, Chrome 89"

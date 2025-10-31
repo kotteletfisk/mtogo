@@ -1,0 +1,42 @@
+name: Issue Metrics
+# Generates a 7-day issue activity report and publishes it as a GitHub issue.
+# Lets see if we go insane
+
+on:
+  schedule:
+    - cron: "0 7 * * 1-5"   # 07:00 UTC on weekdays
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set time window (last 7 days)
+        shell: bash
+        run: |
+          SINCE=$(date -u -d '7 days ago' +%Y-%m-%d)
+          echo $SINCE
+          TODAY=$(date -u +%Y-%m-%d)
+          SEARCH_QUERY="repo:${{ github.repository }} is:issue created:>=${SINCE}"
+          
+          echo "SINCE=$SINCE" >> $GITHUB_ENV
+          echo "TODAY=$TODAY" >> $GITHUB_ENV
+          echo "SEARCH_QUERY=$SEARCH_QUERY" >> $GITHUB_ENV
+
+      - name: Run issue-metrics
+        uses: github/issue-metrics@v3
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SEARCH_QUERY: ${{ env.SEARCH_QUERY }}
+
+      - name: Publish report as issue
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: "Issue metrics report (${{ env.SINCE }} → ${{ env.TODAY }})"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          content-filepath: ./issue_metrics.md
+          labels: "team-metrics"

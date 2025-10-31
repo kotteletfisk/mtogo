@@ -1,0 +1,80 @@
+name: Label referenced issues on push
+on:
+  push:
+    branches: ["**"]   # or ["main"] if you only want this on main
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  label_issues:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // Compare files changed in this push
+            const base = context.payload.before;
+            const head = context.sha;
+            const cmp = await github.rest.repos.compareCommits({ owner, repo, base, head });
+            const files = (cmp.data.files || []).map(f => f.filename);
+
+            // Decide labels from file paths
+            const labels = new Set();
+            if (files.some(f => f.startsWith('src/backend/'))) labels.add('backend');
+            if (files.some(f => f.startsWith('src/frontend/'))) labels.add('frontend');
+            if (files.some(f => f.startsWith('docs/')) || files.some(f => f.toLowerCase().endsWith('.md'))) {
+              labels.add('documentation');
+            }
+
+            // Branch & commit message heuristics for feature/bug
+            const branch = context.ref.replace('refs/heads/', '');
+            const commits = context.payload.commits || [];
+
+            if (/^feat\b/i.test(branch) || commits.some(c => /^feat(\(.+\))?:/i.test(c.message))) {
+              labels.add('feature');
+            }
+            if (/^fix\b/i.test(branch) || commits.some(c => /^fix(\(.+\))?:/i.test(c.message))) {
+              labels.add('bug');
+            }
+
+            if (!labels.size) {
+              console.log('No matching labels for this push');
+              return;
+            }
+
+            // Find issues to label:
+            // 1) from commit messages: Fixes|Closes|Resolves|Refs #123
+            const issueNums = new Set();
+            const refRe = /\b(?:fixes|closes|resolves|refs?|references|see)\s+#(\d+)/ig;
+            for (const c of commits) {
+              let m;
+              while ((m = refRe.exec(c.message)) !== null) issueNums.add(parseInt(m[1], 10));
+            }
+
+            // 2) from branch name: "123-...", "issue-123", or "#123"
+            const m1 = branch.match(/^(\d+)\b/);
+            if (m1) issueNums.add(parseInt(m1[1], 10));
+            const m2 = branch.match(/\bissue[-_/]?(\d+)\b/i);
+            if (m2) issueNums.add(parseInt(m2[1], 10));
+            const m3 = branch.match(/#(\d+)/);
+            if (m3) issueNums.add(parseInt(m3[1], 10));
+
+            if (!issueNums.size) {
+              console.log('No issue references found in commits or branch name');
+              return;
+            }
+
+            const toApply = Array.from(labels);
+            for (const issue_number of issueNums) {
+              try {
+                await github.rest.issues.addLabels({ owner, repo, issue_number, labels: toApply });
+                console.log(`Labeled #${issue_number} with: ${toApply.join(', ')}`);
+              } catch (e) {
+                console.log(`Failed to label #${issue_number}: ${e.message}`);
+              }
+            }

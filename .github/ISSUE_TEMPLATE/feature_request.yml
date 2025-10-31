@@ -1,0 +1,40 @@
+name: "Feature Request"
+description: "New feature"
+title: "[FEATURE]"
+labels: ["feature", "priority:High", "priority:Medium", "priority:Low"]
+assignees: ["All devs"]
+
+body:
+  - type: input
+    id: summary
+    attributes:
+      label: "Summary"
+      description: "A brief summary of the feature request"
+      placeholder: "e.g. Add dark mode"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: "Problem"
+      description: "Describe the problem this feature request addresses"
+      placeholder: "e.g. Which business problem needs solving?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: user_story
+    attributes:
+      label: "User Story"
+      description: "Describe the user story for this feature"
+      placeholder: "e.g. As a [type of user], I want [an action] so that [a benefit/a value]"
+
+  - type: textarea
+    id: user_acceptance_criteria
+    attributes:
+        label: "User Acceptance Criteria"
+        description: "Define the acceptance criteria for this feature"
+        placeholder: "e.g. Given [context], when [event], then [outcome]"
+    validations:
+        required: true
