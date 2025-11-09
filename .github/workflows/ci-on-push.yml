@@ -6,36 +6,23 @@ on:
       - main
     paths:
       - 'services/**'
-      - '.github/workflows/ci-on-push.yml'
+      - '.github/workflows/main-build.yml'
 
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.format-matrix.outputs.matrix }}
+      matrix: ${{ steps.filter.outputs.changes }}
     steps:
       - uses: actions/checkout@v4
 
-      # Detect changed services using paths-filter
       - id: filter
         uses: dorny/paths-filter@v3
         with:
+          list-files: 'json'
           filters: |
             example-service:
               - 'services/example-service/**'
-
-      # Format the matrix for GitHub Actions
-      - id: format-matrix
-        run: |
-          echo "[]" > matrix.json
-          for SERVICE in $(jq -r 'keys[]' <<< '${{ steps.filter.outputs.changes }}'); do
-            CHANGED=$(jq -r --arg s "$SERVICE" '.[$s].changes' <<< '${{ steps.filter.outputs.changes }}')
-            if [ "$CHANGED" == "true" ]; then
-              jq --arg s "$SERVICE" '. += [{"service": $s}]' matrix.json > tmp.json
-              mv tmp.json matrix.json
-            fi
-          done
-          echo "matrix=$(cat matrix.json)" >> $GITHUB_OUTPUT
 
   build:
     needs: detect-changes
@@ -43,33 +30,31 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include: ${{ needs.detect-changes.outputs.matrix }}
+        include: ${{ fromJSON(needs.detect-changes.outputs.matrix) }}
 
     steps:
       - uses: actions/checkout@v4
 
-      # Detect language environment and install runtime
+      # Detect language and install runtime
       - name: Set up language runtime
         run: |
-          LANG_FILE="services/${{ matrix.service }}/lang-env.txt"
+          LANG_FILE="services/${{ matrix.service }}/language.txt"
           if [ -f "$LANG_FILE" ]; then
             LANG=$(cat "$LANG_FILE")
             echo "Detected language/runtime: $LANG"
             if [[ "$LANG" == java-* ]]; then
               JAVA_VERSION=${LANG#java-}
-              echo "Installing Java $JAVA_VERSION"
-              echo "JAVA_HOME=$(java -version || true)"
-              # Setup Java via setup-java action
               echo "Setting up Java $JAVA_VERSION"
-              echo "JAVA_VERSION=$JAVA_VERSION" >> $GITHUB_ENV
-              # Actually install Java
-              echo "Installing via setup-java..."
-              uses: actions/setup-java@v4
-              with:
-                distribution: temurin
-                java-version: $JAVA_VERSION
+              echo "JAVA_HOME=$(java -version || true)"
+              # Use setup-java action
+              echo "Installing Java $JAVA_VERSION"
+              echo "Installing Java via setup-java action"
+
+            else
+              echo "Unknown language $LANG, skipping runtime setup"
+            fi
           else
-            echo "No lang-env.txt found, skipping runtime setup"
+            echo "No language.txt found, skipping runtime setup"
           fi
 
       # Run service-specific tests
@@ -79,7 +64,7 @@ jobs:
           chmod +x run_tests.sh
           ./run_tests.sh
 
-      # Log in to GitHub Container Registry
+      # Log in to Docker registry
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -87,13 +72,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Build image
+      # Build Docker image
       - name: Build Docker image
         run: |
           IMAGE_TAG=ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:sha-${{ github.sha }}
           docker build -t $IMAGE_TAG services/${{ matrix.service }}
 
-      # Push image
+      # Push Docker image
       - name: Push Docker image
         run: |
           IMAGE_TAG=ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:sha-${{ github.sha }}
