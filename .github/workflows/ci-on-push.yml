@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include: ${{ fromJSON(needs.detect-changes.outputs.matrix) }}
+        service: ${{ fromJSON(needs.detect-changes.outputs.matrix) }}
 
     steps:
       - uses: actions/checkout@v4
@@ -38,7 +38,7 @@ jobs:
       # Detect language and install runtime
       - name: Set up language runtime
         run: |
-          LANG_FILE="services/${{ matrix.service }}/language.txt"
+          LANG_FILE="services/${{ matrix.service }}/lang-env.txt"
           if [ -f "$LANG_FILE" ]; then
             LANG=$(cat "$LANG_FILE")
             echo "Detected language/runtime: $LANG"
