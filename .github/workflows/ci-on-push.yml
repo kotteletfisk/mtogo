@@ -47,6 +47,10 @@ jobs:
               echo "Setting up Java $JAVA_VERSION"
               echo "JAVA_HOME=$(java -version || true)"
               # Use setup-java action
+                uses: actions/setup-java@v4
+                with:
+                  distribution: temurin
+                  java-version: $JAVA_VERSION
               echo "Installing Java $JAVA_VERSION"
               echo "Installing Java via setup-java action"
 
