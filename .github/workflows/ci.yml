@@ -12,6 +12,9 @@ on:
       - 'services/**'
       - '.github/workflows/**'
 
+env:
+  registry: 
+
 jobs:
   detect-changes:
     name: Detect Changed Services
@@ -73,14 +76,14 @@ jobs:
         if: ${{ github.event_name == 'push' }}
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+         # registry: ${{ env.registry }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.DOCKER_TOKEN }}
 
       - name: Build & Push Docker image
         if: ${{ github.event_name == 'push' }}
         run: |
-          IMAGE_TAG=ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:sha-${{ github.sha }}
+          IMAGE_TAG=${{ github.repository_owner }}/${{ matrix.service }}:sha-${{ github.sha }}
           docker build -t $IMAGE_TAG services/${{ matrix.service }}
           docker push $IMAGE_TAG
 
