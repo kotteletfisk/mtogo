@@ -1,7 +1,7 @@
 package com.mtogo.example;
 
 /**
- * Hello world!
+ * Hello world! yet again
  */
 public class App {
     public static void main(String[] args) {

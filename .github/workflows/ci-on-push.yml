@@ -2,59 +2,85 @@ name: Build & Push Changed Services
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+    paths:
+      - 'services/**'
+      - '.github/workflows/ci-on-push.yml'
 
 jobs:
-  build-and-push:
+  detect-changes:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.filter.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v4
 
-    env:
-      REGISTRY: ghcr.io
-      IMAGE_OWNER: ${{ github.repository_owner }}
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            example-service:
+              - 'services/example-service/**'
+
+  build:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.matrix != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include: ${{ fromJSON(needs.detect-changes.outputs.matrix) }}
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
 
+      # Detect language env and install runtime
+      - name: Set up language runtime
+        run: |
+          LANG_FILE="services/${{ matrix.service }}/lang-env.txt"
+          if [ -f "$LANG_FILE" ]; then
+            LANG=$(cat "$LANG_FILE")
+            echo "Detected language/runtime: $LANG"
+            if [[ "$LANG" == java-* ]]; then
+              JAVA_VERSION=${LANG#java-}
+              echo "Setting up Java $JAVA_VERSION"
+              echo "JAVA_HOME=$(java -version || true)"
+              # Use setup-java action
+              echo "Installing Java $JAVA_VERSION"
+              echo "Installing Java via setup-java action"
+
+              ## ADD LANGUAGE ENVS HERE: elif [[ ... ]]
+
+            else
+              echo "Unknown language $LANG, skipping runtime setup"
+            fi
+          else
+            echo "No language.txt found, skipping runtime setup"
+          fi
+
+      # Run service-specific tests
+      - name: Run tests
+        working-directory: services/${{ matrix.service }}
+        run: |
+          chmod +x run_tests.sh
+          ./run_tests.sh
+
+      # Log in to registry
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Detect changed services
-        id: detect
+      # Build Docker image
+      - name: Build Docker image
         run: |
-          CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '^services/' | cut -d/ -f2 | sort -u)
-          if [ -z "$CHANGED" ]; then
-            echo "No service changes detected."
-            echo "changed_services=" >> $GITHUB_OUTPUT
-          else
-            echo "Changed services: $CHANGED"
-            echo "changed_services=$CHANGED" >> $GITHUB_OUTPUT
-          fi
+          IMAGE_TAG=ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:sha-${{ github.sha }}
+          docker build -t $IMAGE_TAG services/${{ matrix.service }}
 
-      - name: Run tests for changed services
-        if: ${{ steps.detect.outputs.changed_services != '' }}
+      # Push Docker image
+      - name: Push Docker image
         run: |
-          set -e
-          for SERVICE in ${{ steps.detect.outputs.changed_services }}; do
-            echo "Running tests for $SERVICE..."
-            cd services/$SERVICE
-            chmod +x run_tests.sh
-            ./run_tests.sh
-            cd ../..
-          done
-
-      - name: Build and push Docker images
-        if: ${{ steps.detect.outputs.changed_services != '' }}
-        run: |
-          set -e
-          for SERVICE in ${{ steps.detect.outputs.changed_services }}; do
-            IMAGE_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${SERVICE}:sha-${{ github.sha }}
-            echo "Building image for $SERVICE → $IMAGE_TAG"
-            docker build -t "$IMAGE_TAG" services/$SERVICE
-            docker push "$IMAGE_TAG"
-          done
+          IMAGE_TAG=ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:sha-${{ github.sha }}
+          docker push $IMAGE_TAG
