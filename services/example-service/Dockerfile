@@ -10,7 +10,7 @@ FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 RUN mkdir -p /data
 
-COPY --from=build /app/target/sysqual_OLA2-1.0-SNAPSHOT.jar app.jar
+COPY --from=build /app/target/example-service-1.0-SNAPSHOT.jar app.jar
 
 # EXPOSE 7000
 ENTRYPOINT ["java","-jar","app.jar"]
