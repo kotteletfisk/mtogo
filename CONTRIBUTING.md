@@ -85,3 +85,7 @@ The rules are based on the Google Java Style Guide, with some modifications to f
 4. Push the branch to the remote repository.
 5. Once the issue is resolved, merge the branch back into the main branch.
 6. Delete the branch after merging.
+
+## Creating Services
+
+`mvn archetype:generate -DgroupId=com.mtogo.example -DartifactId=example-service -DjavaCompilerVersion=21 -DarchetypeArtifactId=maven-archetype-quickstart -DarchetypeVersion=1.5`

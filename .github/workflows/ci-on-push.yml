@@ -1,0 +1,58 @@
+name: Build & Push Changed Services
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_OWNER: ${{ github.repository_owner }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Detect changed services
+        id: detect
+        run: |
+          CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '^services/' | cut -d/ -f2 | sort -u)
+          if [ -z "$CHANGED" ]; then
+            echo "No service changes detected."
+            echo "changed_services=" >> $GITHUB_OUTPUT
+          else
+            echo "Changed services: $CHANGED"
+            echo "changed_services=$CHANGED" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run tests for changed services
+        if: ${{ steps.detect.outputs.changed_services != '' }}
+        run: |
+          set -e
+          for SERVICE in ${{ steps.detect.outputs.changed_services }}; do
+            echo "Running tests for $SERVICE..."
+            cd services/$SERVICE
+            chmod +x run_tests.sh
+            ./run_tests.sh
+            cd ../..
+          done
+
+      - name: Build and push Docker images
+        if: ${{ steps.detect.outputs.changed_services != '' }}
+        run: |
+          set -e
+          for SERVICE in ${{ steps.detect.outputs.changed_services }}; do
+            IMAGE_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${SERVICE}:sha-${{ github.sha }}
+            echo "Building image for $SERVICE → $IMAGE_TAG"
+            docker build -t "$IMAGE_TAG" services/$SERVICE
+            docker push "$IMAGE_TAG"
+          done
