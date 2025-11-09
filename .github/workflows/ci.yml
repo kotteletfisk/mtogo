@@ -17,10 +17,9 @@ jobs:
     name: Detect Changed Services
     runs-on: ubuntu-latest
     outputs:
-      changed-services: ${{ steps.set-matrix.outputs.matrix }}
+      changed-services: ${{ steps.filter.outputs.changes }}
     steps:
       - uses: actions/checkout@v4
-
       - id: filter
         uses: dorny/paths-filter@v3
         with:
