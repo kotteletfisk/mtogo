@@ -92,6 +92,11 @@
             <version>5.20.0</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>7.0.0</version>
+        </dependency>
     </dependencies>
 
 </project>
