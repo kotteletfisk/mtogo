@@ -14,6 +14,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -39,7 +41,7 @@ class OrderControllerTest {
     }
 
     @Test
-    void createOrder_validOrder_publishesMessage_andReturns201() throws Exception {
+    void createOrder_validOrder() throws Exception {
         OrderController controller = OrderController.getInstance();
         OrderDTO orderDTO = buildValidOrder();
         when(ctx.status(anyInt())).thenReturn(ctx);
@@ -67,7 +69,7 @@ class OrderControllerTest {
     }
 
     @Test
-    void createOrder_producerThrows_returns500() throws Exception {
+    void createOrder_fail() throws Exception {
         OrderController controller = OrderController.getInstance();
         OrderDTO orderDTO = buildValidOrder();
         when(ctx.status(anyInt())).thenReturn(ctx);
@@ -89,4 +91,21 @@ class OrderControllerTest {
             verify(ctx).result("Failed to publish order creation message");
         }
     }
+
+    @Test
+    void validateOrderDTO() {
+        OrderController controller = OrderController.getInstance();
+        OrderDTO expected = new OrderDTO(1, 123, OrderDTO.orderStatus.Pending,
+                List.of(new OrderLine(10, 100, 1)));
+
+        when(ctx.bodyValidator(OrderDTO.class)).thenReturn(bodyValidator);
+        when(bodyValidator.check(any(), anyString())).thenReturn(bodyValidator);
+        when(bodyValidator.get()).thenReturn(expected);
+
+        OrderDTO actual = controller.validateOrderDTO(ctx);
+
+        assertNotNull(actual);
+        assertEquals(expected.getOrderId(), actual.getOrderId());
+    }
+
 }

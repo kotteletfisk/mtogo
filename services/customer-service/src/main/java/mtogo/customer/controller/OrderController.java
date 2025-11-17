@@ -44,7 +44,7 @@ public class OrderController {
      * @param ctx the Javalin context
      * @return the validated OrderDTO
      */
-    private OrderDTO validateOrderDTO(Context ctx){
+    public OrderDTO validateOrderDTO(Context ctx){
         return ctx.bodyValidator(OrderDTO.class)
                 .check(r -> r != null, "Object is null")
                 .check(r-> r.getOrderId() >= 0, "Order ID must be non-negative")
