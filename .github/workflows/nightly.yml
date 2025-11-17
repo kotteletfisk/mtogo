@@ -11,7 +11,7 @@ env:
   ENV_FILE: /home/${{ secrets.SERVER_NAME }}/mtogo/.env
   DOCKER_USER: ${{ secrets.DOCKER_USER }}
   DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
-  SERVICES: courier-service customer-service management-service supplier-service support-service sql-driver redis-driver mongo-driver
+  SERVICES: courier-service customer-service management-service supplier-service support-service sql-driver redis-driver mongodb-driver
 
 jobs:
   nightly-test:
