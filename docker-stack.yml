@@ -14,9 +14,8 @@ services:
     networks:
       - backend
 
-
   courier-service:
-    image: ${DOCKERHUB_USERNAME}/courier-service:${IMAGE_TAG}
+    image: ${DOCKER_USER}/courier-service:${COURIER_SERVICE_TAG}
     ports:
       - "7070:7070"
     depends_on:
@@ -29,7 +28,7 @@ services:
       - backend
 
   customer-service:
-    image: ${DOCKERHUB_USERNAME}/customer-service:${IMAGE_TAG}
+    image: ${DOCKER_USER}/customer-service:${CUSTOMER_SERVICE_TAG}
     ports:
       - "7071:7070"
     depends_on:
@@ -42,7 +41,7 @@ services:
       - backend
 
   management-service:
-    image: ${DOCKERHUB_USERNAME}/management-service:${IMAGE_TAG}
+    image: ${DOCKER_USER}/management-service:${MANAGEMENT_SERVICE_TAG}
     ports:
       - "7072:7070"
     depends_on:
@@ -54,7 +53,7 @@ services:
       - backend
 
   supplier-service:
-    image: ${DOCKERHUB_USERNAME}/supplier-service:${IMAGE_TAG}
+    image: ${DOCKER_USER}/supplier-service:${SUPPLIER_SERVICE_TAG}
     ports:
       - "7073:7070"
     depends_on:
@@ -67,7 +66,7 @@ services:
       - backend
 
   support-service:
-    image: ${DOCKERHUB_USERNAME}/support-service:${IMAGE_TAG}
+    image: ${DOCKER_USER}/support-service:${SUPPORT_SERVICE_TAG}
     ports:
       - "7074:7070"
     depends_on:
@@ -94,7 +93,7 @@ services:
       - backend
 
   redis-driver:
-    image: ${DOCKERHUB_USERNAME}/redis-driver:${IMAGE_TAG}
+    image: ${DOCKER_USER}/redis-driver:${REDIS_DRIVER_TAG}
     depends_on:
       - redis-active-db
     networks:
@@ -123,7 +122,7 @@ services:
       - backend
 
   sql-driver:
-    image: ${DOCKERHUB_USERNAME}/sql-driver:${IMAGE_TAG}
+    image: ${DOCKER_USER}/sql-driver:${SQL_DRIVER_TAG}
     depends_on:
       - MToGo-db
       - metrics-db
@@ -151,7 +150,7 @@ services:
       - backend
 
   mongo-driver:
-    image: ${DOCKERHUB_USERNAME}/mongo-driver:${IMAGE_TAG}
+    image: ${DOCKER_USER}/mongo-driver:${MONGODB_DRIVER_TAG}
     depends_on:
       - support-db
       - applicant-db
