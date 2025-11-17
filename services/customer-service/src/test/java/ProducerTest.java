@@ -26,19 +26,19 @@ public class ProducerTest {
 
         Producer.setConnectionFactory(factory);
 
-        String routingKey = "customer:order_creation";
+        String routingKey = "order";
         String body = "Test-message";
 
         boolean result = Producer.publishMessage(routingKey, body);
 
         assertTrue(result);
 
-        verify(channel).exchangeDeclare("customer:order_creation", "topic", true);
+        verify(channel).exchangeDeclare("order", "topic", true);
         verify(channel).confirmSelect();
 
         byte[] expectedBytes = body.getBytes(StandardCharsets.UTF_8);
         verify(channel).basicPublish(
-                eq("customer:order_creation"),
+                eq("order"),
                 eq(routingKey),
                 isNull(),
                 eq(expectedBytes)
