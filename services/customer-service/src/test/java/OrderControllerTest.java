@@ -1,7 +1,7 @@
 
 import io.javalin.http.Context;
 import io.javalin.validation.BodyValidator;
-import mtogo.customer.DTO.OrderDTO;
+import mtogo.customer.DTO.OrderDetailsDTO;
 import mtogo.customer.DTO.OrderLine;
 import mtogo.customer.controller.OrderController;
 import mtogo.customer.exceptions.APIException;
@@ -26,16 +26,16 @@ class OrderControllerTest {
     Context ctx;
 
     @Mock
-    BodyValidator<OrderDTO> bodyValidator;
+    BodyValidator<OrderDetailsDTO> bodyValidator;
 
-    private OrderDTO buildValidOrder() {
+    private OrderDetailsDTO buildValidOrder() {
         List<OrderLine> lines = List.of(
-                new OrderLine(10, 100, 2)
+                new OrderLine(10, 1, 2, 500, 2)
         );
-        return new OrderDTO(
+        return new OrderDetailsDTO(
                 1,
                 123,
-                OrderDTO.orderStatus.Pending,
+                OrderDetailsDTO.orderStatus.Pending,
                 lines
         );
     }
@@ -43,13 +43,13 @@ class OrderControllerTest {
     @Test
     void createOrder_validOrder() throws Exception {
         OrderController controller = OrderController.getInstance();
-        OrderDTO orderDTO = buildValidOrder();
+        OrderDetailsDTO orderDetailsDTO = buildValidOrder();
         when(ctx.status(anyInt())).thenReturn(ctx);
 
 
-        when(ctx.bodyValidator(OrderDTO.class)).thenReturn(bodyValidator);
+        when(ctx.bodyValidator(OrderDetailsDTO.class)).thenReturn(bodyValidator);
         when(bodyValidator.check(any(), anyString())).thenReturn(bodyValidator); // fluent API
-        when(bodyValidator.get()).thenReturn(orderDTO);
+        when(bodyValidator.get()).thenReturn(orderDetailsDTO);
 
         try (MockedStatic<Producer> producerMock = mockStatic(Producer.class)) {
             producerMock.when(() ->
@@ -60,24 +60,24 @@ class OrderControllerTest {
 
             // message published with expected routing key + DTO string
             producerMock.verify(() ->
-                    Producer.publishMessage("customer:order_creation", orderDTO.toString())
+                    Producer.publishMessage("customer:order_creation", orderDetailsDTO.toString())
             );
 
             verify(ctx).status(201);
-            verify(ctx).json(orderDTO);
+            verify(ctx).json(orderDetailsDTO);
         }
     }
 
     @Test
     void createOrder_fail() throws Exception {
         OrderController controller = OrderController.getInstance();
-        OrderDTO orderDTO = buildValidOrder();
+        OrderDetailsDTO orderDetailsDTO = buildValidOrder();
         when(ctx.status(anyInt())).thenReturn(ctx);
 
 
-        when(ctx.bodyValidator(OrderDTO.class)).thenReturn(bodyValidator);
+        when(ctx.bodyValidator(OrderDetailsDTO.class)).thenReturn(bodyValidator);
         when(bodyValidator.check(any(), anyString())).thenReturn(bodyValidator);
-        when(bodyValidator.get()).thenReturn(orderDTO);
+        when(bodyValidator.get()).thenReturn(orderDetailsDTO);
 
         try (MockedStatic<Producer> producerMock = mockStatic(Producer.class)) {
             // Simulate RabbitMQ failure
@@ -95,14 +95,14 @@ class OrderControllerTest {
     @Test
     void validateOrderDTO() {
         OrderController controller = OrderController.getInstance();
-        OrderDTO expected = new OrderDTO(1, 123, OrderDTO.orderStatus.Pending,
-                List.of(new OrderLine(10, 100, 1)));
+        OrderDetailsDTO expected = new OrderDetailsDTO(1, 123, OrderDetailsDTO.orderStatus.Pending,
+                List.of(new OrderLine(10, 1, 10, 500, 1)));
 
-        when(ctx.bodyValidator(OrderDTO.class)).thenReturn(bodyValidator);
+        when(ctx.bodyValidator(OrderDetailsDTO.class)).thenReturn(bodyValidator);
         when(bodyValidator.check(any(), anyString())).thenReturn(bodyValidator);
         when(bodyValidator.get()).thenReturn(expected);
 
-        OrderDTO actual = controller.validateOrderDTO(ctx);
+        OrderDetailsDTO actual = controller.validateOrderDTO(ctx);
 
         assertNotNull(actual);
         assertEquals(expected.getOrderId(), actual.getOrderId());

@@ -1,4 +1,4 @@
-package mtogo.customer.DTO;
+package mtogo.redis.DTO;
 
 public class OrderLine {
     private int orderLineId;

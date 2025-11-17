@@ -1,10 +1,11 @@
-package mtogo.customer.DTO;
+package mtogo.redis.DTO;
 
 import java.util.List;
 
-public class OrderDTO {
+public class OrderDetailsDTO {
     private int orderId;
     private int customerId;
+
     public enum orderStatus{
         Pending,
         Accepted,
@@ -14,9 +15,9 @@ public class OrderDTO {
     private orderStatus status;
     private List<OrderLine>  orderLines;
 
-    public OrderDTO() {}
+    public OrderDetailsDTO() {}
 
-    public OrderDTO(int orderId, int customerId, orderStatus status, List<OrderLine> orderLines) {
+    public OrderDetailsDTO(int orderId, int customerId, orderStatus status, List<OrderLine> orderLines) {
         this.orderId = orderId;
         this.customerId = customerId;
         this.status = status;

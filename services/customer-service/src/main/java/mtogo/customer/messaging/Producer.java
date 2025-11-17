@@ -10,7 +10,7 @@ import mtogo.customer.exceptions.APIException;
 public class Producer {
 
     // Routing Key
-    private static final String EXCHANGE_NAME = "customer:order_creation";
+    private static final String EXCHANGE_NAME = "order";
     static ConnectionFactory connectionFactory = createDefaultFactory();
 
     private static ConnectionFactory createDefaultFactory() {
