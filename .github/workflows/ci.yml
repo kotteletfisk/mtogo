@@ -94,7 +94,7 @@ jobs:
       - name: Build & Push Docker image
         if: ${{ github.event_name == 'push' }}
         run: |
-          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}"
+          IMAGE="${{ secrets.DOCKER_USER }}/${{ matrix.service }}"
           TAG="sha-${{ github.sha }}"
 
           echo "Building $IMAGE:$TAG"
