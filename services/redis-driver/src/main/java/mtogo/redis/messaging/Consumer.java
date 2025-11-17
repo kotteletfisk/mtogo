@@ -14,10 +14,20 @@ public class Consumer {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final String EXCHANGE_NAME = "order";
 
-    public static void consumeMessages(String[] bindingKeys) throws Exception{
+    static ConnectionFactory connectionFactory = createDefaultFactory();
+
+    private static ConnectionFactory createDefaultFactory() {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("localhost");
-        Connection connection = factory.newConnection();
+        return factory;
+    }
+    // Injectable connectionfactory for testing
+    public static void setConnectionFactory(ConnectionFactory factory) {
+        connectionFactory = factory;
+    }
+
+    public static void consumeMessages(String[] bindingKeys) throws Exception{
+        Connection connection = connectionFactory.newConnection();
         Channel channel = connection.createChannel();
 
         channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
