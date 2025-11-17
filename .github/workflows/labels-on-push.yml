@@ -1,7 +1,7 @@
 name: Label referenced issues on push
 on:
   push:
-    branches: ["**"]   # or ["main"] if you only want this on main
+    branches: ["skal_ændres_senere"]   # or ["main"] if you only want this on main
 
 permissions:
   contents: read
