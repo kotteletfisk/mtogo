@@ -12,9 +12,6 @@ on:
       - 'services/**'
       - '.github/workflows/**'
 
-env:
-  registry: 
-
 jobs:
   detect-changes:
     name: Detect Changed Services
@@ -91,16 +88,21 @@ jobs:
         if: ${{ github.event_name == 'push' }}
         uses: docker/login-action@v3
         with:
-         # registry: ${{ env.registry }}
-          username: ${{ github.repository_owner }}
+          username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
       - name: Build & Push Docker image
         if: ${{ github.event_name == 'push' }}
         run: |
-          IMAGE_TAG=${{ github.repository_owner }}/${{ matrix.service }}:sha-${{ github.sha }}
-          docker build -t $IMAGE_TAG services/${{ matrix.service }}
-          docker push $IMAGE_TAG
+          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}"
+          TAG="sha-${{ github.sha }}"
+
+          echo "Building $IMAGE:$TAG"
+
+          docker build -t "$IMAGE:$TAG" "services/${{ matrix.service }}"
+          docker push "$IMAGE:$TAG"
+
+          echo "Image pushed: $IMAGE:$TAG"
 
 
  
