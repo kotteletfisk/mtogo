@@ -9,8 +9,9 @@ env:
   STACK_NAME: mtogo-system
   STACK_DIR: /home/${{ secrets.SERVER_NAME }}/mtogo
   ENV_FILE: /home/${{ secrets.SERVER_NAME }}/mtogo/.env
-  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-  DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  DOCKER_USER: ${{ secrets.DOCKER_USER }}
+  DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+  SERVICES: courier-service customer-service management-service supplier-service support-service sql-driver redis-driver mongo-driver
 
 jobs:
   nightly-test:
@@ -26,18 +27,38 @@ jobs:
       - name: Docker Hub Login
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_TOKEN }}
 
-      - name: Retrieve Latest Image Tag
+      - name: Retrieve Latest Tags per Service
+        id: latest-tags
         run: |
-          IMAGE_TAG=$(curl -s https://registry.hub.docker.com/v2/repositories/${DOCKERHUB_USERNAME}/courier-service/tags?page_size=1 \
-                      | jq -r '.results[0].name')
-          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          echo "" > latest_tags.env
+      
+          for svc in $SERVICES; do
+            tag=$(curl -s "https://registry.hub.docker.com/v2/repositories/${DOCKER_USER}/$svc/tags?page_size=1" \
+                    | jq -r '.results[0].name')
+      
+            if [ -z "$tag" ] || [ "$tag" = "null" ]; then
+              echo "Failed to retrieve tag for $svc" >&2
+              exit 1
+            fi
+      
+            varname=$(echo $svc | tr 'a-z-' 'A-Z_')_TAG
+            echo "$varname=$tag" >> latest_tags.env
+          done
+      
+          cat latest_tags.env >> $GITHUB_ENV
+
 
       - name: Update Test .env
         run: |
-          sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=$IMAGE_TAG/" $ENV_FILE
+          for svc in $SERVICES; do
+            varname=$(echo $svc | tr 'a-z-' 'A-Z_')_TAG
+            tag_value=${!varname}
+
+            sed -i "s/^${varname}=.*/${varname}=${tag_value}/" $ENV_FILE
+          done
 
       - name: Deploy Test Stack
         run: |
@@ -64,22 +85,27 @@ jobs:
       - name: Docker Hub Login
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_TOKEN }}
 
       - name: Retag & Push Production Images
         run: |
           PROD_TAG="release-$(date +%Y%m%d)"
-          IMAGE_TAG="${{ needs.nightly-test.outputs.IMAGE_TAG }}"
-          SERVICES=(courier-service customer-service management-service supplier-service support-service sql-driver redis-driver mongo-driver)
 
-          for svc in "${SERVICES[@]}"; do
-            SRC_IMAGE="${DOCKERHUB_USERNAME}/$svc:$IMAGE_TAG"
-            DEST_IMAGE="${DOCKERHUB_USERNAME}/$svc:$PROD_TAG"
+          for svc in $SERVICES; do
+            varname=$(echo $svc | tr 'a-z-' 'A-Z_')_TAG
+            SRC_TAG=${!varname}
+
+            SRC_IMAGE="${DOCKER_USER}/$svc:$SRC_TAG"
+            DEST_IMAGE="${DOCKER_USER}/$svc:$PROD_TAG"
+
             docker pull "$SRC_IMAGE"
             docker tag "$SRC_IMAGE" "$DEST_IMAGE"
             docker push "$DEST_IMAGE"
           done
+
+          echo "PROD_TAG=$PROD_TAG" >> $GITHUB_ENV
+      
 
       - name: Output Production Tag
         run: echo "PROD_TAG=$PROD_TAG" >> $GITHUB_ENV
