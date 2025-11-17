@@ -28,8 +28,23 @@ jobs:
         with:
           list-files: 'json'
           filters: |
-            example-service:
-              - 'services/example-service/**'
+            courier-service:
+              - 'services/courier-service/**'
+            customer-service:
+              - 'services/customer-service/**'
+            management-service:
+              - 'services/management-service/**'
+            mongodb-driver:
+              - 'services/mongodb-driver/**'
+            redis-driver:
+              - 'services/redis-driver/**'
+            sql-driver:
+              - 'services/sql-driver/**'
+            supplier-service:
+              - 'services/supplier-service/**'
+            support-service:
+              - 'services/support-service/**'
+            
 
 
   test-and-build:
@@ -56,7 +71,6 @@ jobs:
             exit 1
           fi
           echo "language=$lang" >> $GITHUB_OUTPUT
-          whoami
 
       # Java / Maven
       - name: Set up JDK

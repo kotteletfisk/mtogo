@@ -1,0 +1,156 @@
+version: "3.9"
+
+services:
+
+  courier-service:
+    image: cphnr135/courier-service-sha:${IMAGE_TAG}
+    ports:
+      - "7070:7070"
+    depends_on:
+      - rabbitMQ
+      - redis-active-db
+      - sql-driver
+    deploy:
+      replicas: 1
+    networks:
+      - backend
+
+  customer-service:
+    image:
+    ports:
+      - "7071:7070"
+    depends_on:
+      - rabbitMQ
+      - redis-active-db
+      - sql-driver
+    deploy:
+      replicas: 1
+    networks:
+      - backend
+
+  management-service:
+    image:
+    ports:
+      - "7072:7070"
+    depends_on:
+      - rabbitMQ
+      - sql-driver
+    deploy:
+      replicas: 1
+    networks:
+      - backend
+
+  supplier-service:
+    image:
+    ports:
+      - "7073:7070"
+    depends_on:
+      - rabbitMQ
+      - redis-active-db
+      - sql-driver
+    deploy:
+      replicas: 1
+    networks:
+      - backend
+
+  support-service:
+    image:
+    ports:
+      - "7074:7070"
+    depends_on:
+      - mongo-driver
+      - rabbitMQ
+    deploy:
+      replicas: 1
+    networks:
+      - backend
+
+  rabbitMQ:
+    image: rabbitmq:3.13-alpine
+    ports:
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    networks:
+      - backend
+
+  redis-active-db:
+    image: redis:8.2.3-alpine
+    networks:
+      - backend
+
+  redis-driver:
+    image:
+    depends_on:
+      - redis-active-db
+    networks:
+      - backend
+
+  MToGo-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${MTOGO_USER}
+      POSTGRES_PASSWORD: ${MTOGO_PASS}
+      POSTGRES_DB: ${MTOGO_DB}
+    volumes:
+      - mtogo_data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  metrics-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${METRICS_USER}
+      POSTGRES_PASSWORD: ${METRICS_PASS}
+      POSTGRES_DB: ${METRICS_DB}
+    volumes:
+      - metrics_data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  sql-driver:
+    image:
+    depends_on:
+      - MToGo-db
+      - metrics-db
+    networks:
+      - backend
+
+  support-db:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${SUPPORT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${SUPPORT_PASS}
+    volumes:
+      - support_data:/data/db
+    networks:
+      - backend
+
+  applicant-db:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${APPLICANT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${APPLICANT_PASS}
+    volumes:
+      - applicant_data:/data/db
+    networks:
+      - backend
+
+  mongo-driver:
+    image:
+    depends_on:
+      - support-db
+      - applicant-db
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: overlay
+
+volumes:
+  mtogo_data:
+  metrics_data:
+  support_data:
+  applicant_data:
