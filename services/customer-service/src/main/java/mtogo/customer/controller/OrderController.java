@@ -10,7 +10,7 @@ import mtogo.customer.messaging.Producer;
  */
 public class OrderController {
 
-    private static OrderController instance = null;
+    private static OrderController instance;
     public static OrderController getInstance() {
         if (instance == null) {
             instance = new OrderController();
