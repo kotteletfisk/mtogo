@@ -150,7 +150,7 @@ services:
       - backend
 
   mongo-driver:
-    image: ${DOCKER_USER}/mongo-driver:${MONGODB_DRIVER_TAG}
+    image: ${DOCKER_USER}/mongodb-driver:${MONGODB_DRIVER_TAG}
     depends_on:
       - support-db
       - applicant-db
