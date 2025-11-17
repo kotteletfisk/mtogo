@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
 
 env:
-  STACK_NAME: mtogo-app
-  STACK_DIR: /home/${{ secrets.SERVER_NAME }}/stack
-  ENV_FILE: /home/${{ secrets.SERVER_NAME }}/stack/.env
+  STACK_NAME: mtogo-system
+  STACK_DIR: /home/${{ secrets.SERVER_NAME }}/mtogo
+  ENV_FILE: /home/${{ secrets.SERVER_NAME }}/mtogo/.env
   DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
   DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
@@ -41,7 +41,7 @@ jobs:
 
       - name: Deploy Test Stack
         run: |
-          docker stack deploy -c $STACK_DIR/stack.yml $STACK_NAME
+          docker stack deploy -c $STACK_DIR/docker-stack.yml $STACK_NAME
 
       - name: Wait for Services
         run: sleep 60
