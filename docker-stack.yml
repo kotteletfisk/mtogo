@@ -107,6 +107,8 @@ services:
       POSTGRES_DB: ${MTOGO_DB}
     volumes:
       - mtogo_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
     networks:
       - backend
 
@@ -118,6 +120,8 @@ services:
       POSTGRES_DB: ${METRICS_DB}
     volumes:
       - metrics_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
     networks:
       - backend
 
@@ -136,6 +140,8 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${SUPPORT_PASS}
     volumes:
       - support_data:/data/db
+    ports:
+      - "27017:27017"
     networks:
       - backend
 
@@ -146,6 +152,8 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${APPLICANT_PASS}
     volumes:
       - applicant_data:/data/db
+    ports:
+      - "27018:27017"
     networks:
       - backend
 
