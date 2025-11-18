@@ -9,6 +9,9 @@ import com.rabbitmq.client.DeliverCallback;
 import mtogo.sql.DTO.OrderDTO;
 import mtogo.sql.DTO.OrderDetailsDTO;
 import mtogo.sql.DTO.OrderLineDTO;
+import mtogo.sql.persistence.SQLConnector;
+import java.sql.*;
+
 
 
 import java.util.ArrayList;
@@ -57,26 +60,49 @@ public class Consumer {
         channel.basicConsume(queueName, true, deliverCallback(), consumerTag -> { });
     }
 
+
     /**
      * Creates a DeliverCallback to handle incoming messages. The callbacks functionality can vary on keyword
      * @return the DeliverCallback function
      */
-    private static DeliverCallback deliverCallback(){
+    private static DeliverCallback deliverCallback() {
         return (consumerTag, delivery) -> {
-            if(delivery.getEnvelope().getRoutingKey().equals("customer:order_creation")) {
-                objectMapper.registerModule(new JavaTimeModule());
+            String routingKey = delivery.getEnvelope().getRoutingKey();
 
-                OrderDetailsDTO orderDetailsDTO = objectMapper.readValue(delivery.getBody(), OrderDetailsDTO.class);
-                OrderDTO order = new OrderDTO(orderDetailsDTO);
-                List<OrderLineDTO> orderLines = new ArrayList<>();
-                for (OrderLineDTO line : orderDetailsDTO.getOrderLines()) {
-                    orderLines.add(new OrderLineDTO(line.getOrderLineId(), line.getOrderId(), line.getItem_id(), line.getPrice_snapshot(), line.getAmount()));
+            if ("customer:order_creation".equals(routingKey)) {
+                try {
+                    OrderDetailsDTO orderDetailsDTO =
+                            objectMapper.readValue(delivery.getBody(), OrderDetailsDTO.class);
+
+                    OrderDTO order = new OrderDTO(orderDetailsDTO);
+
+                    List<OrderLineDTO> orderLines = new ArrayList<>();
+                    for (OrderLineDTO line : orderDetailsDTO.getOrderLines()) {
+                        orderLines.add(
+                                new OrderLineDTO(
+                                        line.getOrderLineId(),
+                                        line.getOrderId(),
+                                        line.getItem_id(),
+                                        line.getPrice_snapshot(),
+                                        line.getAmount()
+                                )
+                        );
+                    }
+
+                    System.out.println(" [x] Received '" + routingKey + "':'" + orderDetailsDTO + "'");
+
+                    SQLConnector sqlConnector = new SQLConnector();
+                    try (java.sql.Connection conn = sqlConnector.getConnection()) {
+                        sqlConnector.createOrder(order, orderLines, conn);
+                    }
+
+                    String payload = objectMapper.writeValueAsString(orderDetailsDTO);
+                    Producer.publishMessage("supplier:order_persisted", payload);
+
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-                System.out.println(" [x] Received '" + delivery.getEnvelope().getRoutingKey() + "':'" + orderDetailsDTO + "'");
-
-
             }
-
         };
     }
 }

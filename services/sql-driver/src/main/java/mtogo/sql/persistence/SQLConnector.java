@@ -38,10 +38,10 @@ public class SQLConnector {
      * Creates an order and its order lines in a single transaction.
      *
      * The orderId is assumed to be generated in customer-service and passed
-     * in via orderDTO.getOrderId().
+     * in via orderDTO.getOrder_id().
      *
      * If anything fails, the transaction is rolled back so that neither the
-     * order nor any order_line rows are persisted.
+     * order or any order_line rows are persisted.
      */
     public OrderDTO createOrder(OrderDTO orderDTO,
                                 List<OrderLineDTO> orderLineDTOS,
