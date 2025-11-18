@@ -1,4 +1,4 @@
-package mtogo.redis.messaging;
+package mtogo.sql.messaging;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -6,10 +6,10 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
-import mtogo.redis.DTO.OrderDTO;
-import mtogo.redis.DTO.OrderDetailsDTO;
-import mtogo.redis.DTO.OrderLineDTO;
-import mtogo.redis.persistence.RedisConnector;
+import mtogo.sql.DTO.OrderDTO;
+import mtogo.sql.DTO.OrderDetailsDTO;
+import mtogo.sql.DTO.OrderLineDTO;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,16 +67,13 @@ public class Consumer {
                 objectMapper.registerModule(new JavaTimeModule());
 
                 OrderDetailsDTO orderDetailsDTO = objectMapper.readValue(delivery.getBody(), OrderDetailsDTO.class);
-                OrderDTO orderDTO = new OrderDTO(orderDetailsDTO);
-                List<OrderLineDTO> orderLineDTOS = new ArrayList<>();
+                OrderDTO order = new OrderDTO(orderDetailsDTO);
+                List<OrderLineDTO> orderLines = new ArrayList<>();
                 for (OrderLineDTO line : orderDetailsDTO.getOrderLines()) {
-                    orderLineDTOS.add(new OrderLineDTO(line.getOrderLineId(), line.getOrderId(), line.getItem_id(), line.getPrice_snapshot(), line.getAmount()));
+                    orderLines.add(new OrderLineDTO(line.getOrderLineId(), line.getOrderId(), line.getItem_id(), line.getPrice_snapshot(), line.getAmount()));
                 }
                 System.out.println(" [x] Received '" + delivery.getEnvelope().getRoutingKey() + "':'" + orderDetailsDTO + "'");
-                // Persist orderDTO and orderDTO lines to Redis
-                RedisConnector redisConnector = RedisConnector.getInstance();
-                redisConnector.createOrder(orderDTO);
-                redisConnector.createOrderLines(orderLineDTOS);
+
 
             }
 

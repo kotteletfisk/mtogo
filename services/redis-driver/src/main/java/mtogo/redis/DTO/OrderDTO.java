@@ -2,33 +2,35 @@ package mtogo.redis.DTO;
 
 import java.sql.Timestamp;
 
-public class Order {
+public class OrderDTO {
     private int order_id;
     private int customer_id;
     private Timestamp order_created;
     private Timestamp order_updated;
-    public enum OrderStatus {
-        Pending,
-        Accepted,
-        PickedUp,
-        Completed
+    public enum orderStatus{
+        created,
+        rejected,
+        accepted,
+        waiting,
+        delivering,
+        delivered
     }
-    private OrderStatus orderStatus;
+    private orderStatus orderStatus;
 
-    public Order(int order_id, int customer_id) {
+    public OrderDTO(int order_id, int customer_id) {
         this.order_id = order_id;
         this.customer_id = customer_id;
         this.order_created = new Timestamp(System.currentTimeMillis());
         this.order_updated = new Timestamp(System.currentTimeMillis());
-        this.orderStatus = OrderStatus.Pending;
+        this.orderStatus = orderStatus.created;
     }
     // Used for consumer when order is created
-    public Order (OrderDetailsDTO orderDetailsDTO) {
+    public OrderDTO(OrderDetailsDTO orderDetailsDTO) {
         this.order_id = orderDetailsDTO.getOrderId();
         this.customer_id = orderDetailsDTO.getCustomerId();
         this.order_created = new Timestamp(System.currentTimeMillis());
         this.order_updated = new Timestamp(System.currentTimeMillis());
-        this.orderStatus = OrderStatus.Pending;
+        this.orderStatus = orderStatus.created;
     }
 
     public int getOrder_id() {
@@ -47,7 +49,7 @@ public class Order {
         return order_updated;
     }
 
-    public OrderStatus getOrderStatus() {
+    public orderStatus getOrderStatus() {
         return orderStatus;
     }
 }

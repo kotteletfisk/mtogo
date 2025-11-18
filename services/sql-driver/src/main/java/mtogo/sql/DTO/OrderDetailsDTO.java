@@ -1,4 +1,4 @@
-package mtogo.customer.DTO;
+package mtogo.sql.DTO;
 
 import java.util.List;
 

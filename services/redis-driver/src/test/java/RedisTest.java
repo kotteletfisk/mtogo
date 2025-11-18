@@ -1,5 +1,5 @@
-import mtogo.redis.DTO.Order;
-import mtogo.redis.DTO.OrderLine;
+import mtogo.redis.DTO.OrderDTO;
+import mtogo.redis.DTO.OrderLineDTO;
 import mtogo.redis.persistence.RedisConnector;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,39 +24,39 @@ public class RedisTest {
     UnifiedJedis jedis;
 
     @Mock
-    Order order;
+    OrderDTO orderDTO;
 
     @Mock
-    OrderLine orderLine1;
+    OrderLineDTO orderLineDTO1;
 
     @Mock
-    OrderLine orderLine2;
+    OrderLineDTO orderLineDTO2;
 
 
     @Test
     public void createOrder(){
         RedisConnector redisConnector = new RedisConnector(jedis);
 
-        when(order.getOrder_id()).thenReturn(1);
-        when(order.getCustomer_id()).thenReturn(123);
+        when(orderDTO.getOrder_id()).thenReturn(1);
+        when(orderDTO.getCustomer_id()).thenReturn(123);
         Timestamp created = new Timestamp(System.currentTimeMillis());
         Timestamp updated = new Timestamp(System.currentTimeMillis());
-        when(order.getOrder_created()).thenReturn(created);
-        when(order.getOrder_updated()).thenReturn(updated);
-        when(order.getOrderStatus()).thenReturn(Order.OrderStatus.Pending);
+        when(orderDTO.getOrder_created()).thenReturn(created);
+        when(orderDTO.getOrder_updated()).thenReturn(updated);
+        when(orderDTO.getOrderStatus()).thenReturn(OrderDTO.orderStatus.created);
 
         ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
 
-        redisConnector.createOrder(order);
+        redisConnector.createOrder(orderDTO);
 
-        verify(jedis).hset(eq("order:1"), mapCaptor.capture());
+        verify(jedis).hset(eq("orderDTO:1"), mapCaptor.capture());
         Map<String, String> map = mapCaptor.getValue();
 
         assertEquals("1", map.get("order_id"));
         assertEquals("123", map.get("customer_id"));
         assertEquals(String.valueOf(created.getTime()), map.get("order_created"));
         assertEquals(String.valueOf(updated.getTime()), map.get("order_updated"));
-        assertEquals("Pending", map.get("order_status"));
+        assertEquals("created", map.get("order_status"));
 
 
     }
@@ -64,23 +64,23 @@ public class RedisTest {
     void createOrderLines_sendsEachOrderLineAsHash() {
         RedisConnector connector = new RedisConnector(jedis);
 
-        when(orderLine1.getOrderLineId()).thenReturn(1);
-        when(orderLine1.getOrderId()).thenReturn(42);
-        when(orderLine1.getItem_id()).thenReturn(100);
-        when(orderLine1.getPrice_snapshot()).thenReturn(50);
-        when(orderLine1.getAmount()).thenReturn(2);
+        when(orderLineDTO1.getOrderLineId()).thenReturn(1);
+        when(orderLineDTO1.getOrderId()).thenReturn(42);
+        when(orderLineDTO1.getItem_id()).thenReturn(100);
+        when(orderLineDTO1.getPrice_snapshot()).thenReturn(50);
+        when(orderLineDTO1.getAmount()).thenReturn(2);
 
-        when(orderLine2.getOrderLineId()).thenReturn(2);
-        when(orderLine2.getOrderId()).thenReturn(42);
-        when(orderLine2.getItem_id()).thenReturn(101);
-        when(orderLine2.getPrice_snapshot()).thenReturn(75);
-        when(orderLine2.getAmount()).thenReturn(1);
+        when(orderLineDTO2.getOrderLineId()).thenReturn(2);
+        when(orderLineDTO2.getOrderId()).thenReturn(42);
+        when(orderLineDTO2.getItem_id()).thenReturn(101);
+        when(orderLineDTO2.getPrice_snapshot()).thenReturn(75);
+        when(orderLineDTO2.getAmount()).thenReturn(1);
 
-        List<OrderLine> orderLines = List.of(orderLine1, orderLine2);
+        List<OrderLineDTO> orderLineDTOS = List.of(orderLineDTO1, orderLineDTO2);
 
         ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
 
-        connector.createOrderLines(orderLines);
+        connector.createOrderLines(orderLineDTOS);
 
         verify(jedis, times(2)).hset(anyString(), anyMap()); // called twice total
 
@@ -106,27 +106,27 @@ public class RedisTest {
 
         RedisConnector connector = new RedisConnector(jedis);
 
-        // Order
-        Order order = mock(Order.class);
-        when(order.getOrder_id()).thenReturn(100);
-        when(order.getCustomer_id()).thenReturn(50);
+        // OrderDTO
+        OrderDTO orderDTO = mock(OrderDTO.class);
+        when(orderDTO.getOrder_id()).thenReturn(100);
+        when(orderDTO.getCustomer_id()).thenReturn(50);
 
         Timestamp created = new Timestamp(1_700_000_000_000L);
         Timestamp updated = new Timestamp(1_700_000_500_000L);
 
-        when(order.getOrder_created()).thenReturn(created);
-        when(order.getOrder_updated()).thenReturn(updated);
-        when(order.getOrderStatus()).thenReturn(Order.OrderStatus.Pending);
+        when(orderDTO.getOrder_created()).thenReturn(created);
+        when(orderDTO.getOrder_updated()).thenReturn(updated);
+        when(orderDTO.getOrderStatus()).thenReturn(OrderDTO.orderStatus.created);
 
         // Orderlines
-        OrderLine line1 = mock(OrderLine.class);
+        OrderLineDTO line1 = mock(OrderLineDTO.class);
         when(line1.getOrderLineId()).thenReturn(1);
         when(line1.getOrderId()).thenReturn(100);
         when(line1.getItem_id()).thenReturn(200);
         when(line1.getPrice_snapshot()).thenReturn(99);
         when(line1.getAmount()).thenReturn(2);
 
-        OrderLine line2 = mock(OrderLine.class);
+        OrderLineDTO line2 = mock(OrderLineDTO.class);
         when(line2.getOrderLineId()).thenReturn(2);
         when(line2.getOrderId()).thenReturn(100);
         when(line2.getItem_id()).thenReturn(300);
@@ -135,19 +135,19 @@ public class RedisTest {
 
         ArgumentCaptor<Map<String,String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
 
-        connector.createOrder(order);
+        connector.createOrder(orderDTO);
         connector.createOrderLines(List.of(line1, line2));
 
 
-        // Order
-        verify(jedis).hset(eq("order:100"), mapCaptor.capture());
+        // OrderDTO
+        verify(jedis).hset(eq("orderDTO:100"), mapCaptor.capture());
         Map<String, String> orderMap = mapCaptor.getValue();
 
         assertEquals("100", orderMap.get("order_id"));
         assertEquals("50", orderMap.get("customer_id"));
         assertEquals(String.valueOf(created.getTime()), orderMap.get("order_created"));
         assertEquals(String.valueOf(updated.getTime()), orderMap.get("order_updated"));
-        assertEquals("Pending", orderMap.get("order_status"));
+        assertEquals("created", orderMap.get("order_status"));
 
         // Orderlines 1
         verify(jedis).hset(eq("orderline:1"), mapCaptor.capture());
