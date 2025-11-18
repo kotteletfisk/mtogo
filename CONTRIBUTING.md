@@ -41,6 +41,16 @@ Style checkers are expected to enforce this.
 All code written is required live up to the [test plan](docs/QA/test_plan.pdf).
 Test are expected to be written by developers alongside developed code, for example by [TDD](https://agilealliance.org/glossary/tdd/).
 
+## Logging
+
+All stdout and stderr are implemented via logging frameworks, where logging levels can be controlled at runtime of the service.
+
+A service should default to INFO level, but should be controllable by environment variables. For example:
+
+`LOG_LEVEL=debug java -jar app.jar`
+
+In java services, we use frameworks that are compatible with the SLF4J api. For example `logback` or `log4j2`
+
 ## Adding Services
 
 Adding a service (a standalone buildable image) requires some careful steps:
