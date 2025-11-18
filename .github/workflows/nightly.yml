@@ -34,20 +34,20 @@ jobs:
         id: latest-tags
         run: |
           echo "" > latest_tags.env
-      
+          
           for svc in $SERVICES; do
             tag=$(curl -s "https://registry.hub.docker.com/v2/repositories/${DOCKER_USER}/$svc/tags?page_size=1" \
                     | jq -r '.results[0].name')
-      
+          
             if [ -z "$tag" ] || [ "$tag" = "null" ]; then
               echo "Failed to retrieve tag for $svc" >&2
               exit 1
             fi
-      
+          
             varname=$(echo $svc | tr 'a-z-' 'A-Z_')_TAG
             echo "$varname=$tag" >> latest_tags.env
           done
-      
+          
           cat latest_tags.env >> $GITHUB_ENV
 
 
@@ -62,7 +62,7 @@ jobs:
 
       - name: Deploy Test Stack
         run: |
-          docker stack deploy -c $STACK_DIR/docker-stack.yml $STACK_NAME
+          set -a && . $ENV_FILE && docker stack deploy -c $STACK_DIR/docker-stack.yml $STACK_NAME
 
       - name: Wait for Services
         run: sleep 60
@@ -90,22 +90,36 @@ jobs:
 
       - name: Retag & Push Production Images
         run: |
+          # Load env file from server
+          set -a
+          source "$ENV_FILE"
+          set +a
+
+          # Build production tag
           PROD_TAG="release-$(date +%Y%m%d)"
 
           for svc in $SERVICES; do
             varname=$(echo $svc | tr 'a-z-' 'A-Z_')_TAG
             SRC_TAG=${!varname}
 
+            # Validate tag exists
+            if [ -z "$SRC_TAG" ]; then
+              echo "ERROR: Missing image tag variable: $varname"
+              exit 1
+            fi
+
             SRC_IMAGE="${DOCKER_USER}/$svc:$SRC_TAG"
             DEST_IMAGE="${DOCKER_USER}/$svc:$PROD_TAG"
+
+            echo "Promoting $SRC_IMAGE → $DEST_IMAGE"
 
             docker pull "$SRC_IMAGE"
             docker tag "$SRC_IMAGE" "$DEST_IMAGE"
             docker push "$DEST_IMAGE"
           done
 
+          # Export PROD_TAG for next steps
           echo "PROD_TAG=$PROD_TAG" >> $GITHUB_ENV
-      
 
       - name: Output Production Tag
         run: echo "PROD_TAG=$PROD_TAG" >> $GITHUB_ENV
