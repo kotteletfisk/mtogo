@@ -62,7 +62,7 @@ jobs:
 
       - name: Deploy Test Stack
         run: |
-          docker stack deploy -c $STACK_DIR/docker-stack.yml $STACK_NAME
+          set -a && . ./.env && docker stack deploy -c $STACK_DIR/docker-stack.yml $STACK_NAME
 
       - name: Wait for Services
         run: sleep 60
