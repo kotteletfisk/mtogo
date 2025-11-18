@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Place Order</h2>
+      <form onsubmit="addItem(event)">
+        <label for="item_id"
+          >Item ID
+          <input id="item_id" type="text" />
+        </label>
+        <label for="item_price"
+          >Item Price
+          <input id="item_price" type="number" min="0" step="0.25" />
+        </label>
+        <label for="item_amount"
+          >Item Amount
+          <input id="item_amount" type="number" min="1" step="1" />
+        </label>
+      </form>
+      <button type="submit">Add</button>
+    </div>
+
+    <div class="container">
+      <h2>Order Items</h2>
+      <table id="order_table" cellpadding="6">
+        <thead>
+          <tr>
+            <th>Item ID</th>
+            <th>Amount</th>
+            <th>Unit Price</th>
+            <th>Subtotal</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <h3>Total Price: <span id="total_price">0</span></h3>
+      <label for="phone">Customer Phone<input type="text" name="phone" id="phone"></label>
+      <button type="submit" onclick="submitOrder(event)">Submit</button>
+    </div>
+
+    <script>
+      function addItem(event) {
+        event.preventDefault();
+
+        const id = document.getElementById("item_id").value.trim();
+        const price = document.getElementById("item_price").value;
+        const amount = document.getElementById("item_amount").value;
+
+        if (!id || !price || !amount) {
+          return;
+        }
+
+        const subtotal = price * amount;
+
+        const table = document
+          .getElementById("order_table")
+          .querySelector("tbody");
+
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td>${id}</td>
+          <td>${amount}</td>
+          <td>${price}</td>
+          <td>${subtotal}</td>
+        `;
+
+        table.appendChild(row);
+
+        // Clear inputs
+        document.getElementById("item_id").value = "";
+        document.getElementById("item_price").value = "";
+        document.getElementById("item_amount").value = "";
+
+        updateTotal();
+      }
+
+      function updateTotal() {
+        const rows = document.querySelectorAll("#order_table tbody tr");
+        let total = 0;
+
+        rows.forEach((row) => {
+          const subtotalCell = row.children[3];
+          const value = parseFloat(subtotalCell.textContent);
+          total += value;
+        });
+
+        document.getElementById("total_price").textContent = total.toFixed(2);
+      }
+
+      function submitOrder(event) {
+        // TODO
+      }
+    </script>
+  </body>
+  <style>
+    body {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    h2,
+    h3 {
+      text-align: center;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: white;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      font-weight: bold;
+      gap: 4px;
+    }
+
+    input,
+    button {
+      padding: 8px;
+      font-size: 14px;
+    }
+
+    button {
+      cursor: pointer;
+      margin-top: 4px;
+      width: 100%;
+    }
+
+    .container {
+      width: 300px;
+      align-items: center;
+      margin: 20px;
+    }
+  </style>
+</html>
