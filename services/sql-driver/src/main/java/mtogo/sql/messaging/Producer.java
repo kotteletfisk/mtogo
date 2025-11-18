@@ -1,10 +1,9 @@
-package mtogo.customer.messaging;
+package mtogo.sql.messaging;
 
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-import mtogo.customer.exceptions.APIException;
-
+import mtogo.sql.exceptions.APIException;
 
 
 public class Producer {
