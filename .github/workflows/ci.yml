@@ -78,6 +78,11 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Effective POM
+        if: ${{ steps.detect.outputs.language == 'java' }}
+        run: mvn help:effective-pom
+        working-directory: services/${{ matrix.service }}
+        
       - name: Test with Maven
         if: ${{ steps.detect.outputs.language == 'java' }}
         run: mvn --batch-mode --update-snapshots verify
