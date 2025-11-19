@@ -1,5 +1,12 @@
-use axum::{  Router, routing::{get, post}};
+use axum::http::{StatusCode};
+use axum::routing::post;
+use axum::{Router};
 use tower_http::services::ServeDir;
+use serde::{Deserialize, Serialize};
+use quick_xml::{de, se};
+use std::error::Error;
+use std::io::Write;
+use std::net::TcpStream;
 
 #[tokio::main]
 
@@ -15,5 +22,54 @@ fn app () -> Router {
     
     Router::new()
         .fallback_service(static_files)
-        .route("/submit", post(|| async { "Hello, World!" }))
+        .route("/submit", post(handle_submit))
+}
+
+async fn handle_submit(body: String) -> Result<(StatusCode, String), (StatusCode, String)>{
+    
+    match de::from_str::<Order>(&body) {
+        Ok(order) => {
+            println!("Received Order: {:?}", order);
+
+            match write_to_db(order) {
+                Ok(()) => {
+                    Ok((StatusCode::CREATED, String::from("Order Created")))
+                }
+                Err(e) => {
+                    Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
+                }
+            }
+        }
+        Err(e) => {
+            println!("Failed to serialize order: {}", e);
+            Err((StatusCode::BAD_REQUEST, e.to_string()))
+        }
+    }
+}
+
+fn write_to_db(order: Order) -> Result<(), Box<dyn Error>> {
+
+    let xml_payload = se::to_string(&order)?;
+    let mut stream = TcpStream::connect("127.0.0.1:1984")?;
+
+    stream.write_all(xml_payload.as_bytes())?;
+    stream.shutdown(std::net::Shutdown::Write)?;
+    
+    Ok(())
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+struct Order {
+    order_line: Vec<OrderLine>,
+    total: f32,
+    phone: String,
+}
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+struct OrderLine {
+    item_id : String,
+    amount: i32,
+    unit_price: f32,
+    sub_total: f32,
 }
