@@ -21,8 +21,8 @@
           >Item Amount
           <input id="item_amount" type="number" min="1" step="1" />
         </label>
+        <button type="submit">Add</button>
       </form>
-      <button type="submit">Add</button>
     </div>
 
     <div class="container">
@@ -39,63 +39,14 @@
         <tbody></tbody>
       </table>
       <h3>Total Price: <span id="total_price">0</span></h3>
-      <label for="phone">Customer Phone<input type="text" name="phone" id="phone"></label>
+      <label for="phone"
+        >Customer Phone<input type="text" name="phone" id="phone"
+      /></label>
       <button type="submit" onclick="submitOrder(event)">Submit</button>
+      <div class="err"><span id="errmsg"></span></div>
     </div>
 
-    <script>
-      function addItem(event) {
-        event.preventDefault();
-
-        const id = document.getElementById("item_id").value.trim();
-        const price = document.getElementById("item_price").value;
-        const amount = document.getElementById("item_amount").value;
-
-        if (!id || !price || !amount) {
-          return;
-        }
-
-        const subtotal = price * amount;
-
-        const table = document
-          .getElementById("order_table")
-          .querySelector("tbody");
-
-        const row = document.createElement("tr");
-
-        row.innerHTML = `
-          <td>${id}</td>
-          <td>${amount}</td>
-          <td>${price}</td>
-          <td>${subtotal}</td>
-        `;
-
-        table.appendChild(row);
-
-        // Clear inputs
-        document.getElementById("item_id").value = "";
-        document.getElementById("item_price").value = "";
-        document.getElementById("item_amount").value = "";
-
-        updateTotal();
-      }
-
-      function updateTotal() {
-        const rows = document.querySelectorAll("#order_table tbody tr");
-        let total = 0;
-
-        rows.forEach((row) => {
-          const subtotalCell = row.children[3];
-          const value = parseFloat(subtotalCell.textContent);
-          total += value;
-        });
-
-        document.getElementById("total_price").textContent = total.toFixed(2);
-      }
-
-      function submitOrder(event) {
-        // TODO
-      }
+    <script src="legacy.js">
     </script>
   </body>
   <style>
@@ -143,6 +94,11 @@
       width: 300px;
       align-items: center;
       margin: 20px;
+    }
+
+    .err {
+      color: red;
+      padding: 4px;
     }
   </style>
 </html>

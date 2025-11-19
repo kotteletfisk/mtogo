@@ -1,4 +1,4 @@
-use axum::{  routing::get, Router};
+use axum::{  Router, routing::{get, post}};
 use tower_http::services::ServeDir;
 
 #[tokio::main]
@@ -15,4 +15,5 @@ fn app () -> Router {
     
     Router::new()
         .fallback_service(static_files)
+        .route("/submit", post(|| async { "Hello, World!" }))
 }
