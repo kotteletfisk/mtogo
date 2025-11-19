@@ -2,7 +2,7 @@
 import io.javalin.http.Context;
 import io.javalin.validation.BodyValidator;
 import mtogo.customer.DTO.OrderDetailsDTO;
-import mtogo.customer.DTO.OrderLine;
+import mtogo.customer.DTO.OrderLineDTO;
 import mtogo.customer.controller.OrderController;
 import mtogo.customer.exceptions.APIException;
 import mtogo.customer.messaging.Producer;
@@ -29,13 +29,13 @@ class OrderControllerTest {
     BodyValidator<OrderDetailsDTO> bodyValidator;
 
     private OrderDetailsDTO buildValidOrder() {
-        List<OrderLine> lines = List.of(
-                new OrderLine(10, 1, 2, 500, 2)
+        List<OrderLineDTO> lines = List.of(
+                new OrderLineDTO(10, 1, 2, 500, 2)
         );
         return new OrderDetailsDTO(
                 1,
                 123,
-                OrderDetailsDTO.orderStatus.Pending,
+                OrderDetailsDTO.orderStatus.created,
                 lines
         );
     }
@@ -95,8 +95,8 @@ class OrderControllerTest {
     @Test
     void validateOrderDTO() {
         OrderController controller = OrderController.getInstance();
-        OrderDetailsDTO expected = new OrderDetailsDTO(1, 123, OrderDetailsDTO.orderStatus.Pending,
-                List.of(new OrderLine(10, 1, 10, 500, 1)));
+        OrderDetailsDTO expected = new OrderDetailsDTO(1, 123, OrderDetailsDTO.orderStatus.created,
+                List.of(new OrderLineDTO(10, 1, 10, 500, 1)));
 
         when(ctx.bodyValidator(OrderDetailsDTO.class)).thenReturn(bodyValidator);
         when(bodyValidator.check(any(), anyString())).thenReturn(bodyValidator);

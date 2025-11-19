@@ -1,6 +1,6 @@
-package mtogo.redis.DTO;
+package mtogo.customer.DTO;
 
-public class OrderLine {
+public class OrderLineDTO {
     private int orderLineId;
     private int orderId;
     private int item_id;
@@ -8,7 +8,7 @@ public class OrderLine {
     private int amount;
 
 
-    public OrderLine(int orderLineId, int orderId, int item_id, int price_snapshot, int amount) {
+    public OrderLineDTO(int orderLineId, int orderId, int item_id, int price_snapshot, int amount) {
         this.orderLineId = orderLineId;
         this.orderId = orderId;
         this.item_id = item_id;

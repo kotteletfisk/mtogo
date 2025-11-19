@@ -1,9 +1,20 @@
 package mtogo.redis;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+
+import io.javalin.Javalin;
+import mtogo.redis.messaging.Consumer;
+
 public class Main {
     public static void main(String[] args) {
-        // Arbitrary comment
+
+        try {
+            String[] bindingKeys = { "customer:order_creation" };
+            Consumer.consumeMessages(bindingKeys);
+            System.out.println("redis-driver started, listening for order events...");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
+
 }

@@ -7,25 +7,27 @@ public class OrderDetailsDTO {
     private int customerId;
 
     public enum orderStatus{
-        Pending,
-        Accepted,
-        PickedUp,
-        Completed
+        created,
+        rejected,
+        accepted,
+        waiting,
+        delivering,
+        delivered
     }
     private orderStatus status;
-    private List<OrderLine>  orderLines;
+    private List<OrderLineDTO> orderLineDTOS;
 
     public OrderDetailsDTO() {}
 
-    public OrderDetailsDTO(int orderId, int customerId, orderStatus status, List<OrderLine> orderLines) {
+    public OrderDetailsDTO(int orderId, int customerId, orderStatus status, List<OrderLineDTO> orderLineDTOS) {
         this.orderId = orderId;
         this.customerId = customerId;
         this.status = status;
-        this.orderLines = orderLines;
+        this.orderLineDTOS = orderLineDTOS;
     }
 
-    public List<OrderLine> getOrderLines() {
-        return orderLines;
+    public List<OrderLineDTO> getOrderLines() {
+        return orderLineDTOS;
     }
 
     public orderStatus getStatus() {
