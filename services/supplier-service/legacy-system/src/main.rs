@@ -12,7 +12,7 @@ use tower_http::services::ServeDir;
 
 async fn main() {
     let app = app();
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
     println!("server on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }
@@ -30,7 +30,7 @@ async fn handle_submit(body: String) -> Result<(StatusCode, String), (StatusCode
         Ok(order) => {
             println!("Received Order: {:?}", order);
 
-            match write_to_db(order) {
+            match write_to_db(order).await {
                 Ok(()) => Ok((StatusCode::CREATED, String::from("Order Created"))),
                 Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
             }
@@ -42,7 +42,7 @@ async fn handle_submit(body: String) -> Result<(StatusCode, String), (StatusCode
     }
 }
 
-fn write_to_db(order: Order) -> Result<(), Box<dyn Error>> {
+async fn write_to_db(order: Order) -> Result<(), Box<dyn Error>> {
     let xml_payload = se::to_string(&order)?;
     let mut stream = TcpStream::connect("127.0.0.1:1984")?;
 
