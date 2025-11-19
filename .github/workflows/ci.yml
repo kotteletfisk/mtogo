@@ -77,7 +77,7 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
-
+        
       - name: Test with Maven
         if: ${{ steps.detect.outputs.language == 'java' }}
         run: mvn --batch-mode --update-snapshots verify
