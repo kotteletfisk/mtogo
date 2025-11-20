@@ -1,4 +1,4 @@
-name: Nightly Heavy Tests & Promotion Prep
+name: Nightly Test, Promote & Deploy
 
 on:
   schedule:
@@ -7,119 +7,129 @@ on:
 
 env:
   STACK_NAME: mtogo-system
-  STACK_DIR: /home/${{ secrets.SERVER_NAME }}/mtogo
-  ENV_FILE: /home/${{ secrets.SERVER_NAME }}/mtogo/.env
+  SERVICES: courier-service customer-service management-service supplier-service support-service sql-driver redis-driver mongodb-driver
   DOCKER_USER: ${{ secrets.DOCKER_USER }}
   DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
-  SERVICES: courier-service customer-service management-service supplier-service support-service sql-driver redis-driver mongodb-driver
+  DISCORD_WEBHOOK: https://discord.com/api/webhooks/1441150752008441866/rr543gwGRucH1B2jIMc9_xzTHDM4rHQYkxhvdnk8lyEozkJBjkqajPKvdUhXz8IlB2o7
 
 jobs:
   nightly-test:
-    name: Nightly Heavy Tests
-    runs-on: self-hosted
-    outputs:
-      IMAGE_TAG: ${{ steps.set-image-tag.outputs.image_tag }}
+    runs-on: mtogo-test
+    name: Nightly Test on Test Server
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Deploy Updated Stack File to Test Server
+        run: sudo cp docker-stack.yml /home/${{ secrets.SERVER_NAME }}/mtogo/
+
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Pull Latest Tags & Update .env
+        run: |
+          echo "" > latest_tags.env
+          for svc in $SERVICES; do
+            tag=$(curl -s "https://registry.hub.docker.com/v2/repositories/${DOCKER_USER}/$svc/tags?page_size=1" \
+                    | jq -r '.results[0].name')
+            [ -z "$tag" ] && exit 1
+            varname=$(echo $svc | tr 'a-z-' 'A-Z_')_TAG
+            echo "$varname=$tag" >> latest_tags.env
+            sed -i "s/^${varname}=.*/${varname}=${tag}/" /home/${{ secrets.SERVER_NAME }}/mtogo/.env
+          done
+
+      - name: Deploy Test Stack
+        run: |
+          set -a && . /home/${{ secrets.SERVER_NAME }}/mtogo/.env && docker stack deploy -c /home/${{ secrets.SERVER_NAME }}/mtogo/docker-stack.yml $STACK_NAME
+
+      - name: Wait for Test Services
+        run: sleep 60
+
+      - name: Run Heavy Tests
+        run: echo "Running very important heavy tests"
+
+      - name: Check Test Results
+        id: testcheck
+        run: echo "Checking if test results are fine"
+
+  promote-and-deploy-prod:
+    needs: nightly-test
+    runs-on: mtogo-prod
+    if: ${{ needs.nightly-test.result == 'success' }}
+    name: Promote & Deploy to Production
     steps:
 
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Docker Hub Login
+      - name: Copy Stack File to Prod
+        run: sudo cp docker-stack.yml /home/${{ secrets.SERVER_NAME }}/mtogo/
+
+      - name: Docker Login
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
-      - name: Retrieve Latest Tags per Service
-        id: latest-tags
+      - name: Pull & Tag Production Images
         run: |
-          echo "" > latest_tags.env
-          
-          for svc in $SERVICES; do
-            tag=$(curl -s "https://registry.hub.docker.com/v2/repositories/${DOCKER_USER}/$svc/tags?page_size=1" \
-                    | jq -r '.results[0].name')
-          
-            if [ -z "$tag" ] || [ "$tag" = "null" ]; then
-              echo "Failed to retrieve tag for $svc" >&2
-              exit 1
-            fi
-          
-            varname=$(echo $svc | tr 'a-z-' 'A-Z_')_TAG
-            echo "$varname=$tag" >> latest_tags.env
-          done
-          
-          cat latest_tags.env >> $GITHUB_ENV
-
-
-      - name: Update Test .env
-        run: |
-          for svc in $SERVICES; do
-            varname=$(echo $svc | tr 'a-z-' 'A-Z_')_TAG
-            tag_value=${!varname}
-
-            sed -i "s/^${varname}=.*/${varname}=${tag_value}/" $ENV_FILE
-          done
-
-      - name: Deploy Test Stack
-        run: |
-          set -a && . $ENV_FILE && docker stack deploy -c $STACK_DIR/docker-stack.yml $STACK_NAME
-
-      - name: Wait for Services
-        run: sleep 60
-
-      - name: Run Heavy Tests
-        run: |
-          echo "Running very important heavy tests"
-
-      - name: Check Test Results
-        id: testcheck
-        run: |
-          echo "Checking if test results are fine"
-
-  promote-images:
-    name: Promote Images to Production Tag
-    runs-on: self-hosted
-    needs: nightly-test
-    if: ${{ needs.nightly-test.result == 'success' }}
-    steps:
-      - name: Docker Hub Login
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USER }}
-          password: ${{ secrets.DOCKER_TOKEN }}
-
-      - name: Retag & Push Production Images
-        run: |
-          # Load env file from server
-          set -a
-          source "$ENV_FILE"
-          set +a
-
-          # Build production tag
           PROD_TAG="release-$(date +%Y%m%d)"
-
           for svc in $SERVICES; do
-            varname=$(echo $svc | tr 'a-z-' 'A-Z_')_TAG
-            SRC_TAG=${!varname}
-
-            # Validate tag exists
-            if [ -z "$SRC_TAG" ]; then
-              echo "ERROR: Missing image tag variable: $varname"
-              exit 1
-            fi
-
-            SRC_IMAGE="${DOCKER_USER}/$svc:$SRC_TAG"
-            DEST_IMAGE="${DOCKER_USER}/$svc:$PROD_TAG"
-
-            echo "Promoting $SRC_IMAGE → $DEST_IMAGE"
-
-            docker pull "$SRC_IMAGE"
-            docker tag "$SRC_IMAGE" "$DEST_IMAGE"
-            docker push "$DEST_IMAGE"
+            SRC_TAG=$(grep "$(echo $svc | tr 'a-z-' 'A-Z_')_TAG" /home/${{ secrets.SERVER_NAME }}/mtogo/.env | cut -d '=' -f2)
+            docker pull "$DOCKER_USER/$svc:$SRC_TAG"
+            docker tag "$DOCKER_USER/$svc:$SRC_TAG" "$DOCKER_USER/$svc:$PROD_TAG"
+            docker push "$DOCKER_USER/$svc:$PROD_TAG"
+            sed -i "s/^$(echo $svc | tr 'a-z-' 'A-Z_')_TAG=.*/$(echo $svc | tr 'a-z-' 'A-Z_')_TAG=$PROD_TAG/" /home/${{ secrets.SERVER_NAME }}/mtogo/.env
           done
 
-          # Export PROD_TAG for next steps
-          echo "PROD_TAG=$PROD_TAG" >> $GITHUB_ENV
+      - name: Deploy Prod Stack
+        run: |
+          set -a && . /home/${{ secrets.SERVER_NAME }}/mtogo/.env && docker stack deploy -c /home/${{ secrets.SERVER_NAME }}/mtogo/docker-stack.yml $STACK_NAME
 
-      - name: Output Production Tag
-        run: echo "PROD_TAG=$PROD_TAG" >> $GITHUB_ENV
+      - name: Wait for Services to Start
+        run: sleep 45
+
+      - name: Health Check Caddy + Customer with Retry
+        id: healthcheck
+        run: |
+          MAX_RETRIES=10
+          SLEEP_INTERVAL=30
+
+          function check_health {
+            local URL=$1
+            for i in $(seq 1 $MAX_RETRIES); do
+              HTTP_CODE=$(curl -sf -o /dev/null -w "%{http_code}" "$URL" || echo "000")
+              if [ "$HTTP_CODE" -eq 200 ]; then
+                echo "$URL healthy."
+                return 0
+              else
+                echo "Attempt $i/$MAX_RETRIES for $URL failed (HTTP $HTTP_CODE). Retrying in $SLEEP_INTERVAL s..."
+                sleep $SLEEP_INTERVAL
+              fi
+            done
+            echo "$URL failed healthcheck."
+            return 1
+          }
+
+          check_health "http://caddy:80/health"
+          check_health "https://customer-service:7070/api/health"
+
+      - name: On Fail → Rollback & Notify Discord
+        if: failure()
+        run: |
+          source /home/${{ secrets.SERVER_NAME }}/mtogo/last-stable.env
+          echo "ROLLBACK to $LAST_STABLE"
+          for svc in $SERVICES; do
+            sed -i "s/^$(echo $svc | tr 'a-z-' 'A-Z_')_TAG=.*/$(echo $svc | tr 'a-z-' 'A-Z_')_TAG=$LAST_STABLE/" /home/${{ secrets.SERVER_NAME }}/mtogo/.env
+          done
+          set -a && . /home/${{ secrets.SERVER_NAME }}/mtogo/.env && docker stack deploy -c /home/${{ secrets.SERVER_NAME }}/mtogo/docker-stack.yml $STACK_NAME
+          curl -H "Content-Type: application/json" -X POST -d "{\"content\": \"❌ Deployment FAILED on production. Rolled back to $LAST_STABLE\"}" $DISCORD_WEBHOOK
+
+      - name: On Success update last stable and Notify Discord
+        if: success()
+        run: |
+          echo "LAST_STABLE=$PROD_TAG" | sudo tee /home/${{ secrets.SERVER_NAME }}/mtogo/last-stable.env > /dev/null
+          curl -H "Content-Type: application/json" -X POST -d "{\"content\": \"✅ Deployment SUCCESS on production! All systems healthy.\"}" $DISCORD_WEBHOOK
