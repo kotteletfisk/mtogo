@@ -26,6 +26,7 @@ public class OrderController {
 
     /**
      * Creates a new order. Publishes an order creation message to the message broker with the OrderDetailsDTO.
+     * The orderId is generated server-side.
      * @param ctx the Javalin context.
      */
     public void createOrder(Context ctx){
