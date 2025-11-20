@@ -101,7 +101,7 @@ jobs:
           function check_health {
             local URL=$1
             for i in $(seq 1 $MAX_RETRIES); do
-              HTTP_CODE=$(curl -sf -o /dev/null -w "%{http_code}" "$URL" || echo "000")
+              HTTP_CODE=$(curl -sfL -o /dev/null -w "%{http_code}" "$URL" || echo "000")
               if [ "$HTTP_CODE" -eq 200 ]; then
                 echo "$URL healthy."
                 return 0
