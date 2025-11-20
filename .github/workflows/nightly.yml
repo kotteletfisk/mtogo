@@ -101,7 +101,7 @@ jobs:
           function check_health {
             local URL=$1
             for i in $(seq 1 $MAX_RETRIES); do
-              HTTP_CODE=$(curl -sk -o /dev/null -w "%{http_code}" "$URL" || echo "000")
+              HTTP_CODE=$(curl -sf -o /dev/null -w "%{http_code}" "$URL" || echo "000")
               if [ "$HTTP_CODE" -eq 200 ]; then
                 echo "$URL healthy."
                 return 0
@@ -114,8 +114,8 @@ jobs:
             return 1
           }
 
-          check_health "https://localhost:443/health"
-          check_health "https://localhost:7071/api/health"
+          
+          check_health "http://localhost:7071/api/health"
 
       - name: On Fail → Rollback & Notify Discord
         if: failure()
