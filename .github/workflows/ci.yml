@@ -15,7 +15,7 @@ on:
 jobs:
   detect-changes:
     name: Detect Changed Services
-    runs-on: self-hosted
+    runs-on: mtogo-test
     outputs:
       changed-services: ${{ steps.filter.outputs.changes }}
     steps:
@@ -48,7 +48,7 @@ jobs:
     name: Test & Build per Service
     needs: detect-changes
     if: ${{ needs.detect-changes.outputs.changed-services != '[]' }}
-    runs-on: self-hosted
+    runs-on: mtogo-test
     strategy:
       fail-fast: false
       matrix:
