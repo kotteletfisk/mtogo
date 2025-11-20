@@ -14,7 +14,7 @@ env:
 
 jobs:
   nightly-test:
-    runs-on: mtogo-test
+    runs-on: [self-hosted, test]
     name: Nightly Test on Test Server
     steps:
       - name: Checkout Repository
@@ -57,7 +57,7 @@ jobs:
 
   promote-and-deploy-prod:
     needs: nightly-test
-    runs-on: mtogo-prod
+    runs-on: [self-hosted, prod]
     if: ${{ needs.nightly-test.result == 'success' }}
     name: Promote & Deploy to Production
     steps:
