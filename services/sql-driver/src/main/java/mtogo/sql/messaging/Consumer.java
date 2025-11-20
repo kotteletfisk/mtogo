@@ -27,8 +27,7 @@ public class Consumer {
 
     static ConnectionFactory connectionFactory = createDefaultFactory();
 
-
-    private static ConnectionFactory createDefaultFactory() {
+     private static ConnectionFactory createDefaultFactory() {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("rabbitMQ");
         factory.setPort(5672);
@@ -36,6 +35,8 @@ public class Consumer {
         factory.setPassword(System.getenv("RABBITMQ_PASS"));
         return factory;
     }
+
+
     // Injectable connectionfactory for testing
     public static void setConnectionFactory(ConnectionFactory factory) {
         connectionFactory = factory;
@@ -47,17 +48,23 @@ public class Consumer {
      * @throws Exception if an error occurs while consuming messages
      */
     public static void consumeMessages(String[] bindingKeys) throws Exception{
-        Connection connection = connectionFactory.newConnection();
-        Channel channel = connection.createChannel();
 
-        channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
-        String queueName = channel.queueDeclare().getQueue();
+        try (Connection connection = connectionFactory.newConnection()){
+            Channel channel = connection.createChannel();
 
-        for (String bindingKey : bindingKeys) {
-            channel.queueBind(queueName, EXCHANGE_NAME, bindingKey);
+            channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
+            String queueName = channel.queueDeclare().getQueue();
+
+            for (String bindingKey : bindingKeys) {
+                channel.queueBind(queueName, EXCHANGE_NAME, bindingKey);
+            }
+
+            channel.basicConsume(queueName, true, deliverCallback(), consumerTag -> { });
+        }
+        catch (Exception e){
+            e.printStackTrace();
         }
 
-        channel.basicConsume(queueName, true, deliverCallback(), consumerTag -> { });
     }
 
 
@@ -90,6 +97,9 @@ public class Consumer {
                     }
 
                     System.out.println(" [x] Received '" + routingKey + "':'" + orderDetailsDTO + "'");
+                    String bodyStr = new String(delivery.getBody(), java.nio.charset.StandardCharsets.UTF_8);
+                    System.out.println(" [x] Raw message body: " + bodyStr);
+
 
                     SQLConnector sqlConnector = new SQLConnector();
                     try (java.sql.Connection conn = sqlConnector.getConnection()) {

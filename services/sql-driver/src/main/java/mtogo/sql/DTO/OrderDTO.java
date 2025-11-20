@@ -2,9 +2,10 @@ package mtogo.sql.DTO;
 
 
 import java.sql.Timestamp;
+import java.util.UUID;
 
 public class OrderDTO {
-    private int order_id;
+    private UUID order_id;
     private int customer_id;
     private Timestamp order_created;
     private Timestamp order_updated;
@@ -18,7 +19,7 @@ public class OrderDTO {
     }
     private orderStatus orderStatus;
 
-    public OrderDTO(int order_id, int customer_id) {
+    public OrderDTO(UUID order_id, int customer_id) {
         this.order_id = order_id;
         this.customer_id = customer_id;
         this.order_created = new Timestamp(System.currentTimeMillis());
@@ -34,7 +35,7 @@ public class OrderDTO {
         this.orderStatus = orderStatus.created;
     }
 
-    public int getOrder_id() {
+    public UUID getOrder_id() {
         return order_id;
     }
 

@@ -1,6 +1,5 @@
 BEGIN;
 
-CREATE TYPE orderstatus AS ENUM ('created', 'rejected', 'accepted', 'waiting', 'delivering','delivered');
 
 CREATE TABLE IF NOT EXISTS public.customer
 (
@@ -11,13 +10,13 @@ CREATE TABLE IF NOT EXISTS public.customer
     customer_creds character varying(50),
     PRIMARY KEY (customer_id)
 );
-CREATE TABLE IF NOT EXISTS public."orderDTO"
+CREATE TABLE IF NOT EXISTS public."orders"
 (
     order_id uuid NOT NULL,
     customer_id int NOT NULL,
     order_created timestamp without time zone NOT NULL,
     order_updated timestamp without time zone NOT NULL,
-    order_status orderstatus NOT NULL,
+    order_status VARCHAR(50) NOT NULL,
     PRIMARY KEY (order_id)
 );
 
@@ -67,7 +66,7 @@ CREATE TABLE IF NOT EXISTS public.courier_order
     PRIMARY KEY (courier_order_id)
 );
 
-ALTER TABLE IF EXISTS public."orderDTO"
+ALTER TABLE IF EXISTS public."orders"
     ADD CONSTRAINT fk_customer_id FOREIGN KEY (customer_id)
     REFERENCES public.customer (customer_id) MATCH SIMPLE
     ON UPDATE NO ACTION
@@ -85,7 +84,7 @@ ALTER TABLE IF EXISTS public.menu_item
 
 ALTER TABLE IF EXISTS public.order_line
     ADD CONSTRAINT fk_order_id FOREIGN KEY (order_id)
-    REFERENCES public."orderDTO" (order_id) MATCH SIMPLE
+    REFERENCES public."orders" (order_id) MATCH SIMPLE
     ON UPDATE NO ACTION
     ON DELETE NO ACTION
     NOT VALID;
@@ -109,7 +108,7 @@ ALTER TABLE IF EXISTS public.courier_order
 
 ALTER TABLE IF EXISTS public.courier_order
     ADD CONSTRAINT fk_order_id FOREIGN KEY (order_id)
-    REFERENCES public."orderDTO" (order_id) MATCH SIMPLE
+    REFERENCES public."orders" (order_id) MATCH SIMPLE
     ON UPDATE NO ACTION
     ON DELETE NO ACTION
     NOT VALID;

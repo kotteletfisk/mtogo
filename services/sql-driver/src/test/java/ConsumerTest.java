@@ -1,6 +1,5 @@
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.*;
-import mtogo.sql.DTO.OrderDTO;
 import mtogo.sql.DTO.OrderDetailsDTO;
 import mtogo.sql.DTO.OrderLineDTO;
 import mtogo.sql.messaging.Consumer;
@@ -16,8 +15,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.*;
@@ -79,25 +78,22 @@ class ConsumerTest {
     }
 
     // Helper: build a real OrderDetailsDTO with a non-null orderLines list.
-    // Adjust constructor if your actual DTO has a different signature.
     private OrderDetailsDTO buildOrderDetailsDTO() {
-        Timestamp now = new Timestamp(System.currentTimeMillis());
+        UUID orderId = UUID.randomUUID();
 
         OrderLineDTO line = new OrderLineDTO(
-                1,      // orderLineId
-                100,    // orderId
-                10,     // item_id
-                50.0f,  // price_snapshot
-                2       // amount
+                1,          // orderLineId
+                orderId,    // orderId (UUID)
+                10,         // item_id
+                50.0f,      // price_snapshot
+                2           // amount
         );
 
-        // Assuming your OrderDetailsDTO looks something like:
-        // new OrderDetailsDTO(int orderId, int customerId,
-        //                     Timestamp created, Timestamp updated,
-        //                     OrderDTO.OrderStatus status,
-        //                     List<OrderLineDTO> orderLines)
+        // Assuming SQL OrderDetailsDTO looks like:
+        // new OrderDetailsDTO(UUID orderId, int customerId,
+        //                     orderStatus status, List<OrderLineDTO> orderLines)
         return new OrderDetailsDTO(
-                100,
+                orderId,
                 1,
                 OrderDetailsDTO.orderStatus.created,
                 List.of(line)
@@ -123,9 +119,10 @@ class ConsumerTest {
 
         try (MockedConstruction<SQLConnector> sqlMock = mockConstruction(SQLConnector.class,
                 (mock, context) -> {
-                    // ✅ Simulate a real DB connection
+                    // Simulate a real DB connection so try-with-resources doesn't NPE
                     Connection conn = mock(Connection.class);
                     when(mock.getConnection()).thenReturn(conn);
+                    // createOrder: default (do nothing, no exception)
                 });
              MockedStatic<Producer> producerMock = mockStatic(Producer.class)) {
 
@@ -137,7 +134,7 @@ class ConsumerTest {
             // Assert: SQLConnector.createOrder was called
             assertFalse(sqlMock.constructed().isEmpty(), "SQLConnector was never constructed");
             SQLConnector connector = sqlMock.constructed().get(0);
-            verify(connector).createOrder(any(), anyList(), any());
+            verify(connector).createOrder(any(), anyList(), any(Connection.class));
 
             // Assert: Producer.publishMessage was called with correct routing key
             producerMock.verify(() ->
@@ -166,18 +163,23 @@ class ConsumerTest {
         try (MockedConstruction<SQLConnector> sqlMock = mockConstruction(SQLConnector.class,
                 (mock, context) -> {
                     Connection conn = mock(Connection.class);
-                    when(mock.createOrder(any(), anyList(), any()))
-                            .thenThrow(new SQLException("DB failure"));
+                    when(mock.getConnection()).thenReturn(conn);
+                    // Force DB failure when createOrder is called
+                    doThrow(new SQLException("DB failure"))
+                            .when(mock).createOrder(any(), anyList(), any(Connection.class));
                 });
              MockedStatic<Producer> producerMock = mockStatic(Producer.class)) {
 
             DeliverCallback cb = getDeliverCallback();
 
+            // Act
             cb.handle("ctag-2", delivery);
 
+            // Assert: DB write attempted
             SQLConnector connector = sqlMock.constructed().get(0);
-            verify(connector).createOrder(any(), anyList(), any());
+            verify(connector).createOrder(any(), anyList(), any(Connection.class));
 
+            // Assert: NO publish on failure
             producerMock.verifyNoInteractions();
         }
     }

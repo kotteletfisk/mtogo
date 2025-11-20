@@ -15,6 +15,9 @@ public class Producer {
     private static ConnectionFactory createDefaultFactory() {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("rabbitMQ");
+        factory.setPort(5672);
+        factory.setUsername(System.getenv("RABBITMQ_USER"));
+        factory.setPassword(System.getenv("RABBITMQ_PASS"));
         return factory;
     }
     // Used to overwrite connectionfactory (For testing)
@@ -32,8 +35,7 @@ public class Producer {
      */
 
     public static boolean publishMessage(String routingKey, String message) throws APIException {
-        ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost("rabbitMQ");
+
         try (Connection connection = connectionFactory.newConnection();
              Channel channel = connection.createChannel()) {
             channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);

@@ -33,41 +33,33 @@ public class RedisConnector {
     }
 
     /**
-     * Creates an orderDTO in Redis
-     * @param orderDTO the orderDTO to create
+     * Creates an order in Redis
+     * @param order the order to create
      */
-    public void createOrder(OrderDTO orderDTO){
-        try {
-            String key = "orderDTO:" + orderDTO.getOrder_id();
-            Map<String, String> orderMap = new HashMap<>();
-            orderMap.put("order_id", String.valueOf(orderDTO.getOrder_id()));
-            orderMap.put("customer_id", String.valueOf(orderDTO.getCustomer_id()));
-            orderMap.put("order_created", String.valueOf(orderDTO.getOrder_created().getTime()));
-            orderMap.put("order_updated", String.valueOf(orderDTO.getOrder_updated().getTime()));
-            orderMap.put("order_status", orderDTO.getOrderStatus().name());
-            jedis.hset(key, orderMap);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public void createOrder(OrderDTO order) {
+        Map<String, String> map = new HashMap<>();
+        map.put("order_id", order.getOrder_id().toString());
+        map.put("customer_id", String.valueOf(order.getCustomer_id()));
+        map.put("order_created", String.valueOf(order.getOrder_created().getTime()));
+        map.put("order_updated", String.valueOf(order.getOrder_updated().getTime()));
+        map.put("order_status", order.getOrderStatus().name());
+
+        jedis.hset("order:" + order.getOrder_id().toString(), map);
     }
     /**
      * Creates order lines in Redis
-     * @param orderLineDTOS the list of order lines to create
+     * @param lines the list of order lines to create
      */
-    public void createOrderLines(List<OrderLineDTO> orderLineDTOS){
-        try {
-            for (OrderLineDTO orderLineDTO : orderLineDTOS) {
-                String key = "orderline:" + orderLineDTO.getOrderLineId();
-                Map<String, String> orderLineMap = new HashMap<>();
-                orderLineMap.put("order_line_id", String.valueOf(orderLineDTO.getOrderLineId()));
-                orderLineMap.put("order_id", String.valueOf(orderLineDTO.getOrderId()));
-                orderLineMap.put("item_id",  String.valueOf(orderLineDTO.getItem_id()));
-                orderLineMap.put("price_snapshot", String.valueOf(orderLineDTO.getPrice_snapshot()));
-                orderLineMap.put("amount", String.valueOf(orderLineDTO.getAmount()));
-                jedis.hset(key, orderLineMap);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+    public void createOrderLines(List<OrderLineDTO> lines) {
+        for (OrderLineDTO l : lines) {
+            Map<String, String> map = new HashMap<>();
+            map.put("order_line_id", String.valueOf(l.getOrderLineId()));
+            map.put("order_id", l.getOrderId().toString());
+            map.put("item_id", String.valueOf(l.getItem_id()));
+            map.put("price_snapshot", String.valueOf(l.getPrice_snapshot()));
+            map.put("amount", String.valueOf(l.getAmount()));
+
+            jedis.hset("orderline:" + l.getOrderLineId(), map);
         }
     }
 
