@@ -10,7 +10,7 @@ env:
   SERVICES: courier-service customer-service management-service supplier-service support-service sql-driver redis-driver mongodb-driver
   DOCKER_USER: ${{ secrets.DOCKER_USER }}
   DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
-  DISCORD_WEBHOOK: https://discord.com/api/webhooks/1441150752008441866/rr543gwGRucH1B2jIMc9_xzTHDM4rHQYkxhvdnk8lyEozkJBjkqajPKvdUhXz8IlB2o7
+  DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
 
 jobs:
   nightly-test:
@@ -92,7 +92,7 @@ jobs:
       - name: Wait for Services to Start
         run: sleep 45
 
-      - name: Health Check Caddy + Customer with Retry
+      - name: Health Check
         id: healthcheck
         run: |
           MAX_RETRIES=10
@@ -114,8 +114,8 @@ jobs:
             return 1
           }
 
-          check_health "http://caddy:80/health"
-          check_health "https://customer-service:7070/api/health"
+          check_health "http://localhost:80/health"
+          check_health "http://localhost:7071/api/health"
 
       - name: On Fail → Rollback & Notify Discord
         if: failure()
