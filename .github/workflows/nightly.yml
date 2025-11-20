@@ -10,7 +10,7 @@ env:
   SERVICES: courier-service customer-service management-service supplier-service support-service sql-driver redis-driver mongodb-driver
   DOCKER_USER: ${{ secrets.DOCKER_USER }}
   DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
-  DISCORD_WEBHOOK: https://discord.com/api/webhooks/1441150752008441866/rr543gwGRucH1B2jIMc9_xzTHDM4rHQYkxhvdnk8lyEozkJBjkqajPKvdUhXz8IlB2o7
+  DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
 
 jobs:
   nightly-test:
