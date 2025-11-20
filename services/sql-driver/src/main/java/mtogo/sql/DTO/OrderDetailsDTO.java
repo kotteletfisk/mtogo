@@ -3,9 +3,10 @@ package mtogo.sql.DTO;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class OrderDetailsDTO {
-    private int orderId;
+    private UUID orderId;
     private int customerId;
 
     public enum orderStatus{
@@ -21,7 +22,7 @@ public class OrderDetailsDTO {
 
     public OrderDetailsDTO() {}
 
-    public OrderDetailsDTO(int orderId, int customerId, orderStatus status, List<OrderLineDTO> orderLineDTOS) {
+    public OrderDetailsDTO(UUID orderId, int customerId, orderStatus status, List<OrderLineDTO> orderLineDTOS) {
         this.orderId = orderId;
         this.customerId = customerId;
         this.status = status;
@@ -43,7 +44,7 @@ public class OrderDetailsDTO {
         return customerId;
     }
 
-    public int getOrderId() {
+    public UUID getOrderId() {
         return orderId;
     }
 
@@ -51,7 +52,7 @@ public class OrderDetailsDTO {
         return orderLineDTOS;
     }
 
-    public void setOrderId(int orderId) {
+    public void setOrderId(UUID orderId) {
         this.orderId = orderId;
     }
 

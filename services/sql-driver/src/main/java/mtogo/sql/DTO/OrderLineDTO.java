@@ -1,8 +1,10 @@
 package mtogo.sql.DTO;
 
+import java.util.UUID;
+
 public class OrderLineDTO {
     private int orderLineId;
-    private int orderId;
+    private UUID orderId;
     private int item_id;
     private float price_snapshot;
     private int amount;
@@ -10,7 +12,7 @@ public class OrderLineDTO {
     public OrderLineDTO() {
     }
 
-    public OrderLineDTO(int orderLineId, int orderId, int item_id, float price_snapshot, int amount) {
+    public OrderLineDTO(int orderLineId, UUID orderId, int item_id, float price_snapshot, int amount) {
         this.orderLineId = orderLineId;
         this.orderId = orderId;
         this.item_id = item_id;
@@ -26,11 +28,11 @@ public class OrderLineDTO {
         this.orderLineId = orderLineId;
     }
 
-    public int getOrderId() {
+    public UUID getOrderId() {
         return orderId;
     }
 
-    public void setOrderId(int orderId) {
+    public void setOrderId(UUID orderId) {
         this.orderId = orderId;
     }
 

@@ -5,6 +5,7 @@ import mtogo.sql.DTO.OrderLineDTO;
 
 import java.sql.*;
 import java.util.List;
+import org.postgresql.util.PGobject;
 
 public class SQLConnector {
 
@@ -18,7 +19,20 @@ public class SQLConnector {
      *  - MTOGO_USER   (username)
      *  - MTOGO_PASS   (password)
      */
-    public Connection getConnection() throws SQLException {
+    //Used for local testing
+    /*public Connection getConnection() throws SQLException {
+        String host = "localhost";
+        String port = "5432";
+        String db   = "mtogo";
+        String user = "mtogo";
+        String pass = "mtogo";
+
+        String url = "jdbc:postgresql://" + host + ":" + port + "/" + db;
+        return DriverManager.getConnection(url, user, pass);
+    }
+
+     */
+        public Connection getConnection() throws SQLException {
         String host = envOrDefault("MTOGO_DB_HOST", "MToGo-db");
         String port = envOrDefault("MTOGO_DB_PORT", "5432");
         String db   = envOrDefault("MTOGO_DB", "mtogo");
@@ -28,6 +42,7 @@ public class SQLConnector {
         String url = "jdbc:postgresql://" + host + ":" + port + "/" + db;
         return DriverManager.getConnection(url, user, pass);
     }
+
 
     private String envOrDefault(String key, String defaultValue) {
         String val = System.getenv(key);
@@ -53,15 +68,17 @@ public class SQLConnector {
         PreparedStatement orderStmt = null;
         PreparedStatement lineStmt  = null;
 
+
+
         try {
             // Insert order with provided int orderId
             String insertOrderSql =
-                    "INSERT INTO \"orderDTO\" " +
+                    "INSERT INTO \"orders\" " +
                             "(order_id, customer_id, order_created, order_updated, order_status) " +
                             "VALUES (?, ?, ?, ?, ?)";
 
             orderStmt = connection.prepareStatement(insertOrderSql);
-            orderStmt.setInt(1, orderDTO.getOrder_id());
+            orderStmt.setObject(1, orderDTO.getOrder_id());
             orderStmt.setInt(2, orderDTO.getCustomer_id());
             orderStmt.setTimestamp(3, orderDTO.getOrder_created());
             orderStmt.setTimestamp(4, orderDTO.getOrder_updated());
@@ -81,7 +98,7 @@ public class SQLConnector {
             lineStmt = connection.prepareStatement(insertLineSql);
 
             for (OrderLineDTO lineDTO : orderLineDTOS) {
-                lineStmt.setInt(1, orderDTO.getOrder_id());
+                lineStmt.setObject(1, orderDTO.getOrder_id());
                 lineStmt.setInt(2, lineDTO.getItem_id());
                 lineStmt.setFloat(3, lineDTO.getPrice_snapshot());
                 lineStmt.setInt(4, lineDTO.getAmount());
@@ -90,12 +107,10 @@ public class SQLConnector {
 
             lineStmt.executeBatch();
 
-            // If all is good, then we commit
             connection.commit();
             return orderDTO;
 
         } catch (SQLException ex) {
-            // Roll back if anything fails
             try {
                 connection.rollback();
             } catch (SQLException ignored) {}

@@ -1,9 +1,12 @@
 package mtogo.customer.DTO;
 
+import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class OrderDetailsDTO {
-    private int orderId;
+    private UUID orderId;
     private int customerId;
 
     public enum orderStatus{
@@ -15,15 +18,24 @@ public class OrderDetailsDTO {
         delivered
     }
     private orderStatus status;
-    private List<OrderLineDTO> orderLineDTOS;
+    private List<OrderLineDTO> orderLineDTOS = new ArrayList<>();
 
     public OrderDetailsDTO() {}
 
-    public OrderDetailsDTO(int orderId, int customerId, orderStatus status, List<OrderLineDTO> orderLineDTOS) {
+    public OrderDetailsDTO(int customerId, orderStatus status, List<OrderLineDTO> orderLineDTOS) {
+        this.customerId = customerId;
+        this.status = status;
+        this.orderLineDTOS = orderLineDTOS;
+    }
+
+    public OrderDetailsDTO(UUID orderId, int customerId, orderStatus status, List<OrderLineDTO> orderLineDTOS) {
         this.orderId = orderId;
         this.customerId = customerId;
         this.status = status;
         this.orderLineDTOS = orderLineDTOS;
+    }
+    public void setOrderLines(List<OrderLineDTO> orderLines) {
+        this.orderLineDTOS = (orderLines != null) ? orderLines : new ArrayList<>();
     }
 
     public List<OrderLineDTO> getOrderLines() {
@@ -38,9 +50,27 @@ public class OrderDetailsDTO {
         return customerId;
     }
 
-    public int getOrderId() {
+    public UUID getOrderId() {
         return orderId;
     }
 
+    public List<OrderLineDTO> getOrderLineDTOS() {
+        return orderLineDTOS;
+    }
 
+    public void setOrderId(UUID orderId) {
+        this.orderId = orderId;
+    }
+
+    public void setCustomerId(int customerId) {
+        this.customerId = customerId;
+    }
+
+    public void setStatus(orderStatus status) {
+        this.status = status;
+    }
+
+    public void setOrderLineDTOS(List<OrderLineDTO> orderLineDTOS) {
+        this.orderLineDTOS = orderLineDTOS;
+    }
 }

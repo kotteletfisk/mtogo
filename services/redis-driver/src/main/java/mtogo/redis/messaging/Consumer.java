@@ -24,7 +24,6 @@ public class Consumer {
 
     static ConnectionFactory connectionFactory = createDefaultFactory();
 
-
     private static ConnectionFactory createDefaultFactory() {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("rabbitMQ");
@@ -33,6 +32,7 @@ public class Consumer {
         factory.setPassword(System.getenv("RABBITMQ_PASS"));
         return factory;
     }
+
     // Injectable connectionfactory for testing
     public static void setConnectionFactory(ConnectionFactory factory) {
         connectionFactory = factory;
@@ -44,17 +44,25 @@ public class Consumer {
      * @throws Exception if an error occurs while consuming messages
      */
     public static void consumeMessages(String[] bindingKeys) throws Exception{
-        Connection connection = connectionFactory.newConnection();
-        Channel channel = connection.createChannel();
 
-        channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
-        String queueName = channel.queueDeclare().getQueue();
+        try (Connection connection = connectionFactory.newConnection()) {
 
-        for (String bindingKey : bindingKeys) {
-            channel.queueBind(queueName, EXCHANGE_NAME, bindingKey);
+
+            Channel channel = connection.createChannel();
+
+            channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
+            String queueName = channel.queueDeclare().getQueue();
+
+            for (String bindingKey : bindingKeys) {
+                channel.queueBind(queueName, EXCHANGE_NAME, bindingKey);
+            }
+
+            channel.basicConsume(queueName, true, deliverCallback(), consumerTag -> {
+            });
         }
-
-        channel.basicConsume(queueName, true, deliverCallback(), consumerTag -> { });
+        catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     /**

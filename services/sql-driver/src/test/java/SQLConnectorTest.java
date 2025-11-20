@@ -1,4 +1,3 @@
-
 import mtogo.sql.DTO.OrderDTO;
 import mtogo.sql.DTO.OrderLineDTO;
 import mtogo.sql.persistence.SQLConnector;
@@ -9,6 +8,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.sql.*;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -30,7 +30,6 @@ class SQLConnectorTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        // H2 in PostgreSQL mode
         conn = DriverManager.getConnection(
                 "jdbc:h2:mem:testdb;MODE=PostgreSQL",
                 "sa",
@@ -38,7 +37,6 @@ class SQLConnectorTest {
         );
 
         try (Statement st = conn.createStatement()) {
-            // Minimal schema consistent with your int-based design
             st.execute("""
                 CREATE TABLE customer (
                     customer_id INT PRIMARY KEY,
@@ -47,12 +45,12 @@ class SQLConnectorTest {
             """);
 
             st.execute("""
-                CREATE TYPE orderstatus AS ENUM ('created', 'rejected', 'accepted', 'waiting', 'delivering','delivered');
+                CREATE DOMAIN orderstatus AS VARCHAR(50);
             """);
 
             st.execute("""
-                CREATE TABLE "orderDTO" (
-                    order_id INT PRIMARY KEY,
+                CREATE TABLE "orders" (
+                    order_id UUID PRIMARY KEY,
                     customer_id INT NOT NULL,
                     order_created TIMESTAMP NOT NULL,
                     order_updated TIMESTAMP NOT NULL,
@@ -71,12 +69,12 @@ class SQLConnectorTest {
             st.execute("""
                 CREATE TABLE order_line (
                     order_line_id SERIAL PRIMARY KEY,
-                    order_id INT NOT NULL,
+                    order_id UUID NOT NULL,
                     item_id INT NOT NULL,
                     price_snapshot REAL NOT NULL,
                     amount INT NOT NULL,
                     CONSTRAINT fk_order_id FOREIGN KEY (order_id)
-                        REFERENCES "orderDTO"(order_id),
+                        REFERENCES "orders"(order_id),
                     CONSTRAINT fk_item_id FOREIGN KEY (item_id)
                         REFERENCES menu_item(item_id)
                 );
@@ -101,7 +99,7 @@ class SQLConnectorTest {
             st.execute("INSERT INTO menu_item (item_id) VALUES (11);");
         }
 
-        int orderId = 100;
+        UUID orderId = UUID.randomUUID();
         Timestamp created = new Timestamp(System.currentTimeMillis());
         Timestamp updated = new Timestamp(System.currentTimeMillis());
 
@@ -119,22 +117,19 @@ class SQLConnectorTest {
         when(line2.getPrice_snapshot()).thenReturn(70.0f);
         when(line2.getAmount()).thenReturn(1);
 
-        // Act
         connector.createOrder(order, List.of(line1, line2), conn);
 
-        // Assert: order exists
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT COUNT(*) FROM \"orderDTO\" WHERE order_id = ?")) {
-            ps.setInt(1, orderId);
+                "SELECT COUNT(*) FROM \"orders\" WHERE order_id = ?")) {
+            ps.setObject(1, orderId);
             ResultSet rs = ps.executeQuery();
             assertTrue(rs.next());
             assertEquals(1, rs.getInt(1));
         }
 
-        // Assert: 2 order_lines exist for that order_id
         try (PreparedStatement ps = conn.prepareStatement(
                 "SELECT COUNT(*) FROM order_line WHERE order_id = ?")) {
-            ps.setInt(1, orderId);
+            ps.setObject(1, orderId);
             ResultSet rs = ps.executeQuery();
             assertTrue(rs.next());
             assertEquals(2, rs.getInt(1));
@@ -143,12 +138,11 @@ class SQLConnectorTest {
 
     @Test
     void createOrder_rollsBackWhenOrderLineInsertFails() throws Exception {
-        // Arrange: customer exists, but NO menu_item row → FK will fail on item_id
         try (Statement st = conn.createStatement()) {
             st.execute("INSERT INTO customer (customer_id, customer_name) VALUES (1, 'Test Customer');");
         }
 
-        int orderId = 101;
+        UUID orderId = UUID.randomUUID();
         Timestamp created = new Timestamp(System.currentTimeMillis());
         Timestamp updated = new Timestamp(System.currentTimeMillis());
 
@@ -158,30 +152,26 @@ class SQLConnectorTest {
         when(order.getOrder_updated()).thenReturn(updated);
         when(order.getOrderStatus()).thenReturn(OrderDTO.orderStatus.created);
 
-        // bad line: item_id does not exist → FK violation on fk_item_id
         OrderLineDTO badLine = mock(OrderLineDTO.class);
         when(badLine.getItem_id()).thenReturn(999);
         when(badLine.getPrice_snapshot()).thenReturn(10.0f);
         when(badLine.getAmount()).thenReturn(1);
 
-        // Act + Assert: expect SQLException and full rollback
         assertThrows(SQLException.class, () ->
                 connector.createOrder(order, List.of(badLine), conn)
         );
 
-        // Ensure NO order stored
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT COUNT(*) FROM \"orderDTO\" WHERE order_id = ?")) {
-            ps.setInt(1, orderId);
+                "SELECT COUNT(*) FROM \"orders\" WHERE order_id = ?")) {
+            ps.setObject(1, orderId);
             ResultSet rs = ps.executeQuery();
             assertTrue(rs.next());
             assertEquals(0, rs.getInt(1));
         }
 
-        // Ensure NO order_lines stored
         try (PreparedStatement ps = conn.prepareStatement(
                 "SELECT COUNT(*) FROM order_line WHERE order_id = ?")) {
-            ps.setInt(1, orderId);
+            ps.setObject(1, orderId);
             ResultSet rs = ps.executeQuery();
             assertTrue(rs.next());
             assertEquals(0, rs.getInt(1));
