@@ -36,7 +36,6 @@ services:
   customer-service:
     image: ${DOCKER_USER}/customer-service:${CUSTOMER_SERVICE_TAG}
     ports:
-      - "7071:7070"
       - target: 7070
         published: 7071
         protocol: tcp
