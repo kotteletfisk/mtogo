@@ -80,7 +80,10 @@ services:
   rabbitMQ:
     image: rabbitmq:3.13-alpine
     ports:
-      - "15672:15672"
+      - target: 15672
+        published: 15672
+        protocol: tcp
+        mode: host
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
