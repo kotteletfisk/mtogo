@@ -5,8 +5,14 @@ services:
   caddy:
     image: caddy:2-alpine
     ports:
-      - "443:443"
-      - "80:80"
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
@@ -31,6 +37,10 @@ services:
     image: ${DOCKER_USER}/customer-service:${CUSTOMER_SERVICE_TAG}
     ports:
       - "7071:7070"
+      - target: 7070
+        published: 7071
+        protocol: tcp
+        mode: host
     depends_on:
       - rabbitMQ
       - redis-active-db
