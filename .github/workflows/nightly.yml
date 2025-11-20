@@ -92,7 +92,7 @@ jobs:
       - name: Wait for Services to Start
         run: sleep 45
 
-      - name: Health Check Caddy + Customer with Retry
+      - name: Health Check
         id: healthcheck
         run: |
           MAX_RETRIES=10
@@ -114,8 +114,8 @@ jobs:
             return 1
           }
 
-          check_health "http://caddy:80/health"
-          check_health "https://customer-service:7070/api/health"
+          check_health "http://localhost:80/health"
+          check_health "http://localhost:7071/api/health"
 
       - name: On Fail → Rollback & Notify Discord
         if: failure()
