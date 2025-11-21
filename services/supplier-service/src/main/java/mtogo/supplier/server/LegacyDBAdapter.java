@@ -62,6 +62,7 @@ public class LegacyDBAdapter {
             }
 
             log.debug("Received from legacy system:\n" + sb.toString());
+
         } catch (IOException e) {
             log.error("Connection failed", e);
         }
