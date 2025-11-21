@@ -43,15 +43,13 @@ public class Producer {
             channel.confirmSelect();
 
             channel.basicPublish(EXCHANGE_NAME, routingKey, null, message.getBytes("UTF-8"));
-            // Maybe log the message that is being sent?
 
             if(!channel.waitForConfirms(5000)) {
-                // Maybe log this error too?
                 throw new APIException(500, "Could not process your request due to an internal error.");
             }
             return true;
         } catch (Exception e) {
-            e.printStackTrace(); //Maybe we should log this to keep track of it?
+            e.printStackTrace();
             throw new APIException(500, "Could not process your request due to an internal error, connection failed.");
         }
     }
