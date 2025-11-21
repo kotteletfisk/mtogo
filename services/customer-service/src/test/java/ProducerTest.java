@@ -18,8 +18,7 @@ public class ProducerTest {
         ConnectionFactory factory = mock(ConnectionFactory.class);
         Connection connection = mock(Connection.class);
         Channel channel = mock(Channel.class);
-
-
+        
         when(factory.newConnection()).thenReturn(connection);
         when(connection.createChannel()).thenReturn(channel);
         when(channel.waitForConfirms(5000)).thenReturn(true);
