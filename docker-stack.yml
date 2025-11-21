@@ -156,6 +156,9 @@ services:
     environment:
         RABBITMQ_USER: ${RABBITMQ_USER}
         RABBITMQ_PASS: ${RABBITMQ_PASS}
+        POSTGRES_USER: ${MTOGO_USER}
+        POSTGRES_PASSWORD: ${MTOGO_PASS}
+        POSTGRES_DB: ${MTOGO_DB}
     networks:
       - backend
 

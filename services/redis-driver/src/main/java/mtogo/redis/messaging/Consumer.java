@@ -13,6 +13,7 @@ import mtogo.redis.persistence.RedisConnector;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Consumes messages from RabbitMQ
@@ -82,6 +83,11 @@ public class Consumer {
                 }
                 System.out.println(" [x] Received '" + delivery.getEnvelope().getRoutingKey() + "':'" + orderDetailsDTO + "'");
                 // Persist orderDTO and orderDTO lines to Redis
+
+                UUID orderId = orderDetailsDTO.getOrderId();
+                for (OrderLineDTO orderLineDTO : orderLineDTOS) {
+                    orderLineDTO.setOrderId(orderId);
+                }
                 RedisConnector redisConnector = RedisConnector.getInstance();
                 redisConnector.createOrder(orderDTO);
                 redisConnector.createOrderLines(orderLineDTOS);

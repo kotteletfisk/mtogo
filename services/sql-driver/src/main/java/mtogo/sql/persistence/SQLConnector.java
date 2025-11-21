@@ -33,8 +33,8 @@ public class SQLConnector {
 
      */
         public Connection getConnection() throws SQLException {
-        String host = envOrDefault("MTOGO_DB_HOST", "MToGo-db");
-        String port = envOrDefault("MTOGO_DB_PORT", "5432");
+        String host = "MToGo-db";
+        String port = "5432";
         String db   = envOrDefault("MTOGO_DB", "mtogo");
         String user = envOrDefault("MTOGO_USER", "mtogo");
         String pass = envOrDefault("MTOGO_PASS", "mtogo");
