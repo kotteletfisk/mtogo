@@ -46,6 +46,9 @@ services:
       - sql-driver
     deploy:
       replicas: 1
+    environment:
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
     networks:
       - backend
 
@@ -111,6 +114,10 @@ services:
     image: ${DOCKER_USER}/redis-driver:${REDIS_DRIVER_TAG}
     depends_on:
       - redis-active-db
+      - rabbitMQ
+    environment:
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
     networks:
       - backend
 
@@ -145,6 +152,10 @@ services:
     depends_on:
       - MToGo-db
       - metrics-db
+      - rabbitMQ
+    environment:
+        RABBITMQ_USER: ${RABBITMQ_USER}
+        RABBITMQ_PASS: ${RABBITMQ_PASS}
     networks:
       - backend
 
