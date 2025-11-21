@@ -16,6 +16,8 @@ jobs:
   nightly-test:
     runs-on: [self-hosted, test]
     name: Nightly Test on Test Server
+    outputs:
+      prod_tag: ${{ steps.promote.outputs.prod_tag }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
