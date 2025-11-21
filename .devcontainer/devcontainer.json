@@ -18,6 +18,10 @@
 		]
 	  }
 	},
+
+	"containerEnv": {
+		"LOG_LEVEL": "debug"
+	  },
   
 	"postCreateCommand": "java -version && mvn -version"
   }

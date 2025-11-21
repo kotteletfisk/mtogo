@@ -80,7 +80,7 @@ jobs:
         
       - name: Test with Maven
         if: ${{ steps.detect.outputs.language == 'java' }}
-        run: mvn clean verify
+        run: mvn --batch-mode verify
         working-directory: services/${{ matrix.service }}
 
       # Build & Push Docker image (only on push to main)
