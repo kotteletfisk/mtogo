@@ -18,7 +18,7 @@ public class JavalinBuilder {
         Javalin.create(config -> {
                     config.router.apiBuilder(() -> {
                         path("/api", () -> {
-
+                            get("/health", (ctx) -> ctx.status(200));
                             get("/", (ctx) -> ctx.status(418)); // Visit me in the browser ;)
                             post("/createorder", orderController::createOrder);
 
