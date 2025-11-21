@@ -147,5 +147,5 @@ jobs:
       - name: On Success update last stable and Notify Discord
         if: success()
         run: |
-          echo "LAST_STABLE=$PROD_TAG" | sudo tee /home/${{ secrets.SERVER_NAME }}/mtogo/last-stable.env > /dev/null
+          echo "LAST_STABLE=$PROD_TAG" | tee /home/${{ secrets.SERVER_NAME }}/mtogo/last-stable.env > /dev/null
           curl -H "Content-Type: application/json" -X POST -d "{\"content\": \"✅ Deployment SUCCESS on production! All systems healthy.\"}" $DISCORD_WEBHOOK
