@@ -35,9 +35,9 @@ public class SQLConnector {
         public Connection getConnection() throws SQLException {
         String host = "MToGo-db";
         String port = "5432";
-        String db   = envOrDefault("MTOGO_DB", "mtogo");
-        String user = envOrDefault("MTOGO_USER", "mtogo");
-        String pass = envOrDefault("MTOGO_PASS", "mtogo");
+        String db = envOrDefault("POSTGRES_DB", "mtogo");
+        String user = envOrDefault("POSTGRES_USER", "mtogo");
+        String pass = envOrDefault("POSTGRES_PASSWORD", "mtogo");
 
         String url = "jdbc:postgresql://" + host + ":" + port + "/" + db;
         return DriverManager.getConnection(url, user, pass);
