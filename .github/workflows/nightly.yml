@@ -16,6 +16,8 @@ jobs:
   nightly-test:
     runs-on: [self-hosted, test]
     name: Nightly Test on Test Server
+    outputs:
+      prod_tag: ${{ steps.promote.outputs.prod_tag }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -55,11 +57,30 @@ jobs:
         id: testcheck
         run: echo "Checking if test results are fine"
 
-  promote-and-deploy-prod:
+      - name: Promote Images
+        id: promote
+        if: success()
+        run: |
+          PROD_TAG="release-$(date +%Y%m%d)"
+          echo "PROD_TAG=$PROD_TAG" >> $GITHUB_ENV
+          echo "prod_tag=$PROD_TAG" >> $GITHUB_OUTPUT
+          
+          for svc in $SERVICES; do
+            SRC_TAG=$(grep "$(echo $svc | tr 'a-z-' 'A-Z_')_TAG" /home/${{ secrets.SERVER_NAME }}/mtogo/.env | cut -d '=' -f2)
+            docker pull "$DOCKER_USER/$svc:$SRC_TAG"
+            docker tag "$DOCKER_USER/$svc:$SRC_TAG" "$DOCKER_USER/$svc:$PROD_TAG"
+            docker push "$DOCKER_USER/$svc:$PROD_TAG"
+          done
+
+
+  deploy-prod:
     needs: nightly-test
     runs-on: [self-hosted, prod]
     if: ${{ needs.nightly-test.result == 'success' }}
-    name: Promote & Deploy to Production
+    name: Deploy to Production
+    env:
+      PROD_TAG: ${{ needs.nightly-test.outputs.prod_tag }}
+
     steps:
 
       - name: Checkout Repository
@@ -68,22 +89,17 @@ jobs:
       - name: Copy Stack File to Prod
         run: cp docker-stack.yml /home/${{ secrets.SERVER_NAME }}/mtogo/
 
+      - name: Update Prod .env With Promoted Tag
+        run: |
+          for svc in $SERVICES; do
+            sed -i "s/^$(echo $svc | tr 'a-z-' 'A-Z_')_TAG=.*/$(echo $svc | tr 'a-z-' 'A-Z_')_TAG=$PROD_TAG/" /home/${{ secrets.SERVER_NAME }}/mtogo/.env
+          done
+
       - name: Docker Login
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_TOKEN }}
-
-      - name: Pull & Tag Production Images
-        run: |
-          PROD_TAG="release-$(date +%Y%m%d)"
-          for svc in $SERVICES; do
-            SRC_TAG=$(grep "$(echo $svc | tr 'a-z-' 'A-Z_')_TAG" /home/${{ secrets.SERVER_NAME }}/mtogo/.env | cut -d '=' -f2)
-            docker pull "$DOCKER_USER/$svc:$SRC_TAG"
-            docker tag "$DOCKER_USER/$svc:$SRC_TAG" "$DOCKER_USER/$svc:$PROD_TAG"
-            docker push "$DOCKER_USER/$svc:$PROD_TAG"
-            sed -i "s/^$(echo $svc | tr 'a-z-' 'A-Z_')_TAG=.*/$(echo $svc | tr 'a-z-' 'A-Z_')_TAG=$PROD_TAG/" /home/${{ secrets.SERVER_NAME }}/mtogo/.env
-          done
 
       - name: Deploy Prod Stack
         run: |
@@ -131,5 +147,5 @@ jobs:
       - name: On Success update last stable and Notify Discord
         if: success()
         run: |
-          echo "LAST_STABLE=$PROD_TAG" | sudo tee /home/${{ secrets.SERVER_NAME }}/mtogo/last-stable.env > /dev/null
+          echo "LAST_STABLE=$PROD_TAG" | tee /home/${{ secrets.SERVER_NAME }}/mtogo/last-stable.env > /dev/null
           curl -H "Content-Type: application/json" -X POST -d "{\"content\": \"✅ Deployment SUCCESS on production! All systems healthy.\"}" $DISCORD_WEBHOOK
