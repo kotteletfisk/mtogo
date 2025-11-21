@@ -45,8 +45,8 @@ public class Consumer {
      */
     public static void consumeMessages(String[] bindingKeys) throws Exception{
 
-        try (Connection connection = connectionFactory.newConnection()) {
-
+        try  {
+            Connection connection = connectionFactory.newConnection();
 
             Channel channel = connection.createChannel();
 
