@@ -55,6 +55,19 @@ jobs:
         id: testcheck
         run: echo "Checking if test results are fine"
 
+      - name: Promote Images
+        if: success()
+        run: |
+          PROD_TAG="release-$(date +%Y%m%d)"
+          for svc in $SERVICES; do
+            SRC_TAG=$(grep "$(echo $svc | tr 'a-z-' 'A-Z_')_TAG" /home/${{ secrets.SERVER_NAME }}/mtogo/.env | cut -d '=' -f2)
+            docker pull "$DOCKER_USER/$svc:$SRC_TAG"
+            docker tag "$DOCKER_USER/$svc:$SRC_TAG" "$DOCKER_USER/$svc:$PROD_TAG"
+            docker push "$DOCKER_USER/$svc:$PROD_TAG"
+            echo "$(echo $svc | tr 'a-z-' 'A-Z_')_TAG=$PROD_TAG" >> prod-tags.env
+          done
+
+
   promote-and-deploy-prod:
     needs: nightly-test
     runs-on: [self-hosted, prod]
@@ -75,15 +88,7 @@ jobs:
           password: ${{ secrets.DOCKER_TOKEN }}
 
       - name: Pull & Tag Production Images
-        run: |
-          PROD_TAG="release-$(date +%Y%m%d)"
-          for svc in $SERVICES; do
-            SRC_TAG=$(grep "$(echo $svc | tr 'a-z-' 'A-Z_')_TAG" /home/${{ secrets.SERVER_NAME }}/mtogo/.env | cut -d '=' -f2)
-            docker pull "$DOCKER_USER/$svc:$SRC_TAG"
-            docker tag "$DOCKER_USER/$svc:$SRC_TAG" "$DOCKER_USER/$svc:$PROD_TAG"
-            docker push "$DOCKER_USER/$svc:$PROD_TAG"
-            sed -i "s/^$(echo $svc | tr 'a-z-' 'A-Z_')_TAG=.*/$(echo $svc | tr 'a-z-' 'A-Z_')_TAG=$PROD_TAG/" /home/${{ secrets.SERVER_NAME }}/mtogo/.env
-          done
+        run: cp prod-tags.env /home/${{ secrets.SERVER_NAME }}/mtogo/.env
 
       - name: Deploy Prod Stack
         run: |
