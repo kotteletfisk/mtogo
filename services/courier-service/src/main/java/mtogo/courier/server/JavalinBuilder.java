@@ -25,6 +25,10 @@ public class JavalinBuilder {
                 })
                 .exception(APIException.class, (ExceptionHandler::apiExceptionHandler));
 
+        app.before(ctx -> {
+            System.out.println("Request: " + ctx.method() + " " + ctx.path());
+        });
+
         app.error(404, ctx -> {
             if (!ctx.path().startsWith("/api")) {
                 ctx.contentType("text/html");
