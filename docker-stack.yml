@@ -23,7 +23,10 @@ services:
   courier-service:
     image: ${DOCKER_USER}/courier-service:${COURIER_SERVICE_TAG}
     ports:
-      - "7070:7070"
+      - target: 7070
+        published: 7070
+        protocol: tcp
+        mode: host
     depends_on:
       - rabbitMQ
       - redis-active-db
