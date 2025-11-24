@@ -61,7 +61,7 @@ jobs:
         id: promote
         if: success()
         run: |
-          PROD_TAG="release-$(date +%Y%m%d)"
+          PROD_TAG="release-$(date +%Y%m%d)-${GITHUB_RUN_NUMBER}"
           echo "PROD_TAG=$PROD_TAG" >> $GITHUB_ENV
           echo "prod_tag=$PROD_TAG" >> $GITHUB_OUTPUT
           
