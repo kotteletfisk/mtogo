@@ -12,7 +12,7 @@ public class JavalinBuilder {
     public static void startServer(int port){
         var app = Javalin.create(config -> {
                     config.staticFiles.add(staticFiles -> {
-                        staticFiles.hostedPath = "/";
+                        staticFiles.hostedPath = "/courier";
                         staticFiles.directory = "/app/public";
                         staticFiles.precompress = true;
                         staticFiles.location = Location.EXTERNAL;
