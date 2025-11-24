@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Customer Service - Create Order</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Tiny bit of styling -->
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            margin: 0;
+            padding: 1.5rem;
+            background: #f4f4f5;
+        }
+        .page {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+        h1 {
+            margin-top: 0;
+            margin-bottom: 0.25rem;
+        }
+        .subtitle {
+            margin-top: 0;
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+        label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        input, select {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0.45rem 0.6rem;
+            border-radius: 8px;
+            border: 1px solid #d4d4d8;
+            font-size: 0.95rem;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 1px #2563eb30;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .section {
+            margin-top: 1.25rem;
+            margin-bottom: 0.25rem;
+        }
+        .orderline-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 0.5rem;
+            align-items: end;
+            margin-bottom: 0.5rem;
+        }
+        .btn {
+            border: none;
+            border-radius: 999px;
+            padding: 0.5rem 1.1rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #111827;
+        }
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        .btn:disabled {
+            opacity: 0.7;
+            cursor: default;
+        }
+        .actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            align-items: center;
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.15rem 0.55rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            background: #e0f2fe;
+            color: #0369a1;
+            font-weight: 500;
+            margin-left: 0.25rem;
+        }
+        .status-message {
+            margin-top: 0.75rem;
+            font-size: 0.9rem;
+            padding: 0.75rem 0.9rem;
+            border-radius: 0.75rem;
+        }
+        .status-success {
+            background: #ecfdf3;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        .status-error {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        .order-total {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: #374151;
+        }
+    </style>
+
+    <!-- React + ReactDOM from CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel so we can write JSX directly in the HTML file -->
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+    const { useState, useMemo } = React;
+
+    function OrderForm() {
+        const [customerId, setCustomerId] = useState("");
+        const [status, setStatus] = useState("created");
+        const [orderLines, setOrderLines] = useState([
+            { item_id: "", price_snapshot: "", amount: "" },
+        ]);
+        const [isSubmitting, setIsSubmitting] = useState(false);
+        const [message, setMessage] = useState(null); // { type: "success" | "error", text: string }
+
+        const total = useMemo(() => {
+            return orderLines.reduce((sum, line) => {
+                const price = parseFloat(line.price_snapshot || "0");
+                const amount = parseInt(line.amount || "0", 10);
+                return sum + (isNaN(price) || isNaN(amount) ? 0 : price * amount);
+            }, 0);
+        }, [orderLines]);
+
+        const updateLine = (index, field, value) => {
+            setOrderLines((prev) => {
+                const copy = [...prev];
+                copy[index] = { ...copy[index], [field]: value };
+                return copy;
+            });
+        };
+
+        const addLine = () => {
+            setOrderLines((prev) => [...prev, { item_id: "", price_snapshot: "", amount: "" }]);
+        };
+
+        const removeLine = (index) => {
+            setOrderLines((prev) => prev.filter((_, i) => i !== index));
+        };
+
+        const resetForm = () => {
+            setCustomerId("");
+            setStatus("created");
+            setOrderLines([{ item_id: "", price_snapshot: "", amount: "" }]);
+        };
+
+        const handleSubmit = async (e) => {
+            e.preventDefault();
+            setMessage(null);
+
+            if (!customerId) {
+                setMessage({ type: "error", text: "Customer ID is required." });
+                return;
+            }
+
+            const cleanedLines = orderLines
+                .filter((l) => l.item_id && l.amount && l.price_snapshot)
+                .map((l) => ({
+                    item_id: Number(l.item_id),
+                    price_snapshot: Number(l.price_snapshot),
+                    amount: Number(l.amount),
+                }));
+
+            if (cleanedLines.length === 0) {
+                setMessage({ type: "error", text: "You must add at least one valid order line." });
+                return;
+            }
+
+            const payload = {
+                customerId: Number(customerId),
+                status,
+                orderLines: cleanedLines,
+            };
+
+            setIsSubmitting(true);
+            try {
+                const res = await fetch("/api/createorder", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                });
+
+                let text = "";
+                try {
+                    text = await res.text();
+                } catch (_) {}
+
+                if (res.ok) {
+                    setMessage({
+                        type: "success",
+                        text:
+                            text && text.trim().length > 0
+                                ? `Order created. Server said: ${text}`
+                                : "Order created successfully (empty response body).",
+                    });
+                    resetForm();
+                } else {
+                    setMessage({
+                        type: "error",
+                        text:
+                            text && text.trim().length > 0
+                                ? `Error ${res.status}: ${text}`
+                                : `Error ${res.status} while creating order.`,
+                    });
+                }
+            } catch (err) {
+                setMessage({
+                    type: "error",
+                    text: "Network or server error while creating order: " + err.message,
+                });
+            } finally {
+                setIsSubmitting(false);
+            }
+        };
+
+        return (
+            <div className="page">
+                <h1>Customer Service – Create Order</h1>
+                <p className="subtitle">
+                    Internal tool for placing orders directly into the system.
+                    <span className="badge">CS only</span>
+                </p>
+
+                <form onSubmit={handleSubmit}>
+                    {/* Customer + status */}
+                    <div className="section">
+                        <h3>Order Info</h3>
+                        <div className="grid">
+                            <div>
+                                <label htmlFor="customerId">Customer ID</label>
+                                <input
+                                    id="customerId"
+                                    type="number"
+                                    min="1"
+                                    value={customerId}
+                                    onChange={(e) => setCustomerId(e.target.value)}
+                                    placeholder="e.g. 1"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="status">Status</label>
+                                <select
+                                    id="status"
+                                    value={status}
+                                    onChange={(e) => setStatus(e.target.value)}
+                                >
+                                    <option value="created">created</option>
+                                    <option value="confirmed">confirmed</option>
+                                    <option value="preparing">preparing</option>
+                                    <option value="sent">sent</option>
+                                    <option value="delivered">delivered</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Order lines */}
+                    <div className="section">
+                        <h3>Order Lines</h3>
+                        {orderLines.map((line, index) => (
+                            <div className="orderline-row" key={index}>
+                                <div>
+                                    <label>Item ID</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={line.item_id}
+                                        onChange={(e) => updateLine(index, "item_id", e.target.value)}
+                                        placeholder="item_id"
+                                    />
+                                </div>
+                                <div>
+                                    <label>Price snapshot</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={line.price_snapshot}
+                                        onChange={(e) => updateLine(index, "price_snapshot", e.target.value)}
+                                        placeholder="e.g. 49.95"
+                                    />
+                                </div>
+                                <div>
+                                    <label>Amount</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={line.amount}
+                                        onChange={(e) => updateLine(index, "amount", e.target.value)}
+                                        placeholder="e.g. 2"
+                                    />
+                                </div>
+                                <div>
+                                    <button
+                                        type="button"
+                                        className="btn btn-danger"
+                                        onClick={() => removeLine(index)}
+                                        disabled={orderLines.length === 1}
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+
+                        <button type="button" className="btn btn-secondary" onClick={addLine}>
+                            + Add order line
+                        </button>
+
+                        <div className="order-total">
+                            <strong>Total:</strong> {total.toFixed(2)}
+                        </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="actions">
+                        <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                            {isSubmitting ? "Creating…" : "Create order"}
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={resetForm}
+                            disabled={isSubmitting}
+                        >
+                            Clear
+                        </button>
+                    </div>
+
+                    {/* Status message */}
+                    {message && (
+                        <div
+                            className={
+                                "status-message " +
+                                (message.type === "success" ? "status-success" : "status-error")
+                            }
+                        >
+                            {message.text}
+                        </div>
+                    )}
+                </form>
+            </div>
+        );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<OrderForm />);
+</script>
+</body>
+</html>
