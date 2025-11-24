@@ -2,61 +2,25 @@ package mtogo.supplier.DTO;
 
 import java.util.UUID;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @ToString
 public class OrderLineDTO {
     private int orderLineId;
     private UUID orderId;
-    private int item_id;
-    private float price_snapshot;
+    private int itemId;
+    private float priceSnapshot;
     private int amount;
 
-    public OrderLineDTO() {
-    }
-
-    public OrderLineDTO(int orderLineId, UUID orderId, int item_id, float price_snapshot, int amount) {
-        this.orderLineId = orderLineId;
+    // initial creation
+    public OrderLineDTO(UUID orderId, int itemId, float priceSnapshot, int amount) {
         this.orderId = orderId;
-        this.item_id = item_id;
-        this.price_snapshot = price_snapshot;
-        this.amount = amount;
-    }
-
-    public int getOrderLineId() {
-        return orderLineId;
-    }
-
-    public void setOrderLineId(int orderLineId) {
-        this.orderLineId = orderLineId;
-    }
-
-    public UUID getOrderId() {
-        return orderId;
-    }
-
-    public void setOrderId(UUID orderId) {
-        this.orderId = orderId;
-    }
-
-    public int getItem_id() {
-        return item_id;
-    }
-
-    public void setItem_id(int item_id) {
-        this.item_id = item_id;
-    }
-
-    public float getPrice_snapshot() {
-        return price_snapshot;
-    }
-
-    public void setPrice_snapshot(float price_snapshot) {
-        this.price_snapshot = price_snapshot;
-    }
-
-    public int getAmount() {
-        return amount;
-    }
-
-    public void setAmount(int amount) {
+        this.itemId = itemId;
+        this.priceSnapshot = priceSnapshot;
         this.amount = amount;
     }
 }

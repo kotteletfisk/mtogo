@@ -2,5 +2,7 @@ GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_
 supplier-service,mtogo.supplier.server,Main,18,0,0,0,7,0,3,0,3,0
 supplier-service,mtogo.supplier.server,LegacyDBAdapter,58,32,2,2,14,9,4,5,3,4
 supplier-service,mtogo.supplier.DTO,LegacyOrderDetailsDTO,76,0,2,0,29,0,14,0,13,0
+supplier-service,mtogo.supplier.DTO,LegacyOrderLine,12,19,0,0,4,9,4,5,4,5
+supplier-service,mtogo.supplier.DTO,LegacyOrder,6,18,0,0,2,8,2,5,2,5
 supplier-service,mtogo.supplier.DTO,LegacyOrderDetailsDTO.orderStatus,39,0,0,0,7,0,1,0,1,0
 supplier-service,mtogo.supplier.DTO,OrderLineDTO,56,0,0,0,24,0,12,0,12,0

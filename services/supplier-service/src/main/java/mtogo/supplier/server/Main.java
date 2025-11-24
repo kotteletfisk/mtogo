@@ -11,8 +11,8 @@ public class Main {
     public static void main(String[] args) {
         try {
             // Arbitrary commentddd
-
-            LegacyDBAdapter la = LegacyDBAdapter.getAdapter().startListener(1984);
+            LegacyDBAdapter.getAdapter().startListener(1984);
+            
         } catch (IOException ex) {
             log.error(ex.getMessage());
         }
