@@ -1,23 +1,24 @@
-FROM maven:3.9.6-eclipse-temurin-21 AS build
-
-WORKDIR /app
-COPY pom.xml .
-COPY src ./src
-RUN mvn -B -DskipTests package
-
 FROM node:20-alpine AS build-frontend
-WORKDIR /frontend
+WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm install
 COPY frontend .
 RUN npm run build
+
+FROM maven:3.9.6-eclipse-temurin-21 AS build
+
+WORKDIR /app
+COPY pom.xml .
+RUN mvn -f pom.xml dependency:go-offline
+COPY src ./src
+COPY --from=build-frontend /app/frontend/dist/ src/main/resources/public/
+RUN mvn -B -DskipTests clean package
 
 FROM eclipse-temurin:21-jre-jammy
 
 WORKDIR /app
 
 COPY --from=build /app/target/*.jar app.jar
-COPY --from=build-frontend /frontend/dist ./public
 
 EXPOSE 7070
 EXPOSE 5672
