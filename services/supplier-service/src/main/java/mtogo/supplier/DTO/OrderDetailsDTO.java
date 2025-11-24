@@ -25,12 +25,6 @@ public class OrderDetailsDTO {
     }
     private orderStatus status;
     private List<OrderLineDTO> orderLineDTOS = new ArrayList<>();
-
-    public OrderDetailsDTO(int customerId, orderStatus status, List<OrderLineDTO> orderLineDTOS) {
-        this.customerId = customerId;
-        this.status = status;
-        this.orderLineDTOS = orderLineDTOS;
-    }    
     
     public OrderDetailsDTO(UUID orderId, String customerPhone, orderStatus status, List<OrderLineDTO> orderLineDTOS) {
         this.orderId = orderId;
