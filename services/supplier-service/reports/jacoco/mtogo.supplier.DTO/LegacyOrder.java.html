@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LegacyOrder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">supplier-service</a> &gt; <a href="index.source.html" class="el_package">mtogo.supplier.DTO</a> &gt; <span class="el_source">LegacyOrder.java</span></div><h1>LegacyOrder.java</h1><pre class="source lang-java linenums">/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package mtogo.supplier.DTO;
+
+import java.util.List;
+
+import tools.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
+import tools.jackson.dataformat.xml.annotation.JacksonXmlProperty;
+import tools.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
+
+
+/**
+ *
+ * @author kotteletfisk
+ */
+@JacksonXmlRootElement(localName = &quot;Order&quot;)
+<span class="fc" id="L19">public class LegacyOrder {</span>
+
+    @JacksonXmlProperty(localName = &quot;Total&quot;)
+    private float total;
+    @JacksonXmlProperty(localName = &quot;Phone&quot;)
+    private String phone;
+
+    @JacksonXmlElementWrapper(useWrapping = false)
+    @JacksonXmlProperty(localName = &quot;OrderLine&quot;)
+    private List&lt;LegacyOrderLine&gt; orderlines;
+
+    public float getTotal() {
+<span class="nc" id="L31">        return this.total;</span>
+    }
+
+    public String getPhone() {
+<span class="fc" id="L35">        return this.phone;</span>
+    }
+
+    public List&lt;LegacyOrderLine&gt; getOrderlines() {
+<span class="nc" id="L39">        return this.orderlines;</span>
+    }
+
+    public void setTotal(float total) {
+<span class="fc" id="L43">        this.total = total;</span>
+<span class="fc" id="L44">    }</span>
+
+    public void setPhone(String phone) {
+<span class="fc" id="L47">        this.phone = phone;</span>
+<span class="fc" id="L48">    }</span>
+
+    public void setOrderlines(List&lt;LegacyOrderLine&gt; orderlines) {
+<span class="fc" id="L51">        this.orderlines = orderlines;</span>
+<span class="fc" id="L52">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

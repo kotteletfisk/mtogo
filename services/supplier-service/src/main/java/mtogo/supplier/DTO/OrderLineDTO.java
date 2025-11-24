@@ -1,38 +1,26 @@
 package mtogo.supplier.DTO;
 
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @ToString
 public class OrderLineDTO {
     private int orderLineId;
-    private int orderId;
-    private int item_id;
-    private int price_snapshot;
+    private UUID orderId;
+    private int itemId;
+    private float priceSnapshot;
     private int amount;
 
-
-    public OrderLineDTO(int orderLineId, int orderId, int item_id, int price_snapshot, int amount) {
-        this.orderLineId = orderLineId;
+    // initial creation
+    public OrderLineDTO(UUID orderId, int itemId, float priceSnapshot, int amount) {
         this.orderId = orderId;
-        this.item_id = item_id;
-        this.price_snapshot = price_snapshot;
+        this.itemId = itemId;
+        this.priceSnapshot = priceSnapshot;
         this.amount = amount;
-    }
-
-    public int getOrderLineId() {
-        return orderLineId;
-    }
-
-    public int getOrderId() {
-        return orderId;
-    }
-
-    public int getItem_id() {
-        return item_id;
-    }
-
-    public int getPrice_snapshot() {
-        return price_snapshot;
-    }
-
-    public int getAmount() {
-        return amount;
     }
 }
