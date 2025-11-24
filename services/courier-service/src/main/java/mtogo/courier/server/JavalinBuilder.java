@@ -1,6 +1,7 @@
 package mtogo.courier.server;
 
 import io.javalin.Javalin;
+import io.javalin.http.staticfiles.Location;
 import mtogo.courier.exceptions.APIException;
 import mtogo.courier.exceptions.ExceptionHandler;
 
@@ -14,6 +15,7 @@ public class JavalinBuilder {
                         staticFiles.hostedPath = "/";
                         staticFiles.directory = "/app/public";
                         staticFiles.precompress = true;
+                        staticFiles.location = Location.EXTERNAL;
                     });
                     config.router.apiBuilder(() -> {
                         path("/api", () -> {
