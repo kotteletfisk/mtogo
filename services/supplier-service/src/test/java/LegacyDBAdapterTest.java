@@ -85,7 +85,5 @@ public class LegacyDBAdapterTest {
         LegacyOrder legacy = new LegacyOrder(1.0f, "f", null);
 
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> OrderDTOFactory.createFromLegacy(legacy));
-        System.err.println(e.getMessage());
-
     }
 }
