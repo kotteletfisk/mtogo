@@ -8,6 +8,7 @@ import java.util.List;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import tools.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
@@ -17,7 +18,7 @@ import tools.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
  *
  * @author kotteletfisk
  */
-@Getter @Setter @ToString @AllArgsConstructor
+@Getter @Setter @ToString @AllArgsConstructor @NoArgsConstructor
 @JacksonXmlRootElement(localName = "Order")
 public class LegacyOrder {
 

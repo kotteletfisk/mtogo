@@ -7,12 +7,13 @@ package mtogo.supplier.DTO;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import tools.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import tools.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-@Getter @Setter @ToString @AllArgsConstructor
+@Getter @Setter @ToString @AllArgsConstructor @NoArgsConstructor
 @JacksonXmlRootElement(localName = "OrderLine")
 public class LegacyOrderLine {
     @JacksonXmlProperty(localName = "ItemId")
