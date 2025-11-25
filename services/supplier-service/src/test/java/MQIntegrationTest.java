@@ -1,5 +1,7 @@
 
 import java.io.IOException;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -15,8 +17,9 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.GetResponse;
 
+import mtogo.supplier.DTO.LegacyOrderDetailsDTO;
+import mtogo.supplier.DTO.OrderLineDTO;
 import mtogo.supplier.messaging.Producer;
-import mtogo.supplier.server.LegacyDBAdapter;
 
 /**
  *
@@ -46,6 +49,7 @@ class MQIntegrationTest {
             GetResponse msg = channel.basicGet("test.queue", true);
 
             assertEquals("hello", new String(msg.getBody()));
+
         } catch (IOException | TimeoutException e) {
             fail(e.getMessage());
         }
@@ -69,10 +73,29 @@ class MQIntegrationTest {
     }
 
     @Test
-    void legacyAdapterPublishTest() {
+    void publishObjectTest() {
 
-        LegacyDBAdapter la = LegacyDBAdapter.getAdapter();
+        UUID id = UUID.randomUUID();
+        LegacyOrderDetailsDTO dto = new LegacyOrderDetailsDTO(
+                id,
+                "11111111",
+                List.of(
+                        new OrderLineDTO(id, 1, 1.0f, 1),
+                        new OrderLineDTO(id, 2, 2.0f, 2)
+                )
+        );
 
-        
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setHost(rabbit.getHost());
+        factory.setPort(rabbit.getAmqpPort());
+
+        Producer.setConnectionFactory(factory);
+
+        try {
+            assertTrue(Producer.publishObject("test:create_order", dto));
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+
     }
 }

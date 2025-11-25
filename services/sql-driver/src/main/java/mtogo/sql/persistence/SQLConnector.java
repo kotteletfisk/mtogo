@@ -1,23 +1,25 @@
 package mtogo.sql.persistence;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.List;
+
+import mtogo.sql.DTO.LegacyOrderDetailsDTO;
 import mtogo.sql.DTO.OrderDTO;
 import mtogo.sql.DTO.OrderLineDTO;
-
-import java.sql.*;
-import java.util.List;
-import org.postgresql.util.PGobject;
 
 public class SQLConnector {
 
     /**
      * Opens a new connection to the Postgres database.
      *
-     * Uses env vars so it works in Docker and locally:
-     *  - MTOGO_DB_HOST (e.g. MToGo-db in docker, localhost locally)
-     *  - MTOGO_DB_PORT (default 5432)
-     *  - MTOGO_DB     (db name)
-     *  - MTOGO_USER   (username)
-     *  - MTOGO_PASS   (password)
+     * Uses env vars so it works in Docker and locally: - MTOGO_DB_HOST (e.g.
+     * MToGo-db in docker, localhost locally) - MTOGO_DB_PORT (default 5432) -
+     * MTOGO_DB (db name) - MTOGO_USER (username) - MTOGO_PASS (password)
      */
     //Used for local testing
     /*public Connection getConnection() throws SQLException {
@@ -32,7 +34,7 @@ public class SQLConnector {
     }
 
      */
-        public Connection getConnection() throws SQLException {
+    public Connection getConnection() throws SQLException {
         String host = "MToGo-db";
         String port = "5432";
         String db = envOrDefault("POSTGRES_DB", "mtogo");
@@ -43,7 +45,6 @@ public class SQLConnector {
         return DriverManager.getConnection(url, user, pass);
     }
 
-
     private String envOrDefault(String key, String defaultValue) {
         String val = System.getenv(key);
         return (val == null || val.isBlank()) ? defaultValue : val;
@@ -52,34 +53,32 @@ public class SQLConnector {
     /**
      * Creates an order and its order lines in a single transaction.
      *
-     * The orderId is assumed to be generated in customer-service and passed
-     * in via orderDTO.getOrder_id().
+     * The orderId is assumed to be generated in customer-service and passed in
+     * via orderDTO.getOrder_id().
      *
      * If anything fails, the transaction is rolled back so that neither the
      * order or any order_line rows are persisted.
      */
     public OrderDTO createOrder(OrderDTO orderDTO,
-                                List<OrderLineDTO> orderLineDTOS,
-                                Connection connection) throws SQLException {
+            List<OrderLineDTO> orderLineDTOS,
+            Connection connection) throws SQLException {
 
         boolean originalAutoCommit = connection.getAutoCommit();
         connection.setAutoCommit(false);
 
         PreparedStatement orderStmt = null;
-        PreparedStatement lineStmt  = null;
-
-
+        PreparedStatement lineStmt = null;
 
         try {
             // Insert order with provided int orderId
-            String insertOrderSql =
-                    "INSERT INTO \"orders\" " +
-                            "(order_id, customer_id, order_created, order_updated, order_status) " +
-                            "VALUES (?, ?, ?, ?, ?)";
+            String insertOrderSql
+                    = "INSERT INTO \"orders\" "
+                    + "(order_id, customer_id, order_created, order_updated, order_status) "
+                    + "VALUES (?, ?, ?, ?, ?)";
 
             orderStmt = connection.prepareStatement(insertOrderSql);
             orderStmt.setObject(1, orderDTO.getOrder_id());
-            orderStmt.setInt(2, orderDTO.getCustomer_id());
+            orderStmt.setObject(2, orderDTO.getCustomer_id(), Types.INTEGER);
             orderStmt.setTimestamp(3, orderDTO.getOrder_created());
             orderStmt.setTimestamp(4, orderDTO.getOrder_updated());
             orderStmt.setString(5, orderDTO.getOrderStatus().name());
@@ -90,17 +89,17 @@ public class SQLConnector {
             }
 
             // Insert order lines using same order_id
-            String insertLineSql =
-                    "INSERT INTO order_line " +
-                            "(order_id, item_id, price_snapshot, amount) " +
-                            "VALUES (?, ?, ?, ?)";
+            String insertLineSql
+                    = "INSERT INTO order_line "
+                    + "(order_id, item_id, price_snapshot, amount) "
+                    + "VALUES (?, ?, ?, ?)";
 
             lineStmt = connection.prepareStatement(insertLineSql);
 
             for (OrderLineDTO lineDTO : orderLineDTOS) {
                 lineStmt.setObject(1, orderDTO.getOrder_id());
-                lineStmt.setInt(2, lineDTO.getItem_id());
-                lineStmt.setFloat(3, lineDTO.getPrice_snapshot());
+                lineStmt.setInt(2, lineDTO.getItemId());
+                lineStmt.setFloat(3, lineDTO.getPriceSnapshot());
                 lineStmt.setInt(4, lineDTO.getAmount());
                 lineStmt.addBatch();
             }
@@ -113,15 +112,52 @@ public class SQLConnector {
         } catch (SQLException ex) {
             try {
                 connection.rollback();
-            } catch (SQLException ignored) {}
+            } catch (SQLException ignored) {
+            }
             throw ex;
         } finally {
             try {
                 connection.setAutoCommit(originalAutoCommit);
-            } catch (SQLException ignored) {}
+            } catch (SQLException ignored) {
+            }
 
-            if (orderStmt != null) try { orderStmt.close(); } catch (SQLException ignored) {}
-            if (lineStmt != null) try { lineStmt.close(); } catch (SQLException ignored) {}
+            if (orderStmt != null) try {
+                orderStmt.close();
+            } catch (SQLException ignored) {
+            }
+            if (lineStmt != null) try {
+                lineStmt.close();
+            } catch (SQLException ignored) {
+            }
+        }
+
+    }
+
+    public OrderDTO createLegacyOrder(LegacyOrderDetailsDTO legacyDTO,
+            Connection connection) throws SQLException {
+
+        // Query for existing customer
+        String sql = "SELECT customer_id FROM customer WHERE customer_phone = ?";
+
+        try (var queryStmnt = connection.prepareStatement(sql)) {
+
+            queryStmnt.setString(1, legacyDTO.getCustomerPhone());
+
+            ResultSet rs = queryStmnt.executeQuery();
+
+            Integer customerId = null;
+
+            if (rs.next()) {
+                customerId = rs.getInt(1);
+            }
+            OrderDTO orderDTO = new OrderDTO(legacyDTO.getOrderId(), customerId);
+
+            int index = 1;
+            for (var line : legacyDTO.getOrderLineDTOS()) {
+                line.setOrderLineId(index++);
+            }
+
+            return createOrder(orderDTO, legacyDTO.getOrderLineDTOS(), connection);
         }
     }
 }

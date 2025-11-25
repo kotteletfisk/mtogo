@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import mtogo.supplier.DTO.LegacyOrder;
 import mtogo.supplier.DTO.LegacyOrderLine;
-import mtogo.supplier.DTO.OrderDetailsDTO;
+import mtogo.supplier.DTO.LegacyOrderDetailsDTO;
 import mtogo.supplier.factory.OrderDTOFactory;
 import mtogo.supplier.server.LegacyDBAdapter;
 import tools.jackson.dataformat.xml.XmlMapper;
@@ -70,7 +70,7 @@ public class LegacyDBAdapterTest {
 
         LegacyOrder legacy = new LegacyOrder(5.0f, "11111111", legacyLines);
 
-        OrderDetailsDTO dto = OrderDTOFactory.createFromLegacy(legacy);
+        LegacyOrderDetailsDTO dto = OrderDTOFactory.createFromLegacy(legacy);
 
         assertNotNull(dto);
         assertEquals(dto.getOrderLineDTOS().size(), 2);

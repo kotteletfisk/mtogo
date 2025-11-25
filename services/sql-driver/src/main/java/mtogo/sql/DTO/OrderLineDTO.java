@@ -5,18 +5,26 @@ import java.util.UUID;
 public class OrderLineDTO {
     private int orderLineId;
     private UUID orderId;
-    private int item_id;
-    private float price_snapshot;
+    private int itemId;
+    private float priceSnapshot;
     private int amount;
 
     public OrderLineDTO() {
     }
 
-    public OrderLineDTO(int orderLineId, UUID orderId, int item_id, float price_snapshot, int amount) {
+    public OrderLineDTO(int orderLineId, UUID orderId, int itemId, float priceSnapshot, int amount) {
         this.orderLineId = orderLineId;
         this.orderId = orderId;
-        this.item_id = item_id;
-        this.price_snapshot = price_snapshot;
+        this.itemId = itemId;
+        this.priceSnapshot = priceSnapshot;
+        this.amount = amount;
+    }    
+    
+    // for legacy compatibility
+    public OrderLineDTO(UUID orderId, int itemId, float priceSnapshot, int amount) {
+        this.orderId = orderId;
+        this.itemId = itemId;
+        this.priceSnapshot = priceSnapshot;
         this.amount = amount;
     }
 
@@ -36,20 +44,20 @@ public class OrderLineDTO {
         this.orderId = orderId;
     }
 
-    public int getItem_id() {
-        return item_id;
+    public int getItemId() {
+        return itemId;
     }
 
-    public void setItem_id(int item_id) {
-        this.item_id = item_id;
+    public void setItemId(int itemId) {
+        this.itemId = itemId;
     }
 
-    public float getPrice_snapshot() {
-        return price_snapshot;
+    public float getPriceSnapshot() {
+        return priceSnapshot;
     }
 
-    public void setPrice_snapshot(float price_snapshot) {
-        this.price_snapshot = price_snapshot;
+    public void setPriceSnapshot(float priceSnapshot) {
+        this.priceSnapshot = priceSnapshot;
     }
 
     public int getAmount() {

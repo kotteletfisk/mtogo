@@ -1,21 +1,21 @@
 package mtogo.sql.messaging;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
+import com.rabbitmq.client.Delivery;
+
+import mtogo.sql.DTO.LegacyOrderDetailsDTO;
 import mtogo.sql.DTO.OrderDTO;
 import mtogo.sql.DTO.OrderDetailsDTO;
 import mtogo.sql.DTO.OrderLineDTO;
 import mtogo.sql.persistence.SQLConnector;
-import java.sql.*;
-
-
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Consumes messages from RabbitMQ
@@ -27,7 +27,7 @@ public class Consumer {
 
     static ConnectionFactory connectionFactory = createDefaultFactory();
 
-     private static ConnectionFactory createDefaultFactory() {
+    private static ConnectionFactory createDefaultFactory() {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("rabbitMQ");
         factory.setPort(5672);
@@ -36,7 +36,6 @@ public class Consumer {
         return factory;
     }
 
-
     // Injectable connectionfactory for testing
     public static void setConnectionFactory(ConnectionFactory factory) {
         connectionFactory = factory;
@@ -44,10 +43,11 @@ public class Consumer {
 
     /**
      * Consumes messages from RabbitMQ based on the provided binding keys.
+     *
      * @param bindingKeys the routing keys to bind the queue to
      * @throws Exception if an error occurs while consuming messages
      */
-    public static void consumeMessages(String[] bindingKeys) throws Exception{
+    public static void consumeMessages(String[] bindingKeys) throws Exception {
 
         try {
             Connection connection = connectionFactory.newConnection();
@@ -60,60 +60,76 @@ public class Consumer {
                 channel.queueBind(queueName, EXCHANGE_NAME, bindingKey);
             }
 
-            channel.basicConsume(queueName, true, deliverCallback(), consumerTag -> { });
-        }
-        catch (Exception e){
+            channel.basicConsume(queueName, true, deliverCallback(), consumerTag -> {
+            });
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
     }
 
-
     /**
-     * Creates a DeliverCallback to handle incoming messages. The callbacks functionality can vary on keyword
+     * Creates a DeliverCallback to handle incoming messages. The callbacks
+     * functionality can vary on keyword
+     *
      * @return the DeliverCallback function
      */
     private static DeliverCallback deliverCallback() {
         return (consumerTag, delivery) -> {
             String routingKey = delivery.getEnvelope().getRoutingKey();
 
-            if ("customer:order_creation".equals(routingKey)) {
-                try {
-                    OrderDetailsDTO orderDetailsDTO =
-                            objectMapper.readValue(delivery.getBody(), OrderDetailsDTO.class);
+            switch (routingKey) {
 
-                    OrderDTO order = new OrderDTO(orderDetailsDTO);
+                case "customer:order_creation" -> {
+                    try {
+                        OrderDetailsDTO orderDetailsDTO
+                                = objectMapper.readValue(delivery.getBody(), OrderDetailsDTO.class);
 
-                    List<OrderLineDTO> orderLines = new ArrayList<>();
-                    for (OrderLineDTO line : orderDetailsDTO.getOrderLines()) {
-                        orderLines.add(
-                                new OrderLineDTO(
-                                        line.getOrderLineId(),
-                                        line.getOrderId(),
-                                        line.getItem_id(),
-                                        line.getPrice_snapshot(),
-                                        line.getAmount()
-                                )
-                        );
+                        OrderDTO order = new OrderDTO(orderDetailsDTO);
+
+                        List<OrderLineDTO> orderLines = new ArrayList<>();
+                        for (OrderLineDTO line : orderDetailsDTO.getOrderLines()) {
+                            orderLines.add(
+                                    new OrderLineDTO(
+                                            line.getOrderLineId(),
+                                            line.getOrderId(),
+                                            line.getItemId(),
+                                            line.getPriceSnapshot(),
+                                            line.getAmount()
+                                    )
+                            );
+                        }
+
+                        System.out.println(" [x] Received '" + routingKey + "':'" + orderDetailsDTO + "'");
+                        String bodyStr = new String(delivery.getBody(), java.nio.charset.StandardCharsets.UTF_8);
+                        System.out.println(" [x] Raw message body: " + bodyStr);
+
+                        SQLConnector sqlConnector = new SQLConnector();
+                        try (java.sql.Connection conn = sqlConnector.getConnection()) {
+                            sqlConnector.createOrder(order, orderLines, conn);
+                        }
+
+                        String payload = objectMapper.writeValueAsString(orderDetailsDTO);
+                        Producer.publishMessage("supplier:order_persisted", payload);
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
+                }
 
-                    System.out.println(" [x] Received '" + routingKey + "':'" + orderDetailsDTO + "'");
-                    String bodyStr = new String(delivery.getBody(), java.nio.charset.StandardCharsets.UTF_8);
-                    System.out.println(" [x] Raw message body: " + bodyStr);
-
-
-                    SQLConnector sqlConnector = new SQLConnector();
-                    try (java.sql.Connection conn = sqlConnector.getConnection()) {
-                        sqlConnector.createOrder(order, orderLines, conn);
-                    }
-
-                    String payload = objectMapper.writeValueAsString(orderDetailsDTO);
-                    Producer.publishMessage("supplier:order_persisted", payload);
-
-                } catch (Exception e) {
-                    e.printStackTrace();
+                case "supplier:create_order" -> {
+                    handleLegacyOrder(delivery);
                 }
             }
         };
+    }
+
+    private static void handleLegacyOrder(Delivery delivery) throws IOException {
+        LegacyOrderDetailsDTO legacyOrderDetailsDTO
+                = objectMapper.readValue(delivery.getBody(), LegacyOrderDetailsDTO.class);
+
+        
+
+        
     }
 }

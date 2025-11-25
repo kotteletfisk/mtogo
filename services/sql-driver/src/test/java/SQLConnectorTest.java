@@ -1,17 +1,31 @@
-import mtogo.sql.DTO.OrderDTO;
-import mtogo.sql.DTO.OrderLineDTO;
-import mtogo.sql.persistence.SQLConnector;
-import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.AfterEach;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import mtogo.sql.DTO.LegacyOrderDetailsDTO;
+import mtogo.sql.DTO.OrderDTO;
+import mtogo.sql.DTO.OrderLineDTO;
+import mtogo.sql.persistence.SQLConnector;
 
 @ExtendWith(MockitoExtension.class)
 class SQLConnectorTest {
@@ -39,9 +53,14 @@ class SQLConnectorTest {
         try (Statement st = conn.createStatement()) {
             st.execute("""
                 CREATE TABLE customer (
-                    customer_id INT PRIMARY KEY,
-                    customer_name VARCHAR(50)
+                    customer_id serial NOT NULL,
+                    customer_name character varying(50) NOT NULL,
+                    customer_zip character varying(10) NOT NULL,
+                    customer_phone character varying(15) NOT NULL,
+                    customer_creds character varying(50),
+                    PRIMARY KEY (customer_id)
                 );
+                
             """);
 
             st.execute("""
@@ -51,7 +70,7 @@ class SQLConnectorTest {
             st.execute("""
                 CREATE TABLE "orders" (
                     order_id UUID PRIMARY KEY,
-                    customer_id INT NOT NULL,
+                    customer_id INT,
                     order_created TIMESTAMP NOT NULL,
                     order_updated TIMESTAMP NOT NULL,
                     order_status orderstatus NOT NULL,
@@ -94,7 +113,7 @@ class SQLConnectorTest {
     @Test
     void createOrder_insertsOrderAndLines() throws Exception {
         try (Statement st = conn.createStatement()) {
-            st.execute("INSERT INTO customer (customer_id, customer_name) VALUES (1, 'Test Customer');");
+            st.execute("INSERT INTO customer (customer_name, customer_zip, customer_phone) VALUES ('Test Customer', '2450', '22222222');");
             st.execute("INSERT INTO menu_item (item_id) VALUES (10);");
             st.execute("INSERT INTO menu_item (item_id) VALUES (11);");
         }
@@ -109,12 +128,12 @@ class SQLConnectorTest {
         when(order.getOrder_updated()).thenReturn(updated);
         when(order.getOrderStatus()).thenReturn(OrderDTO.orderStatus.created);
 
-        when(line1.getItem_id()).thenReturn(10);
-        when(line1.getPrice_snapshot()).thenReturn(50.0f);
+        when(line1.getItemId()).thenReturn(10);
+        when(line1.getPriceSnapshot()).thenReturn(50.0f);
         when(line1.getAmount()).thenReturn(2);
 
-        when(line2.getItem_id()).thenReturn(11);
-        when(line2.getPrice_snapshot()).thenReturn(70.0f);
+        when(line2.getItemId()).thenReturn(11);
+        when(line2.getPriceSnapshot()).thenReturn(70.0f);
         when(line2.getAmount()).thenReturn(1);
 
         connector.createOrder(order, List.of(line1, line2), conn);
@@ -139,7 +158,7 @@ class SQLConnectorTest {
     @Test
     void createOrder_rollsBackWhenOrderLineInsertFails() throws Exception {
         try (Statement st = conn.createStatement()) {
-            st.execute("INSERT INTO customer (customer_id, customer_name) VALUES (1, 'Test Customer');");
+            st.execute("INSERT INTO customer (customer_name, customer_zip, customer_phone) VALUES ('Test Customer', '2450', '22222222');");
         }
 
         UUID orderId = UUID.randomUUID();
@@ -153,12 +172,12 @@ class SQLConnectorTest {
         when(order.getOrderStatus()).thenReturn(OrderDTO.orderStatus.created);
 
         OrderLineDTO badLine = mock(OrderLineDTO.class);
-        when(badLine.getItem_id()).thenReturn(999);
-        when(badLine.getPrice_snapshot()).thenReturn(10.0f);
+        when(badLine.getItemId()).thenReturn(999);
+        when(badLine.getPriceSnapshot()).thenReturn(10.0f);
         when(badLine.getAmount()).thenReturn(1);
 
-        assertThrows(SQLException.class, () ->
-                connector.createOrder(order, List.of(badLine), conn)
+        assertThrows(SQLException.class, ()
+                -> connector.createOrder(order, List.of(badLine), conn)
         );
 
         try (PreparedStatement ps = conn.prepareStatement(
@@ -175,6 +194,44 @@ class SQLConnectorTest {
             ResultSet rs = ps.executeQuery();
             assertTrue(rs.next());
             assertEquals(0, rs.getInt(1));
+        }
+    }
+
+    @Test
+    void createAnonymousLegacyOrderOnNoCustomerMatchTest() throws Exception {
+
+        try (Statement st = conn.createStatement()) {
+            st.execute("INSERT INTO customer (customer_name, customer_zip, customer_phone) VALUES ('Test Customer', '2450', '22222222');");
+            st.execute("INSERT INTO menu_item (item_id) VALUES (10);");
+            st.execute("INSERT INTO menu_item (item_id) VALUES (11);");
+        }
+
+        UUID id = UUID.randomUUID();
+        LegacyOrderDetailsDTO legacy = new LegacyOrderDetailsDTO(
+                id,
+                "11111111",
+                List.of(
+                        new OrderLineDTO(id, 10, 1.0f, 1),
+                        new OrderLineDTO(id, 11, 2.0f, 2)
+                )
+        );
+
+        try {
+            OrderDTO dto = connector.createLegacyOrder(legacy, conn);
+
+            assertEquals(null, dto.getCustomer_id());
+
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT * FROM \"orders\" WHERE order_id = ?")) {
+                ps.setObject(1, id);
+                ResultSet rs = ps.executeQuery();
+
+                assertTrue(rs.next());
+                assertEquals(null, rs.getObject("customer_id", Integer.class));
+            }
+
+        } catch (SQLException e) {
+            fail(e.getMessage());
         }
     }
 }
