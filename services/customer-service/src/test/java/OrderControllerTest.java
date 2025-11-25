@@ -44,7 +44,8 @@ class OrderControllerTest {
         return new OrderDetailsDTO(
                 123,
                 OrderDetailsDTO.orderStatus.created,
-                lines
+                lines,
+                OrderDetailsDTO.PaymentMethod.PAYPAL
         );
     }
 
