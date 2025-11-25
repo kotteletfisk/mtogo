@@ -89,7 +89,7 @@ public class LegacyDBAdapter {
         }
     }
 
-    private OrderDetailsDTO transformOrder(String xmlString) {
+    protected OrderDetailsDTO transformOrder(String xmlString) {
 
         try {
             LegacyOrder legacyOrder = xmlMapper.readValue(xmlString, LegacyOrder.class);
@@ -106,16 +106,18 @@ public class LegacyDBAdapter {
         return null;
     }
 
-    private void publishOrder(OrderDetailsDTO dto) {
+    protected void publishOrder(OrderDetailsDTO dto) {
         try {
             if (dto == null) {
                 throw new IllegalStateException("Transformed DTO was null!");
             }
             
             String dtoStr = objectMapper.writeValueAsString(dto);
+            log.debug("DTO mapped to string:\n" + dtoStr);
 
             if (Producer.publishMessage("supplier:create_order", dtoStr)) {
-                log.debug("Legacy order published:\n" + dtoStr);
+                log.info("Legacy order published");
+                log.debug("Payload: \n" + dtoStr);
             }
 
         } catch (IOException | InterruptedException | TimeoutException e) {
