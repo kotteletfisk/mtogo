@@ -2,62 +2,26 @@
 
 import java.util.UUID;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @ToString
 public class OrderLineDTO {
     private int orderLineId;
     private UUID orderId;
-    private int item_id;
-    private float price_snapshot;
+    private int itemId;
+    private float priceSnapshot;
     private int amount;
 
-<span class="nc" id="L12">    public OrderLineDTO() {</span>
-<span class="nc" id="L13">    }</span>
-
-<span class="nc" id="L15">    public OrderLineDTO(int orderLineId, UUID orderId, int item_id, float price_snapshot, int amount) {</span>
-<span class="nc" id="L16">        this.orderLineId = orderLineId;</span>
-<span class="nc" id="L17">        this.orderId = orderId;</span>
-<span class="nc" id="L18">        this.item_id = item_id;</span>
-<span class="nc" id="L19">        this.price_snapshot = price_snapshot;</span>
-<span class="nc" id="L20">        this.amount = amount;</span>
-<span class="nc" id="L21">    }</span>
-
-    public int getOrderLineId() {
-<span class="nc" id="L24">        return orderLineId;</span>
-    }
-
-    public void setOrderLineId(int orderLineId) {
-<span class="nc" id="L28">        this.orderLineId = orderLineId;</span>
-<span class="nc" id="L29">    }</span>
-
-    public UUID getOrderId() {
-<span class="nc" id="L32">        return orderId;</span>
-    }
-
-    public void setOrderId(UUID orderId) {
-<span class="nc" id="L36">        this.orderId = orderId;</span>
-<span class="nc" id="L37">    }</span>
-
-    public int getItem_id() {
-<span class="nc" id="L40">        return item_id;</span>
-    }
-
-    public void setItem_id(int item_id) {
-<span class="nc" id="L44">        this.item_id = item_id;</span>
-<span class="nc" id="L45">    }</span>
-
-    public float getPrice_snapshot() {
-<span class="nc" id="L48">        return price_snapshot;</span>
-    }
-
-    public void setPrice_snapshot(float price_snapshot) {
-<span class="nc" id="L52">        this.price_snapshot = price_snapshot;</span>
-<span class="nc" id="L53">    }</span>
-
-    public int getAmount() {
-<span class="nc" id="L56">        return amount;</span>
-    }
-
-    public void setAmount(int amount) {
-<span class="nc" id="L60">        this.amount = amount;</span>
-<span class="nc" id="L61">    }</span>
+    // initial creation
+<span class="fc" id="L20">    public OrderLineDTO(UUID orderId, int itemId, float priceSnapshot, int amount) {</span>
+<span class="fc" id="L21">        this.orderId = orderId;</span>
+<span class="fc" id="L22">        this.itemId = itemId;</span>
+<span class="fc" id="L23">        this.priceSnapshot = priceSnapshot;</span>
+<span class="fc" id="L24">        this.amount = amount;</span>
+<span class="fc" id="L25">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

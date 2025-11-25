@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrderDTOFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">supplier-service</a> &gt; <a href="index.source.html" class="el_package">mtogo.supplier.factory</a> &gt; <span class="el_source">OrderDTOFactory.java</span></div><h1>OrderDTOFactory.java</h1><pre class="source lang-java linenums">/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package mtogo.supplier.factory;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import mtogo.supplier.DTO.LegacyOrder;
+import mtogo.supplier.DTO.OrderDetailsDTO;
+import mtogo.supplier.DTO.OrderLineDTO;
+
+/**
+ *
+ * @author kotteletfisk
+ */
+<span class="nc" id="L19">public class OrderDTOFactory {</span>
+
+    public static OrderDetailsDTO createFromLegacy(LegacyOrder legacy) throws IllegalArgumentException {
+
+<span class="pc bpc" id="L23" title="1 of 2 branches missed.">        if (legacy == null) {</span>
+<span class="nc" id="L24">            throw new IllegalArgumentException(&quot;Passed object was null&quot;);</span>
+        }
+
+        try {
+             // FIXME: Risk of collisions!
+<span class="fc" id="L29">            UUID id = UUID.randomUUID();</span>
+
+<span class="fc" id="L31">            List&lt;OrderLineDTO&gt; lines = legacy.getOrderlines().stream().map((line) -&gt; {</span>
+<span class="fc" id="L32">                return new OrderLineDTO(id, line.getItemId(), line.getUnitPrice(), line.getAmount());</span>
+<span class="fc" id="L33">            }).collect(Collectors.toList());</span>
+
+<span class="fc" id="L35">            return new OrderDetailsDTO(id, legacy.getPhone(), OrderDetailsDTO.orderStatus.created, lines);</span>
+
+<span class="fc" id="L37">        } catch (Exception e) {</span>
+<span class="fc" id="L38">            throw new IllegalArgumentException(e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
