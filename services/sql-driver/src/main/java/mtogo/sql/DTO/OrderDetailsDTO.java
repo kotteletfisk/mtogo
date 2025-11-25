@@ -1,7 +1,5 @@
 package mtogo.sql.DTO;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +8,11 @@ import java.util.UUID;
 public class OrderDetailsDTO {
     private UUID orderId;
     private int customerId;
+
+    public enum PaymentMethod {
+        PAYPAL,
+        MOBILEPAY
+    }
 
     public enum orderStatus{
         created,
@@ -21,11 +24,24 @@ public class OrderDetailsDTO {
     }
     private orderStatus status;
     private List<OrderLineDTO> orderLineDTOS = new ArrayList<>();
+    private PaymentMethod paymentMethod;
 
     public OrderDetailsDTO() {}
 
+    public OrderDetailsDTO(int customerId, orderStatus status, List<OrderLineDTO> orderLineDTOS) {
+        this.customerId = customerId;
+        this.status = status;
+        this.orderLineDTOS = orderLineDTOS;
+    }
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
+    public OrderDetailsDTO(int customerId, orderStatus status, List<OrderLineDTO> orderLineDTOS, PaymentMethod paymentMethod) {
+        this.customerId = customerId;
+        this.status = status;
+        this.orderLineDTOS = orderLineDTOS;
+        this.paymentMethod = paymentMethod;
+    }
+
+
     public OrderDetailsDTO(UUID orderId, int customerId, orderStatus status, List<OrderLineDTO> orderLineDTOS) {
         this.orderId = orderId;
         this.customerId = customerId;
@@ -34,6 +50,13 @@ public class OrderDetailsDTO {
     }
     public void setOrderLines(List<OrderLineDTO> orderLines) {
         this.orderLineDTOS = (orderLines != null) ? orderLines : new ArrayList<>();
+    }
+    public PaymentMethod getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(PaymentMethod paymentMethod) {
+        this.paymentMethod = paymentMethod;
     }
 
     public List<OrderLineDTO> getOrderLines() {
