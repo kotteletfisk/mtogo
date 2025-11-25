@@ -4,7 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.Context;
 import mtogo.customer.DTO.OrderDetailsDTO;
 import mtogo.customer.messaging.Producer;
+import mtogo.payment.MobilePayStrategy;
+import mtogo.payment.PaymentService;
+import mtogo.payment.PaypalStrategy;
+import mtogo.payment.RevenueShareCalculator;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -35,6 +41,28 @@ public class OrderController {
         OrderDetailsDTO orderDetailsDTO = validateOrderDTO(ctx);
         if (orderDetailsDTO != null) {
             try {
+
+                double total = orderDetailsDTO.getOrderLines().stream()
+                        .mapToDouble(line -> line.getPrice_snapshot() * line.getAmount())
+                        .sum();
+
+
+                PaymentService ps = new PaymentService();
+
+                switch (orderDetailsDTO.getPaymentMethod()){
+                    case PAYPAL -> ps.setPaymentStrategy(new PaypalStrategy());
+                    case MOBILEPAY -> ps.setPaymentStrategy(new MobilePayStrategy());
+                }
+
+                boolean pay = ps.pay(total);
+                if (!pay){
+                    ctx.status(402).result("Payment failed");
+                    return;
+                }
+                LocalDateTime orderTime = LocalDateTime.now();
+
+                RevenueShareCalculator.printBreakdown(total, orderTime);
+
                 // Generate the orderId
                 UUID orderId = UUID.randomUUID();
                 orderDetailsDTO.setOrderId(orderId);
@@ -71,6 +99,7 @@ public class OrderController {
                 .check(r-> r.getCustomerId() > 0, "Customer ID must be greater than 0")
                 .check(r-> r.getStatus() == OrderDetailsDTO.orderStatus.created, "Order status must be provided")
                 .check(r-> r.getOrderLines() != null && !r.getOrderLines().isEmpty(), "Order must contain at least one order line")
+                .check(r -> r.getPaymentMethod() != null, "Payment method must be provided")
                 .get();
     }
 
