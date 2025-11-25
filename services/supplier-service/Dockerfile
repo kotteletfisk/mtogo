@@ -1,17 +1,43 @@
-FROM maven:3.9.6-eclipse-temurin-21 AS build
 
-WORKDIR /app
-COPY pom.xml .
-COPY src ./src
-RUN mvn -B -DskipTests package
+    # 1. legacy Rust system
+    FROM rust:1.91.1 AS rust-build
 
-FROM eclipse-temurin:21-jre-jammy
-
-WORKDIR /app
-
-COPY --from=build /app/target/*.jar app.jar
-
-EXPOSE 7070
-EXPOSE 5672
-
-ENTRYPOINT ["java","-jar","app.jar"]
+    WORKDIR /app/legacy-system
+    COPY legacy-system/Cargo.toml .
+    COPY legacy-system/src ./src
+    COPY legacy-system/assets ./assets
+    
+    RUN cargo build --release
+    
+    
+    # 2. Java application
+    FROM maven:3.9.6-eclipse-temurin-21 AS java-build
+    
+    WORKDIR /app
+    COPY pom.xml .
+    COPY src ./src
+    
+    RUN mvn -B -DskipTests package
+    
+    
+    # 3. Final minimal runtime image
+    FROM eclipse-temurin:21-jre-jammy
+    
+    WORKDIR /app
+    
+    # Copy Java JAR
+    COPY --from=java-build /app/target/supplier-service.jar /app/app.jar
+    
+    # Copy Rust binary
+    COPY --from=rust-build /app/legacy-system/target/release/legacy-system /app/legacy-system
+    COPY --from=rust-build /app/legacy-system/assets ./assets
+    
+    # Copy entrypoint script
+    COPY start.sh /app/start.sh
+    RUN chmod +x /app/start.sh
+    
+    EXPOSE 7070
+    EXPOSE 8080
+    EXPOSE 5672
+    
+    ENTRYPOINT ["/app/start.sh"]

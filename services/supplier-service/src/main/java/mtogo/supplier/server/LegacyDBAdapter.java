@@ -25,10 +25,10 @@ import tools.jackson.dataformat.xml.XmlMapper;
 public class LegacyDBAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(LegacyDBAdapter.class);
-    private ObjectMapper objectMapper;
-    private ServerSocket serverSocket;
-    private final XmlMapper xmlMapper;
     private static LegacyDBAdapter instance;
+    private final ObjectMapper objectMapper;
+    private final XmlMapper xmlMapper;
+    private ServerSocket serverSocket;
 
     private LegacyDBAdapter() {
         xmlMapper = new XmlMapper();
@@ -73,11 +73,13 @@ public class LegacyDBAdapter {
             StringBuilder sb = new StringBuilder();
             String line;
 
+            log.info("Received connection from Legacy system");
+
             while ((line = in.readLine()) != null) {
                 sb.append(line).append("\n");
             }
 
-            log.debug("Received from legacy system:\n" + sb.toString());
+            log.debug("Data from legacy system:\n" + sb.toString());
 
             OrderDetailsDTO dto = transformOrder(sb.toString());
             publishOrder(dto);
