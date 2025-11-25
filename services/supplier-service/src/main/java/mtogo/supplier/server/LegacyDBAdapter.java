@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,15 +80,16 @@ public class LegacyDBAdapter {
 
             log.debug("Data from legacy system:\n" + sb.toString());
 
-            OrderDetailsDTO dto = transformOrder(sb.toString());
-            publishOrder(dto);
+            OrderDetailsDTO dto = xmlToDTO(sb.toString());
+            
+            Producer.publishObject("supplier:create_order", dto);
 
         } catch (IOException e) {
-            log.error("Connection failed", e);
+            log.error("Connection failed: ", e);
         }
     }
 
-    protected OrderDetailsDTO transformOrder(String xmlString) {
+    private OrderDetailsDTO xmlToDTO(String xmlString) {
 
         try {
             LegacyOrder legacyOrder = xmlMapper.readValue(xmlString, LegacyOrder.class);
@@ -101,27 +101,8 @@ public class LegacyDBAdapter {
             return dto;
 
         } catch (JacksonException | IllegalArgumentException e) {
-            log.error("Error transforming: " + e.getMessage());
+            log.error("Error while transforming: " + e.getMessage());
         }
         return null;
-    }
-
-    protected void publishOrder(OrderDetailsDTO dto) {
-        try {
-            if (dto == null) {
-                throw new IllegalStateException("Transformed DTO was null!");
-            }
-            
-            String dtoStr = objectMapper.writeValueAsString(dto);
-            log.debug("DTO mapped to string:\n" + dtoStr);
-
-            if (Producer.publishMessage("supplier:create_order", dtoStr)) {
-                log.info("Legacy order published");
-                log.debug("Payload: \n" + dtoStr);
-            }
-
-        } catch (IOException | InterruptedException | TimeoutException e) {
-            log.error("Error publishing legacy order: " + e.getMessage());
-        } 
     }
 }
