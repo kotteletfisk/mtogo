@@ -1,10 +1,23 @@
 package mtogo.payment;
 
+import java.text.NumberFormat;
 import java.time.*;
+import java.util.Locale;
 
 public class RevenueShareCalculator {
 
     private static final ZoneId COPENHAGEN = ZoneId.of("Europe/Copenhagen");
+    private static final NumberFormat DKK_FORMAT = NumberFormat.getNumberInstance(new Locale("da", "DK"));
+
+    static {
+        DKK_FORMAT.setMaximumFractionDigits(2);
+        DKK_FORMAT.setMinimumFractionDigits(2);
+    }
+
+    private static String formatAmount(double amount) {
+        return DKK_FORMAT.format(amount) + " DKK";
+    }
+
 
     /**
      * Progressive MTOGO fee as per assignment.
@@ -63,10 +76,10 @@ public class RevenueShareCalculator {
         double restaurantGets = amountBeforeVat - mtogoFee;
         double mtogoProfit = mtogoFee - courierBonus;
 
-        System.out.printf("Payment breakdown for order: %.2f DKK%n", amountBeforeVat);
+        System.out.printf("Payment breakdown for order: %s%n", formatAmount(amountBeforeVat));
         System.out.printf("  Late-night          : %s%n", isLateNight(orderTime));
-        System.out.printf("  Restaurant receives : %.2f DKK%n", restaurantGets);
-        System.out.printf("  Courier bonus       : %.2f DKK%n", courierBonus);
-        System.out.printf("  MTOGO profit        : %.2f DKK%n", mtogoProfit);
+        System.out.printf("  Restaurant receives : %s%n", formatAmount(restaurantGets));
+        System.out.printf("  Courier bonus       : %s%n", formatAmount(courierBonus));
+        System.out.printf("  MTOGO profit        : %s%n", formatAmount(mtogoProfit));
     }
 }
