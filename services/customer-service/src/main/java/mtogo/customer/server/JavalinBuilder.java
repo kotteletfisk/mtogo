@@ -1,5 +1,6 @@
 package mtogo.customer.server;
 
+import io.javalin.http.staticfiles.Location;
 import mtogo.customer.controller.OrderController;
 import mtogo.customer.exceptions.APIException;
 import mtogo.customer.exceptions.ExceptionHandler;
@@ -16,7 +17,15 @@ public class JavalinBuilder {
 
     public static void startServer(int port) {
         Javalin.create(config -> {
+                    config.staticFiles.add(staticFiles -> {
+                        staticFiles.hostedPath = "/";
+                        staticFiles.directory = "/public";
+                        staticFiles.location = Location.CLASSPATH;
+                    });
+
                     config.router.apiBuilder(() -> {
+                        get("/", ctx -> ctx.redirect("/cs-order.html"));
+
                         path("/api", () -> {
                             get("/health", (ctx) -> ctx.status(200));
                             get("/", (ctx) -> ctx.status(418)); // Visit me in the browser ;)

@@ -6,6 +6,7 @@ import mtogo.customer.DTO.OrderDetailsDTO;
 import mtogo.customer.messaging.Producer;
 
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Controller for handling order-related operations.
@@ -37,6 +38,14 @@ public class OrderController {
                 // Generate the orderId
                 UUID orderId = UUID.randomUUID();
                 orderDetailsDTO.setOrderId(orderId);
+
+                AtomicInteger counter = new AtomicInteger(1);
+                if (orderDetailsDTO.getOrderLines() != null) {
+                    orderDetailsDTO.getOrderLines().forEach(line -> {
+                        line.setOrderId(orderId);
+                        line.setOrderLineId(counter.getAndIncrement());
+                    });
+                }
 
                 String payload = objectMapper.writeValueAsString(orderDetailsDTO);
 
