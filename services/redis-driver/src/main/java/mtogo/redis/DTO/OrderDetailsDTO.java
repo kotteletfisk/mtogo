@@ -1,5 +1,7 @@
 package mtogo.redis.DTO;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +24,7 @@ public class OrderDetailsDTO {
 
     public OrderDetailsDTO() {}
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public OrderDetailsDTO(UUID orderId, int customerId, orderStatus status, List<OrderLineDTO> orderLineDTOS) {
         this.orderId = orderId;
         this.customerId = customerId;
