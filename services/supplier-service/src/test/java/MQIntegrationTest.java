@@ -16,6 +16,7 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.GetResponse;
 
 import mtogo.supplier.messaging.Producer;
+import mtogo.supplier.server.LegacyDBAdapter;
 
 /**
  *
@@ -65,5 +66,13 @@ class MQIntegrationTest {
             fail(e.getMessage());
         }
 
+    }
+
+    @Test
+    void legacyAdapterPublishTest() {
+
+        LegacyDBAdapter la = LegacyDBAdapter.getAdapter();
+
+        
     }
 }
