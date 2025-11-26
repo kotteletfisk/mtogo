@@ -144,6 +144,7 @@ public class SQLConnector {
             log.info("Creating legacy order");
 
         // Query for existing customer
+        // FIXME: relation 'customer' not found
         String sql = "SELECT customer_id FROM customer WHERE customer_phone = ?";
 
         try (var queryStmnt = connection.prepareStatement(sql)) {

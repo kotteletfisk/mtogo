@@ -1,6 +1,8 @@
 package mtogo.sql.messaging;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +32,8 @@ public class Consumer {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final String EXCHANGE_NAME = "order";
+    private static StringWriter sw = new StringWriter();
+    private static PrintWriter pw = new PrintWriter(sw);
 
     static ConnectionFactory connectionFactory = createDefaultFactory();
 
@@ -70,7 +74,8 @@ public class Consumer {
             });
         } catch (Exception e) {
             log.error("Error consuming message:\n" + e.getMessage());
-            e.printStackTrace();
+            e.printStackTrace(pw);
+            log.error("Stacktrace:\n" + sw.toString());
         }
 
     }
@@ -136,7 +141,7 @@ public class Consumer {
     private static void handleLegacyOrder(Delivery delivery) throws IOException, SQLException {
         LegacyOrderDetailsDTO legacyOrderDetailsDTO = objectMapper.readValue(delivery.getBody(),
                 LegacyOrderDetailsDTO.class);
-
+        
         SQLConnector sqlConnector = new SQLConnector();
         try (java.sql.Connection conn = sqlConnector.getConnection()) {
             sqlConnector.createLegacyOrder(legacyOrderDetailsDTO, conn);

@@ -1,6 +1,7 @@
 package mtogo.supplier.messaging;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;

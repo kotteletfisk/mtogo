@@ -68,7 +68,8 @@ services:
       - backend
 
   supplier-service:
-    image: ${DOCKER_USER}/supplier-service:${SUPPLIER_SERVICE_TAG}
+    # image: ${DOCKER_USER}/supplier-service:${SUPPLIER_SERVICE_TAG}
+    image: kotteletfisk/supplier-service:test
     ports:
       - target: 7070
         published: 7073
@@ -115,6 +116,8 @@ services:
     command: >
       sh -c "rabbitmq-plugins enable rabbitmq_management &&
              rabbitmq-server"
+    deploy:
+      replicas: 1
     networks:
       - backend
 
@@ -161,7 +164,7 @@ services:
       - backend
 
   sql-driver:
-    image: kotteletfisk/sql-driver:test1 #TODO: CHANGE
+    image: kotteletfisk/sql-driver:test #TODO: CHANGE
     depends_on:
       - MToGo-db
       - metrics-db
@@ -172,6 +175,8 @@ services:
         POSTGRES_USER: ${MTOGO_USER}
         POSTGRES_PASSWORD: ${MTOGO_PASS}
         POSTGRES_DB: ${MTOGO_DB}
+    deploy:
+      replicas: 1
     networks:
       - backend
 
