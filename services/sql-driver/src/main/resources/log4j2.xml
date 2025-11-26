@@ -1,0 +1,17 @@
+<Configuration>
+    <Properties>
+        <Property name="log.level">${env:LOG_LEVEL:-info}</Property>
+    </Properties>
+
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="[%level]: %msg%n" />
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <Root level="${log.level}">
+            <AppenderRef ref="Console"/>
+        </Root>
+    </Loggers>
+</Configuration>

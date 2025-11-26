@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import mtogo.supplier.DTO.LegacyOrder;
-import mtogo.supplier.DTO.OrderDetailsDTO;
+import mtogo.supplier.DTO.LegacyOrderDetailsDTO;
 import mtogo.supplier.factory.OrderDTOFactory;
 import mtogo.supplier.messaging.Producer;
 import tools.jackson.core.JacksonException;
@@ -80,7 +80,7 @@ public class LegacyDBAdapter {
 
             log.debug("Data from legacy system:\n" + sb.toString());
 
-            OrderDetailsDTO dto = xmlToDTO(sb.toString());
+            LegacyOrderDetailsDTO dto = xmlToDTO(sb.toString());
             
             Producer.publishObject("supplier:create_order", dto);
 
@@ -89,13 +89,13 @@ public class LegacyDBAdapter {
         }
     }
 
-    private OrderDetailsDTO xmlToDTO(String xmlString) {
+    private LegacyOrderDetailsDTO xmlToDTO(String xmlString) {
 
         try {
             LegacyOrder legacyOrder = xmlMapper.readValue(xmlString, LegacyOrder.class);
             log.debug("Mapped object:\n" + legacyOrder.toString());
 
-            OrderDetailsDTO dto = OrderDTOFactory.createFromLegacy(legacyOrder);
+            LegacyOrderDetailsDTO dto = OrderDTOFactory.createFromLegacy(legacyOrder);
             log.debug("Transformed DTO:\n" + dto.toString());
 
             return dto;
