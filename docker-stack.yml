@@ -28,7 +28,7 @@ services:
         protocol: tcp
         mode: host
     depends_on:
-      - rabbitMQ
+      - rabbitmq
       - redis-active-db
       - sql-driver
     deploy:
@@ -44,7 +44,7 @@ services:
         protocol: tcp
         mode: host
     depends_on:
-      - rabbitMQ
+      - rabbitmq
       - redis-active-db
       - sql-driver
     deploy:
@@ -60,7 +60,7 @@ services:
     ports:
       - "7072:7070"
     depends_on:
-      - rabbitMQ
+      - rabbitmq
       - sql-driver
     deploy:
       replicas: 1
@@ -79,7 +79,7 @@ services:
         protocol: tcp
         mode: host
     depends_on:
-      - rabbitMQ
+      - rabbitmq
       - redis-active-db
       - sql-driver
     deploy:
@@ -96,13 +96,13 @@ services:
       - "7074:7070"
     depends_on:
       - mongo-driver
-      - rabbitMQ
+      - rabbitmq
     deploy:
       replicas: 1
     networks:
       - backend
 
-  rabbitMQ:
+  rabbitmq:
     image: rabbitmq:3.13-alpine
     ports:
       - target: 15672
@@ -127,7 +127,7 @@ services:
     image: ${DOCKER_USER}/redis-driver:${REDIS_DRIVER_TAG}
     depends_on:
       - redis-active-db
-      - rabbitMQ
+      - rabbitmq
     environment:
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASS: ${RABBITMQ_PASS}
@@ -161,11 +161,11 @@ services:
       - backend
 
   sql-driver:
-    image: kotteletfisk/sql-driver:test1
+    image: kotteletfisk/sql-driver:test1 #TODO: CHANGE
     depends_on:
       - MToGo-db
       - metrics-db
-      - rabbitMQ
+      - rabbitmq
     environment:
         RABBITMQ_USER: ${RABBITMQ_USER}
         RABBITMQ_PASS: ${RABBITMQ_PASS}

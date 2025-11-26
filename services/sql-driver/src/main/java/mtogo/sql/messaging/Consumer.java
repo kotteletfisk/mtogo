@@ -35,7 +35,7 @@ public class Consumer {
 
     private static ConnectionFactory createDefaultFactory() {
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost("rabbitMQ");
+        factory.setHost("rabbitmq");
         factory.setPort(5672);
         factory.setUsername(System.getenv("RABBITMQ_USER"));
         factory.setPassword(System.getenv("RABBITMQ_PASS"));
