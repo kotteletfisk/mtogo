@@ -70,6 +70,7 @@ public class Consumer {
             });
         } catch (Exception e) {
             log.error("Error consuming message:\n" + e.getMessage());
+            e.printStackTrace();
         }
 
     }
@@ -121,7 +122,7 @@ public class Consumer {
                     }
                 }
 
-                case "supplier:create_order" -> {
+                case "supplier:order_creation" -> {
                     try {
                         handleLegacyOrder(delivery);
                     } catch (SQLException e) {

@@ -161,7 +161,7 @@ services:
       - backend
 
   sql-driver:
-    image: ${DOCKER_USER}/sql-driver:${SQL_DRIVER_TAG}
+    image: kotteletfisk/sql-driver:test1
     depends_on:
       - MToGo-db
       - metrics-db
