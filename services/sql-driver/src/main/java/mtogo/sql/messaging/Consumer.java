@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -21,6 +24,8 @@ import mtogo.sql.persistence.SQLConnector;
  * Consumes messages from RabbitMQ
  */
 public class Consumer {
+
+    private static final Logger log = LoggerFactory.getLogger(Consumer.class);
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final String EXCHANGE_NAME = "order";
@@ -63,7 +68,7 @@ public class Consumer {
             channel.basicConsume(queueName, true, deliverCallback(), consumerTag -> {
             });
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error consuming message:\n" + e.getMessage());
         }
 
     }
@@ -100,9 +105,9 @@ public class Consumer {
                             );
                         }
 
-                        System.out.println(" [x] Received '" + routingKey + "':'" + orderDetailsDTO + "'");
+                        log.info(" [x] Received '" + routingKey + "':'" + orderDetailsDTO + "'");
                         String bodyStr = new String(delivery.getBody(), java.nio.charset.StandardCharsets.UTF_8);
-                        System.out.println(" [x] Raw message body: " + bodyStr);
+                        log.info(" [x] Raw message body: " + bodyStr);
 
                         SQLConnector sqlConnector = new SQLConnector();
                         try (java.sql.Connection conn = sqlConnector.getConnection()) {
@@ -113,7 +118,7 @@ public class Consumer {
                         Producer.publishMessage("supplier:order_persisted", payload);
 
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        log.error(e.getMessage());
                     }
                 }
 
@@ -128,8 +133,5 @@ public class Consumer {
         LegacyOrderDetailsDTO legacyOrderDetailsDTO
                 = objectMapper.readValue(delivery.getBody(), LegacyOrderDetailsDTO.class);
 
-        
-
-        
     }
 }

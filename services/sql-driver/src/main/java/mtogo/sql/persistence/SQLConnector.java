@@ -8,11 +8,16 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import mtogo.sql.DTO.LegacyOrderDetailsDTO;
 import mtogo.sql.DTO.OrderDTO;
 import mtogo.sql.DTO.OrderLineDTO;
 
 public class SQLConnector {
+
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     /**
      * Opens a new connection to the Postgres database.
@@ -135,6 +140,8 @@ public class SQLConnector {
 
     public OrderDTO createLegacyOrder(LegacyOrderDetailsDTO legacyDTO,
             Connection connection) throws SQLException {
+            
+            log.info("Creating legacy order");
 
         // Query for existing customer
         String sql = "SELECT customer_id FROM customer WHERE customer_phone = ?";
@@ -149,6 +156,10 @@ public class SQLConnector {
 
             if (rs.next()) {
                 customerId = rs.getInt(1);
+                log.debug("Customer id: " + customerId + " matched with phone: " + legacyDTO.getCustomerPhone());
+            }
+            else {
+                log.info("No match customer match found. Creating anonymously");
             }
             OrderDTO orderDTO = new OrderDTO(legacyDTO.getOrderId(), customerId);
 
