@@ -17,6 +17,8 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
+    deploy:
+      replicas: 1
     networks:
       - backend
 
@@ -68,8 +70,7 @@ services:
       - backend
 
   supplier-service:
-    # image: ${DOCKER_USER}/supplier-service:${SUPPLIER_SERVICE_TAG}
-    image: kotteletfisk/supplier-service:test
+    image: ${DOCKER_USER}/supplier-service:${SUPPLIER_SERVICE_TAG}
     ports:
       - target: 7070
         published: 7073
@@ -123,6 +124,8 @@ services:
 
   redis-active-db:
     image: redis:8.2.3-alpine
+    deploy:
+      replicas: 1
     networks:
       - backend
 
@@ -137,7 +140,7 @@ services:
     networks:
       - backend
 
-  MToGo-db:
+  mtogo-db:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: ${MTOGO_USER}
@@ -147,6 +150,8 @@ services:
       - mtogo_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    deploy:
+      replicas: 1
     networks:
       - backend
 
@@ -160,13 +165,15 @@ services:
       - metrics_data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
+    deploy:
+      replicas: 1
     networks:
       - backend
 
   sql-driver:
-    image: kotteletfisk/sql-driver:test #TODO: CHANGE
+    image: ${DOCKER_USER}/sql-driver:${SQL_DRIVER_TAG}
     depends_on:
-      - MToGo-db
+      - mtogo-db
       - metrics-db
       - rabbitmq
     environment:
@@ -189,6 +196,8 @@ services:
       - support_data:/data/db
     ports:
       - "27017:27017"
+    deploy:
+      replicas: 1
     networks:
       - backend
 
@@ -201,6 +210,8 @@ services:
       - applicant_data:/data/db
     ports:
       - "27018:27017"
+    deploy:
+      replicas: 1
     networks:
       - backend
 
@@ -209,6 +220,8 @@ services:
     depends_on:
       - support-db
       - applicant-db
+    deploy:
+      replicas: 1
     networks:
       - backend
 

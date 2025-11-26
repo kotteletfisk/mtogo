@@ -40,7 +40,7 @@ public class SQLConnector {
 
      */
     public Connection getConnection() throws SQLException {
-        String host = "MToGo-db";
+        String host = "mtogo-db";
         String port = "5432";
         String db = envOrDefault("POSTGRES_DB", "mtogo");
         String user = envOrDefault("POSTGRES_USER", "mtogo");
