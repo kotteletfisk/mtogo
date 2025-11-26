@@ -7,7 +7,9 @@
 		"version": "21",
 		"installMaven": "true",
 		"installGradle": "false"
-	  }
+	  },
+
+	  "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
 	},
   
 	"customizations": {
@@ -19,9 +21,7 @@
 	  }
 	},
 
-	"containerEnv": {
-		"LOG_LEVEL": "debug"
-	  },
+    "runArgs": ["--env-file",".env"],
   
 	"postCreateCommand": "java -version && mvn -version"
   }

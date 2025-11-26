@@ -70,13 +70,23 @@ services:
   supplier-service:
     image: ${DOCKER_USER}/supplier-service:${SUPPLIER_SERVICE_TAG}
     ports:
-      - "7073:7070"
+      - target: 7070
+        published: 7073
+        protocol: tcp
+        mode: host
+      - target: 8080
+        published: 8080
+        protocol: tcp
+        mode: host
     depends_on:
       - rabbitMQ
       - redis-active-db
       - sql-driver
     deploy:
       replicas: 1
+    environment:
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
     networks:
       - backend
 

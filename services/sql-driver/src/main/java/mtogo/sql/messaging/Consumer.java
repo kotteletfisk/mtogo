@@ -1,6 +1,7 @@
 package mtogo.sql.messaging;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -87,8 +88,8 @@ public class Consumer {
 
                 case "customer:order_creation" -> {
                     try {
-                        OrderDetailsDTO orderDetailsDTO
-                                = objectMapper.readValue(delivery.getBody(), OrderDetailsDTO.class);
+                        OrderDetailsDTO orderDetailsDTO = objectMapper.readValue(delivery.getBody(),
+                                OrderDetailsDTO.class);
 
                         OrderDTO order = new OrderDTO(orderDetailsDTO);
 
@@ -100,9 +101,7 @@ public class Consumer {
                                             line.getOrderId(),
                                             line.getItemId(),
                                             line.getPriceSnapshot(),
-                                            line.getAmount()
-                                    )
-                            );
+                                            line.getAmount()));
                         }
 
                         log.info(" [x] Received '" + routingKey + "':'" + orderDetailsDTO + "'");
@@ -123,15 +122,23 @@ public class Consumer {
                 }
 
                 case "supplier:create_order" -> {
-                    handleLegacyOrder(delivery);
+                    try {
+                        handleLegacyOrder(delivery);
+                    } catch (SQLException e) {
+                        log.error(e.getMessage());
+                    }
                 }
             }
         };
     }
 
-    private static void handleLegacyOrder(Delivery delivery) throws IOException {
-        LegacyOrderDetailsDTO legacyOrderDetailsDTO
-                = objectMapper.readValue(delivery.getBody(), LegacyOrderDetailsDTO.class);
+    private static void handleLegacyOrder(Delivery delivery) throws IOException, SQLException {
+        LegacyOrderDetailsDTO legacyOrderDetailsDTO = objectMapper.readValue(delivery.getBody(),
+                LegacyOrderDetailsDTO.class);
 
+        SQLConnector sqlConnector = new SQLConnector();
+        try (java.sql.Connection conn = sqlConnector.getConnection()) {
+            sqlConnector.createLegacyOrder(legacyOrderDetailsDTO, conn);
+        }
     }
 }
