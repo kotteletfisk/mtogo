@@ -17,6 +17,8 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
+    deploy:
+      replicas: 1
     networks:
       - backend
 
@@ -28,7 +30,7 @@ services:
         protocol: tcp
         mode: host
     depends_on:
-      - rabbitMQ
+      - rabbitmq
       - redis-active-db
       - sql-driver
     deploy:
@@ -44,7 +46,7 @@ services:
         protocol: tcp
         mode: host
     depends_on:
-      - rabbitMQ
+      - rabbitmq
       - redis-active-db
       - sql-driver
     deploy:
@@ -60,7 +62,7 @@ services:
     ports:
       - "7072:7070"
     depends_on:
-      - rabbitMQ
+      - rabbitmq
       - sql-driver
     deploy:
       replicas: 1
@@ -70,13 +72,23 @@ services:
   supplier-service:
     image: ${DOCKER_USER}/supplier-service:${SUPPLIER_SERVICE_TAG}
     ports:
-      - "7073:7070"
+      - target: 7070
+        published: 7073
+        protocol: tcp
+        mode: host
+      - target: 8080
+        published: 8080
+        protocol: tcp
+        mode: host
     depends_on:
-      - rabbitMQ
+      - rabbitmq
       - redis-active-db
       - sql-driver
     deploy:
       replicas: 1
+    environment:
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
     networks:
       - backend
 
@@ -86,13 +98,13 @@ services:
       - "7074:7070"
     depends_on:
       - mongo-driver
-      - rabbitMQ
+      - rabbitmq
     deploy:
       replicas: 1
     networks:
       - backend
 
-  rabbitMQ:
+  rabbitmq:
     image: rabbitmq:3.13-alpine
     ports:
       - target: 15672
@@ -105,11 +117,15 @@ services:
     command: >
       sh -c "rabbitmq-plugins enable rabbitmq_management &&
              rabbitmq-server"
+    deploy:
+      replicas: 1
     networks:
       - backend
 
   redis-active-db:
     image: redis:8.2.3-alpine
+    deploy:
+      replicas: 1
     networks:
       - backend
 
@@ -117,14 +133,14 @@ services:
     image: ${DOCKER_USER}/redis-driver:${REDIS_DRIVER_TAG}
     depends_on:
       - redis-active-db
-      - rabbitMQ
+      - rabbitmq
     environment:
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASS: ${RABBITMQ_PASS}
     networks:
       - backend
 
-  MToGo-db:
+  mtogo-db:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: ${MTOGO_USER}
@@ -134,6 +150,8 @@ services:
       - mtogo_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    deploy:
+      replicas: 1
     networks:
       - backend
 
@@ -147,21 +165,25 @@ services:
       - metrics_data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
+    deploy:
+      replicas: 1
     networks:
       - backend
 
   sql-driver:
     image: ${DOCKER_USER}/sql-driver:${SQL_DRIVER_TAG}
     depends_on:
-      - MToGo-db
+      - mtogo-db
       - metrics-db
-      - rabbitMQ
+      - rabbitmq
     environment:
         RABBITMQ_USER: ${RABBITMQ_USER}
         RABBITMQ_PASS: ${RABBITMQ_PASS}
         POSTGRES_USER: ${MTOGO_USER}
         POSTGRES_PASSWORD: ${MTOGO_PASS}
         POSTGRES_DB: ${MTOGO_DB}
+    deploy:
+      replicas: 1
     networks:
       - backend
 
@@ -174,6 +196,8 @@ services:
       - support_data:/data/db
     ports:
       - "27017:27017"
+    deploy:
+      replicas: 1
     networks:
       - backend
 
@@ -186,6 +210,8 @@ services:
       - applicant_data:/data/db
     ports:
       - "27018:27017"
+    deploy:
+      replicas: 1
     networks:
       - backend
 
@@ -194,6 +220,8 @@ services:
     depends_on:
       - support-db
       - applicant-db
+    deploy:
+      replicas: 1
     networks:
       - backend
 

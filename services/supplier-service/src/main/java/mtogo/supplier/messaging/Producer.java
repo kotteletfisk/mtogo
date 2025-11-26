@@ -1,6 +1,7 @@
 package mtogo.supplier.messaging;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
@@ -23,7 +24,7 @@ public class Producer {
 
     private static ConnectionFactory createDefaultFactory() {
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost("rabbitMQ");
+        factory.setHost("rabbitmq");
         factory.setPort(5672);
         factory.setUsername(System.getenv("RABBITMQ_USER"));
         factory.setPassword(System.getenv("RABBITMQ_PASS"));

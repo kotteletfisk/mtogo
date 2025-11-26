@@ -3,25 +3,24 @@
 	"image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
   
 	"features": {
-	  "ghcr.io/devcontainers/features/java:1": {
-		"version": "21",
-		"installMaven": "true",
-		"installGradle": "false"
-	  }
+		"ghcr.io/devcontainers/features/java:1": {
+			"version": "21",
+			"installMaven": "true",
+			"installGradle": "false"
+		},
+		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
 	},
-  
 	"customizations": {
-	  "vscode": {
-		"extensions": [
-		  "vscjava.vscode-java-pack",
-		  "vscjava.vscode-maven"
-		]
-	  }
+		"vscode": {
+			"extensions": [
+				"vscjava.vscode-java-pack",
+				"vscjava.vscode-maven"
+			]
+		}
 	},
-
-	"containerEnv": {
-		"LOG_LEVEL": "debug"
-	  },
-  
+	"runArgs": [
+		"--env-file",
+		".env"
+	],
 	"postCreateCommand": "java -version && mvn -version"
-  }
+}

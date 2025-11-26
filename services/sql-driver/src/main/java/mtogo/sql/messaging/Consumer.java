@@ -1,6 +1,9 @@
 package mtogo.sql.messaging;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,12 +32,14 @@ public class Consumer {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final String EXCHANGE_NAME = "order";
+    private static StringWriter sw = new StringWriter();
+    private static PrintWriter pw = new PrintWriter(sw);
 
     static ConnectionFactory connectionFactory = createDefaultFactory();
 
     private static ConnectionFactory createDefaultFactory() {
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost("rabbitMQ");
+        factory.setHost("rabbitmq");
         factory.setPort(5672);
         factory.setUsername(System.getenv("RABBITMQ_USER"));
         factory.setPassword(System.getenv("RABBITMQ_PASS"));
@@ -69,6 +74,8 @@ public class Consumer {
             });
         } catch (Exception e) {
             log.error("Error consuming message:\n" + e.getMessage());
+            e.printStackTrace(pw);
+            log.error("Stacktrace:\n" + sw.toString());
         }
 
     }
@@ -87,8 +94,8 @@ public class Consumer {
 
                 case "customer:order_creation" -> {
                     try {
-                        OrderDetailsDTO orderDetailsDTO
-                                = objectMapper.readValue(delivery.getBody(), OrderDetailsDTO.class);
+                        OrderDetailsDTO orderDetailsDTO = objectMapper.readValue(delivery.getBody(),
+                                OrderDetailsDTO.class);
 
                         OrderDTO order = new OrderDTO(orderDetailsDTO);
 
@@ -100,9 +107,7 @@ public class Consumer {
                                             line.getOrderId(),
                                             line.getItemId(),
                                             line.getPriceSnapshot(),
-                                            line.getAmount()
-                                    )
-                            );
+                                            line.getAmount()));
                         }
 
                         log.info(" [x] Received '" + routingKey + "':'" + orderDetailsDTO + "'");
@@ -122,16 +127,24 @@ public class Consumer {
                     }
                 }
 
-                case "supplier:create_order" -> {
-                    handleLegacyOrder(delivery);
+                case "supplier:order_creation" -> {
+                    try {
+                        handleLegacyOrder(delivery);
+                    } catch (SQLException e) {
+                        log.error(e.getMessage());
+                    }
                 }
             }
         };
     }
 
-    private static void handleLegacyOrder(Delivery delivery) throws IOException {
-        LegacyOrderDetailsDTO legacyOrderDetailsDTO
-                = objectMapper.readValue(delivery.getBody(), LegacyOrderDetailsDTO.class);
-
+    private static void handleLegacyOrder(Delivery delivery) throws IOException, SQLException {
+        LegacyOrderDetailsDTO legacyOrderDetailsDTO = objectMapper.readValue(delivery.getBody(),
+                LegacyOrderDetailsDTO.class);
+        
+        SQLConnector sqlConnector = new SQLConnector();
+        try (java.sql.Connection conn = sqlConnector.getConnection()) {
+            sqlConnector.createLegacyOrder(legacyOrderDetailsDTO, conn);
+        }
     }
 }

@@ -82,7 +82,7 @@ public class LegacyDBAdapter {
 
             LegacyOrderDetailsDTO dto = xmlToDTO(sb.toString());
             
-            Producer.publishObject("supplier:create_order", dto);
+            Producer.publishObject("supplier:order_creation", dto);
 
         } catch (IOException e) {
             log.error("Connection failed: ", e);

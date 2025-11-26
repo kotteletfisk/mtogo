@@ -40,7 +40,7 @@ public class SQLConnector {
 
      */
     public Connection getConnection() throws SQLException {
-        String host = "MToGo-db";
+        String host = "mtogo-db";
         String port = "5432";
         String db = envOrDefault("POSTGRES_DB", "mtogo");
         String user = envOrDefault("POSTGRES_USER", "mtogo");
@@ -144,6 +144,7 @@ public class SQLConnector {
             log.info("Creating legacy order");
 
         // Query for existing customer
+        // FIXME: relation 'customer' not found
         String sql = "SELECT customer_id FROM customer WHERE customer_phone = ?";
 
         try (var queryStmnt = connection.prepareStatement(sql)) {
