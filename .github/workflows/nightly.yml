@@ -7,7 +7,7 @@ on:
 
 env:
   STACK_NAME: mtogo-system
-  SERVICES: courier-service customer-service management-service supplier-service support-service sql-driver redis-driver mongodb-driver
+  SERVICES: courier-service customer-service management-service supplier-service support-service sql-driver redis-driver mongodb-driver auth-service
   DOCKER_USER: ${{ secrets.DOCKER_USER }}
   DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
   DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
