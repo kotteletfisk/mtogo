@@ -5,8 +5,6 @@ import io.javalin.http.staticfiles.Location;
 import mtogo.courier.exceptions.APIException;
 import mtogo.courier.exceptions.ExceptionHandler;
 
-import java.io.File;
-
 import static io.javalin.apibuilder.ApiBuilder.*;
 
 public class JavalinBuilder {
