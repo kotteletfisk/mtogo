@@ -7,7 +7,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.List;
+import java.util.UUID;
 
+import mtogo.sql.DTO.menuItemDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -136,6 +138,33 @@ public class SQLConnector {
             }
         }
 
+    }
+
+    public List<menuItemDTO> getMenuItemsBySupplierId(int supplierId, Connection connection) throws SQLException {
+
+        String sql = "SELECT item_id, supplier_id, item_name, item_description, price "
+                + "FROM menu_item WHERE supplier_id = ?";
+
+        try (var queryStmnt = connection.prepareStatement(sql)) {
+
+            queryStmnt.setInt(1, supplierId);
+
+            ResultSet rs = queryStmnt.executeQuery();
+
+            List<menuItemDTO> items = new java.util.ArrayList<>();
+
+            while (rs.next()) {
+                menuItemDTO item = new menuItemDTO(
+                        rs.getInt("item_id"),
+                        rs.getString("item_name"),
+                        rs.getDouble("item_price"),
+                        rs.getInt("supplier_id"),
+                        rs.getBoolean("is_active")
+                );
+                items.add(item);
+            }
+            return items;
+        }
     }
 
     public OrderDTO createLegacyOrder(LegacyOrderDetailsDTO legacyDTO,

@@ -21,6 +21,8 @@ public class Producer {
         factory.setPassword(System.getenv("RABBITMQ_PASS"));
         return factory;
     }
+
+
     // Used to overwrite connectionfactory (For testing)
     public static void setConnectionFactory(ConnectionFactory factory) {
         connectionFactory = factory;
