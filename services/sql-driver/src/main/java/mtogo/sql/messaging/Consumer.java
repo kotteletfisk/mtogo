@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import mtogo.sql.DTO.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,10 +18,6 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
 import com.rabbitmq.client.Delivery;
 
-import mtogo.sql.DTO.LegacyOrderDetailsDTO;
-import mtogo.sql.DTO.OrderDTO;
-import mtogo.sql.DTO.OrderDetailsDTO;
-import mtogo.sql.DTO.OrderLineDTO;
 import mtogo.sql.persistence.SQLConnector;
 
 /**
@@ -45,6 +42,7 @@ public class Consumer {
         factory.setPassword(System.getenv("RABBITMQ_PASS"));
         return factory;
     }
+
 
     // Injectable connectionfactory for testing
     public static void setConnectionFactory(ConnectionFactory factory) {
@@ -131,6 +129,25 @@ public class Consumer {
                     try {
                         handleLegacyOrder(delivery);
                     } catch (SQLException e) {
+                        log.error(e.getMessage());
+                    }
+                }
+                case "customer:menu_request"->{
+                    try {
+                        log.info(" [x] Received '" + routingKey + "':'" + delivery.getBody() + "'");
+                        int supplierId = objectMapper.readValue(delivery.getBody(), Integer.class);
+                        log.info(" [x] Supplier ID: " + supplierId);
+
+                        SQLConnector sqlConnector = new SQLConnector();
+                        List<menuItemDTO> items;
+                        try (java.sql.Connection conn = sqlConnector.getConnection()) {
+                            items = sqlConnector.getMenuItemsBySupplierId(supplierId, conn);
+                        }
+
+                        String payload = objectMapper.writeValueAsString(items);
+                        Producer.publishMessage("customer:menu_response" + supplierId, payload);
+
+                    } catch (Exception e) {
                         log.error(e.getMessage());
                     }
                 }

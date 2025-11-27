@@ -11,7 +11,7 @@ public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
     public static void main(String[] args) {
         try {
-            String[] bindingKeys = {"customer:order_creation", "supplier:order_creation"};
+            String[] bindingKeys = {"customer:order_creation", "supplier:order_creation", "customer:menu_request"};
             Consumer.consumeMessages(bindingKeys);
             log.info("SQL-driver started, listening for order events...");
         } catch (Exception e) {

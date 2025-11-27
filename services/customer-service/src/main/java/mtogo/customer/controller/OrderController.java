@@ -3,7 +3,9 @@ package mtogo.customer.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.Context;
 import mtogo.customer.DTO.OrderDetailsDTO;
+import mtogo.customer.DTO.menuItemDTO;
 import mtogo.customer.messaging.Producer;
+import mtogo.customer.service.MenuService;
 import mtogo.payment.MobilePayStrategy;
 import mtogo.payment.PaymentService;
 import mtogo.payment.PaypalStrategy;
@@ -11,6 +13,7 @@ import mtogo.payment.RevenueShareCalculator;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -85,6 +88,25 @@ public class OrderController {
             }
         } else {
             ctx.status(400).result("Invalid order data");
+        }
+    }
+
+    public void getItemsBySupplierId(Context ctx){
+        String supplierId = ctx.pathParam("supplierId");
+        try
+        {
+            int supplierIdInt = Integer.parseInt(supplierId);
+
+            List<menuItemDTO> items = MenuService.getInstance().requestMenuBlocking(supplierIdInt);
+            ctx.status(200).json(items);
+
+        }
+         catch (NumberFormatException e) {
+            ctx.status(400).result("Invalid supplierId: " + supplierId);
+        } catch (java.util.concurrent.TimeoutException e) {
+            ctx.status(504).result("Timed out waiting for menu items");
+        } catch (Exception e) {
+            ctx.status(500).result("Failed to retrieve menu items");
         }
     }
 

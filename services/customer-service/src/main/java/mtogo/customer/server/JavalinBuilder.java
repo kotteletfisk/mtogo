@@ -30,6 +30,7 @@ public class JavalinBuilder {
                             get("/health", (ctx) -> ctx.status(200));
                             get("/", (ctx) -> ctx.status(418)); // Visit me in the browser ;)
                             post("/createorder", orderController::createOrder);
+                            get("/{supplierId}/items", orderController::getItemsBySupplierId);
 
                         });
                     });
