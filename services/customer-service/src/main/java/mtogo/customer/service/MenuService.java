@@ -4,44 +4,33 @@ import mtogo.customer.DTO.menuItemDTO;
 import mtogo.customer.messaging.Producer;
 
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 
 public class MenuService {
-    private final Map<Integer, CompletableFuture<List<menuItemDTO>>> pendingRequests = new ConcurrentHashMap<>();
 
+    private final BlockingQueue<List<menuItemDTO>> queue = new ArrayBlockingQueue<>(1);
 
-    private static final MenuService instance = new MenuService();
-
-    public static MenuService getInstance() {
-        return instance;
-    }
+    private static final MenuService INSTANCE = new MenuService();
+    public static MenuService getInstance() { return INSTANCE; }
 
     private MenuService() {}
 
     public List<menuItemDTO> requestMenuBlocking(int supplierId) throws Exception {
-        CompletableFuture<List<menuItemDTO>> future = new CompletableFuture<>();
-        pendingRequests.put(supplierId, future);
+        // Clear any leftover result
+        queue.clear();
 
         // Send request to sql-driver
         Producer.publishMessage("customer:menu_request", String.valueOf(supplierId));
 
-        try {
-            // Wait max 2 seconds (tune as you like)
-            return future.get(2, TimeUnit.SECONDS);
-        } catch (TimeoutException e) {
-            pendingRequests.remove(supplierId);
-            throw e;
+        // Wait max 2 seconds for the response
+        List<menuItemDTO> items = queue.poll(2, TimeUnit.SECONDS);
+        if (items == null) {
+            throw new TimeoutException("No response from sql-driver");
         }
+        return items;
     }
 
-    public void completeMenuRequest(int supplierId, List<menuItemDTO> items) {
-        CompletableFuture<List<menuItemDTO>> future = pendingRequests.remove(supplierId);
-        if (future != null) {
-            future.complete(items);
-        }
+    public void completeMenuRequest(List<menuItemDTO> items) {
+        queue.offer(items);
     }
 }
