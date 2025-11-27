@@ -6,7 +6,7 @@ import java.util.UUID;
 
 public class OrderDTO {
     private UUID order_id;
-    private Integer customer_id;
+    private int customer_id;
     private Timestamp order_created;
     private Timestamp order_updated;
     public enum orderStatus{
@@ -19,7 +19,7 @@ public class OrderDTO {
     }
     private orderStatus orderStatus;
 
-    public OrderDTO(UUID order_id, Integer customer_id) {
+    public OrderDTO(UUID order_id, int customer_id) {
         this.order_id = order_id;
         this.customer_id = customer_id;
         this.order_created = new Timestamp(System.currentTimeMillis());
@@ -39,7 +39,7 @@ public class OrderDTO {
         return order_id;
     }
 
-    public Integer getCustomer_id() {
+    public int getCustomer_id() {
         return customer_id;
     }
 
