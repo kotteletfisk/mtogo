@@ -145,7 +145,7 @@ public class Consumer {
                         }
 
                         String payload = objectMapper.writeValueAsString(items);
-                        Producer.publishMessage("customer:menu_response" + supplierId, payload);
+                        Producer.publishMessage("customer:menu_response", payload);
 
                     } catch (Exception e) {
                         log.error(e.getMessage());

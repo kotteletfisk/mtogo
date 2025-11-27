@@ -87,25 +87,29 @@ public class Consumer {
             switch (routingKey) {
 
 
-                case "customer:menu_response"->{
+                case "customer:menu_response" -> {
                     try {
-                        String body = new String(delivery.getBody(), java.nio.charset.StandardCharsets.UTF_8);
+                        String body = new String(
+                                delivery.getBody(),
+                                java.nio.charset.StandardCharsets.UTF_8
+                        );
 
-                        String[] parts = body.split(";", 2);
-                        int supplierId = Integer.parseInt(parts[parts.length-1]);
+                        List<menuItemDTO> menuItems =
+                                objectMapper.readValue(
+                                        body,
+                                        objectMapper.getTypeFactory()
+                                                .constructCollectionType(List.class, menuItemDTO.class)
+                                );
 
-                        List<menuItemDTO> menuItems = objectMapper.readValue(body, objectMapper.getTypeFactory().constructCollectionType(List.class, menuItemDTO.class));
+                        log.info("Received {} menu items", menuItems.size());
 
-                        log.info("Received {} menu items for supplier ID: {}", menuItems.size(), supplierId);
-
-                        MenuService.getInstance().completeMenuRequest(supplierId, menuItems);
-
-
+                        MenuService.getInstance().completeMenuRequest(menuItems);
 
                     } catch (Exception e) {
-                        log.error(e.getMessage());
+                        log.error("Error handling customer:menu_response", e);
                     }
                 }
+
             }
         };
     }
