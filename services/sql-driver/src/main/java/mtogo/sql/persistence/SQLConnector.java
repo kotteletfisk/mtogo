@@ -7,15 +7,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.List;
-import java.util.UUID;
 
-import mtogo.sql.DTO.menuItemDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import mtogo.sql.DTO.LegacyOrderDetailsDTO;
 import mtogo.sql.DTO.OrderDTO;
 import mtogo.sql.DTO.OrderLineDTO;
+import mtogo.sql.DTO.menuItemDTO;
 
 public class SQLConnector {
 
@@ -169,11 +168,10 @@ public class SQLConnector {
 
     public OrderDTO createLegacyOrder(LegacyOrderDetailsDTO legacyDTO,
             Connection connection) throws SQLException {
-            
-            log.info("Creating legacy order");
+
+        log.info("Creating legacy order");
 
         // Query for existing customer
-        // FIXME: relation 'customer' not found
         String sql = "SELECT customer_id FROM customer WHERE customer_phone = ?";
 
         try (var queryStmnt = connection.prepareStatement(sql)) {
@@ -182,14 +180,14 @@ public class SQLConnector {
 
             ResultSet rs = queryStmnt.executeQuery();
 
-            Integer customerId = null;
+            int customerId = 0;
 
             if (rs.next()) {
                 customerId = rs.getInt(1);
                 log.debug("Customer id: " + customerId + " matched with phone: " + legacyDTO.getCustomerPhone());
-            }
-            else {
+            } else {
                 log.info("No match customer match found. Creating anonymously");
+                createAnonUser(connection);
             }
             OrderDTO orderDTO = new OrderDTO(legacyDTO.getOrderId(), customerId);
 
@@ -200,5 +198,31 @@ public class SQLConnector {
 
             return createOrder(orderDTO, legacyDTO.getOrderLineDTOS(), connection);
         }
+    }
+
+    private void createAnonUser(Connection connection) throws SQLException {
+
+        // Insert new anon user if not already exists
+        String insertAnonSql
+                = "INSERT INTO customer "
+                + "(customer_id, customer_name, customer_zip, customer_phone) "
+                + "VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING";
+
+        try (var stmt = connection.prepareStatement(insertAnonSql)) {
+
+            stmt.setInt(1, 0);
+            stmt.setString(2, "Anonymous");
+            stmt.setString(3, "0");
+            stmt.setString(4, "0");
+
+            if (stmt.executeUpdate() == 1) {
+                log.info("Created new anonymous user");
+            }
+
+        } catch (SQLException e) {
+            log.error("Failed to check/create anon user");
+            throw new SQLException(e);
+        }
+
     }
 }
