@@ -142,7 +142,7 @@ public class SQLConnector {
 
     public List<menuItemDTO> getMenuItemsBySupplierId(int supplierId, Connection connection) throws SQLException {
 
-        String sql = "SELECT item_id, supplier_id, item_name, item_description, price "
+        String sql = "SELECT item_id, item_name, item_price, supplier_id, is_active "
                 + "FROM menu_item WHERE supplier_id = ?";
 
         try (var queryStmnt = connection.prepareStatement(sql)) {
