@@ -15,6 +15,12 @@ public class MenuService {
 
     private MenuService() {}
 
+    /**
+     * Requests the menu for a given supplierId by blocking until a response is received or a timeout occurs.
+     * @param supplierId the ID of the supplier whose menu is being requested.
+     * @return a list of menuItemDTO representing the menu items.
+     * @throws Exception if a timeout occurs or an error happens during the request.
+     */
     public List<menuItemDTO> requestMenuBlocking(int supplierId) throws Exception {
         // Clear any leftover result
         queue.clear();
@@ -30,6 +36,10 @@ public class MenuService {
         return items;
     }
 
+    /**
+     * Completes the menu request by adding the received items to the queue.
+     * @param items the list of menuItemDTO received in response to the menu request.
+     */
     public void completeMenuRequest(List<menuItemDTO> items) {
         queue.offer(items);
     }
