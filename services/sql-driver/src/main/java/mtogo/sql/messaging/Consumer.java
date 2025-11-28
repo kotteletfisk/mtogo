@@ -3,6 +3,7 @@ package mtogo.sql.messaging;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -149,6 +150,7 @@ public class Consumer {
                 }
                 case "auth:login" -> {
                     try {
+                        log.info(" [x] Received '{}' with correlationId '{}': '{}'", routingKey, delivery.getProperties().getCorrelationId(), new String(delivery.getBody(), StandardCharsets.UTF_8));
                         var body = new String(delivery.getBody(), java.nio.charset.StandardCharsets.UTF_8);
                         var reqJson = objectMapper.readTree(body);
                         String action = reqJson.get("action").asText();
@@ -156,8 +158,9 @@ public class Consumer {
                         if ("find_user_by_email".equals(action)) {
                             String email = reqJson.get("email").asText();
                             AuthReceiver ar =  new AuthReceiver();
+                            log.info("Auth lookup started");
                             String resp = ar.handleAuthLookup(email);
-
+                            log.info("Auth lookup finished");
                             var props = new AMQP.BasicProperties.Builder()
                                     .correlationId(delivery.getProperties().getCorrelationId())
                                     .contentType("application/json")
