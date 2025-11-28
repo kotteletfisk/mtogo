@@ -86,8 +86,10 @@ public class AuthController {
             resp.expires_in = 3600L;
             ctx.json(resp);
 
+        } catch (APIException e){
+            throw e;
         } catch (Exception e) {
-            log.info(e.getMessage());
+            log.error("Login failed", e);
             throw new APIException(500, "Something went wrong on our server.");
         }
     }
