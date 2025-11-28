@@ -30,6 +30,14 @@ public class JavalinBuilder {
         })
                 .exception(APIException.class, (ExceptionHandler::apiExceptionHandler))
                 .exception(ValidationException.class, (ExceptionHandler::validationExceptionHandler))
-                .start(port);
+
+        .error(404, ctx -> {
+            if (!ctx.path().startsWith("/api")) {
+                ctx.contentType("text/html");
+                ctx.result(JavalinBuilder.class
+                        .getResourceAsStream("/public/200.html"));
+            }
+        })
+        .start(port);
     }
 }

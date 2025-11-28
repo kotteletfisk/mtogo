@@ -33,7 +33,7 @@ COPY src ./src
 # copy Svelte build output into Java resources
 COPY --from=node-build /src/main/resources/public/ src/main/resources/public/
 
-RUN mvn -B -DskipTests clean package
+RUN mvn -B -DskipTests --batch-mode clean package 
 
 
 # 3. runtime image
