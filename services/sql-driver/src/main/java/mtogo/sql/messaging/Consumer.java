@@ -172,7 +172,7 @@ public class Consumer {
                             channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
                         }
                     } catch (Exception ex) {
-                        log.debug("RPC handler error: {}", ex.getMessage());
+                        log.info("RPC handler error: {}", ex.getMessage());
                         try {
                             var props = new AMQP.BasicProperties.Builder()
                                     .correlationId(delivery.getProperties().getCorrelationId())

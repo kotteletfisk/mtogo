@@ -1,6 +1,6 @@
 <Configuration>
     <Properties>
-        <Property name="log.level">${env:LOG_LEVEL:-debug}</Property>
+        <Property name="log.level">${env:LOG_LEVEL:-info}</Property>
     </Properties>
 
     <Appenders>

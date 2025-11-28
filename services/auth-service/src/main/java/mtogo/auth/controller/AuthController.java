@@ -53,7 +53,7 @@ public class AuthController {
             try {
                 rpcResponseJson = rpcClient.rpcCall(requestJson, "auth:login");
             } catch (IOException | InterruptedException e) {
-                log.debug("RabbitMQ connection to sql-driver failed");
+                log.info("RabbitMQ connection to sql-driver failed");
                 throw new APIException(500, "Server connection error");
             }
 
@@ -87,7 +87,7 @@ public class AuthController {
             ctx.json(resp);
 
         } catch (Exception e) {
-            log.debug(e.getMessage());
+            log.info(e.getMessage());
             throw new APIException(500, "Something went wrong on our server.");
         }
     }
