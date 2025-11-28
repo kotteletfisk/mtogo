@@ -1,11 +1,15 @@
 # Areas by path (relative to repo root)
-backend:
+service:
   - changed-files:
-      - any-glob-to-any-file: src/backend/**
+      - any-glob-to-any-file: services/**
 
 frontend:
   - changed-files:
-      - any-glob-to-any-file: src/frontend/**
+      - any-glob-to-any-file: "**/frontend/**"
+      
+configuration:
+  - changed-files:
+      - any-glob-to-any-file: "*.yml"
 
 documentation:
   - changed-files:
