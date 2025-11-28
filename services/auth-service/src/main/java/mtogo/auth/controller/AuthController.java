@@ -90,7 +90,7 @@ public class AuthController {
             throw e;
         } catch (Exception e) {
             log.error("Login failed", e);
-            throw new APIException(500, "Something went wrong on our server.");
+            throw new APIException(500, "Something went wrong on our server. Exception: " + e.getMessage());
         }
     }
 }
