@@ -250,7 +250,7 @@ services:
 
 
   auth-service:
-    image: ${DOCKER_USER}/auth-service:${AUTH_TAG}
+    image: ${DOCKER_USER}/auth-service:${AUTH_SERVICE_TAG}
     ports:
       - target: 7070
         published: 7075
