@@ -133,6 +133,7 @@ jobs:
           
           check_health "http://localhost:7071/api/health"
           check_health "http://localhost:7070/api/health"
+          check_health "http://localhost:7075/api/health"
 
       - name: On Fail → Rollback & Notify Discord
         if: failure()
