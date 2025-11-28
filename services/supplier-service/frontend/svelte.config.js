@@ -8,7 +8,7 @@ const config = {
   preprocess: vitePreprocess(),
   kit: {
     adapter: adapter({
-      pages: "build",
+      pages: "../src/main/resources/public",
       fallback: '200.html'
     }),
   },

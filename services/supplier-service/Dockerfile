@@ -17,7 +17,9 @@ COPY frontend/package*.json ./
 RUN npm i -D @sveltejs/adapter-static
 RUN npm ci
 COPY frontend/ ./
-RUN npm run build-prod
+RUN npm run build
+
+RUN ls -la /src/main/resources/public
 
 
 # 3. Java application
@@ -25,13 +27,13 @@ FROM maven:3.9.6-eclipse-temurin-21 AS java-build
 
 WORKDIR /app
 COPY pom.xml .
+RUN mvn -f pom.xml dependency:go-offline
 COPY src ./src
 
 # copy Svelte build output into Java resources
-RUN mkdir -p src/main/resources/public
-COPY --from=node-build /app/build ./src/main/resources/public
+COPY --from=node-build /src/main/resources/public/ src/main/resources/public/
 
-RUN mvn -B -DskipTests package
+RUN mvn -B -DskipTests clean package
 
 
 # 3. runtime image
