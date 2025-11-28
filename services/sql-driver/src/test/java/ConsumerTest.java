@@ -27,9 +27,9 @@ class ConsumerTest {
 
     // Helper: get the private deliverCallback() method
     private DeliverCallback getDeliverCallback() throws Exception {
-        Method m = Consumer.class.getDeclaredMethod("deliverCallback");
+        Method m = Consumer.class.getDeclaredMethod("deliverCallback", Channel.class);
         m.setAccessible(true);
-        return (DeliverCallback) m.invoke(null);
+        return (DeliverCallback) m.invoke(null, channel);
     }
 
     @Mock
@@ -69,7 +69,7 @@ class ConsumerTest {
 
         verify(channel).basicConsume(
                 eq(queueName),
-                eq(true),
+                eq(false),
                 any(DeliverCallback.class),
                 any(CancelCallback.class)
         );

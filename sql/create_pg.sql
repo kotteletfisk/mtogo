@@ -113,4 +113,19 @@ ALTER TABLE IF EXISTS public.courier_order
     ON DELETE NO ACTION
     NOT VALID;
 
+
+CREATE TABLE IF NOT EXISTS public.auth_user (
+    user_id SERIAL PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+CREATE TABLE IF NOT EXISTS public.auth_user_role (
+    user_id INT NOT NULL,
+    role_name VARCHAR(50) NOT NULL,
+    PRIMARY KEY (user_id, role_name),
+    FOREIGN KEY (user_id) REFERENCES public.auth_user(user_id) ON DELETE CASCADE
+    );
+
 END;

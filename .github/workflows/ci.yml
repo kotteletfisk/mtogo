@@ -41,6 +41,8 @@ jobs:
               - 'services/supplier-service/**'
             support-service:
               - 'services/support-service/**'
+            auth-service:
+              - 'services/auth-service/**'
             
 
 

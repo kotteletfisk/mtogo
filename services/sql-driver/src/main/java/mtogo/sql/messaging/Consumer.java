@@ -7,16 +7,12 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.rabbitmq.client.*;
 import mtogo.sql.DTO.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.DeliverCallback;
-import com.rabbitmq.client.Delivery;
 
 import mtogo.sql.persistence.SQLConnector;
 
@@ -68,7 +64,7 @@ public class Consumer {
                 channel.queueBind(queueName, EXCHANGE_NAME, bindingKey);
             }
 
-            channel.basicConsume(queueName, true, deliverCallback(), consumerTag -> {
+            channel.basicConsume(queueName, false, deliverCallback(channel), consumerTag -> {
             });
         } catch (Exception e) {
             log.error("Error consuming message:\n" + e.getMessage());
@@ -84,7 +80,7 @@ public class Consumer {
      *
      * @return the DeliverCallback function
      */
-    private static DeliverCallback deliverCallback() {
+    private static DeliverCallback deliverCallback(Channel channel) {
         return (consumerTag, delivery) -> {
             String routingKey = delivery.getEnvelope().getRoutingKey();
 
@@ -149,6 +145,47 @@ public class Consumer {
 
                     } catch (Exception e) {
                         log.error(e.getMessage());
+                    }
+                }
+                case "auth:login" -> {
+                    try {
+                        var body = new String(delivery.getBody(), java.nio.charset.StandardCharsets.UTF_8);
+                        var reqJson = objectMapper.readTree(body);
+                        String action = reqJson.get("action").asText();
+
+                        if ("find_user_by_email".equals(action)) {
+                            String email = reqJson.get("email").asText();
+                            AuthReceiver ar =  new AuthReceiver();
+                            String resp = ar.handleAuthLookup(email);
+
+                            var props = new AMQP.BasicProperties.Builder()
+                                    .correlationId(delivery.getProperties().getCorrelationId())
+                                    .contentType("application/json")
+                                    .build();
+
+                            channel.basicPublish(
+                                    "",
+                                    delivery.getProperties().getReplyTo(),
+                                    props,
+                                    resp.getBytes(java.nio.charset.StandardCharsets.UTF_8)
+                            );
+                            channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
+                        }
+                    } catch (Exception ex) {
+                        log.debug("RPC handler error: {}", ex.getMessage());
+                        try {
+                            var props = new AMQP.BasicProperties.Builder()
+                                    .correlationId(delivery.getProperties().getCorrelationId())
+                                    .contentType("application/json")
+                                    .build();
+                            channel.basicPublish(
+                                    "",
+                                    delivery.getProperties().getReplyTo(),
+                                    props,
+                                    "{\"status\":\"error\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8)
+                            );
+                        } catch (Exception ignored) {}
+                        channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
                     }
                 }
             }
