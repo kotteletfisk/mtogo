@@ -41,7 +41,7 @@ public class AuthReceiver {
                 return "{\"status\":\"not_found\"}";
             }
         } catch (Exception e) {
-            log.debug(e.getMessage());
+            log.info(e.getMessage());
             return "{\"status\":\"error\"}";
         }
     }
