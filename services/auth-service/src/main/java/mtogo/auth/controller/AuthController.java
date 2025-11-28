@@ -51,7 +51,7 @@ public class AuthController {
 
             String rpcResponseJson;
             try {
-                rpcResponseJson = rpcClient.rpcCall(requestJson, "sql-driver.rpc");
+                rpcResponseJson = rpcClient.rpcCall(requestJson, "auth:login");
             } catch (IOException | InterruptedException e) {
                 log.debug("RabbitMQ connection to sql-driver failed");
                 throw new APIException(500, "Server connection error");

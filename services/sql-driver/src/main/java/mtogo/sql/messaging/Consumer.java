@@ -147,7 +147,7 @@ public class Consumer {
                         log.error(e.getMessage());
                     }
                 }
-                case "sql-driver.rpc" -> {
+                case "auth:login" -> {
                     try {
                         var body = new String(delivery.getBody(), java.nio.charset.StandardCharsets.UTF_8);
                         var reqJson = objectMapper.readTree(body);
