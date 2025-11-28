@@ -1,6 +1,9 @@
 package mtogo.auth.messaging;
 
 import com.rabbitmq.client.*;
+import mtogo.auth.controller.AuthController;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -13,6 +16,8 @@ public class RabbitRpcClient implements AutoCloseable {
     private final Channel channel;
     private final String replyQueueName;
     private final String EXCHANGE_NAME = "order";
+    public static final Logger log = LoggerFactory.getLogger(RabbitRpcClient.class);
+
 
     public RabbitRpcClient(ConnectionFactory factory) throws IOException, TimeoutException {
         this.connection = factory.newConnection();
@@ -31,7 +36,7 @@ public class RabbitRpcClient implements AutoCloseable {
                 .build();
 
         final ArrayBlockingQueue<String> response = new ArrayBlockingQueue<>(1);
-
+        log.info("Sending RPC request with correlationId '{}'", corrId);
         String ctag = channel.basicConsume(replyQueueName, true, (consumerTag, delivery) -> {
             if (delivery.getProperties().getCorrelationId() != null &&
                     delivery.getProperties().getCorrelationId().equals(corrId)) {
