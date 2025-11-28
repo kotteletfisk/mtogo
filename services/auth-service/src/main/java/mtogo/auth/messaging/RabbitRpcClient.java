@@ -12,10 +12,12 @@ public class RabbitRpcClient implements AutoCloseable {
     private final Connection connection;
     private final Channel channel;
     private final String replyQueueName;
+    private final String EXCHANGE_NAME = "order";
 
     public RabbitRpcClient(ConnectionFactory factory) throws IOException, TimeoutException {
         this.connection = factory.newConnection();
         this.channel = connection.createChannel();
+        channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
         this.replyQueueName = channel.queueDeclare("", false, true, true, null).getQueue();
     }
 

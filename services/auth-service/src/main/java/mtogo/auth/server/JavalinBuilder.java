@@ -44,7 +44,7 @@ public class JavalinBuilder {
 
             app.start(port);
         } catch (Exception e) {
-            log.debug(e.getMessage());
+            log.info(e.getMessage());
             log.info("Server failed to start - see debug logs for details");
         }
     }
