@@ -1,0 +1,22 @@
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+table {
+  gap: 12px;
+  background: white;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+}
+
+.h-container {
+    display: flex;
+    flex-direction: row;
+    padding: 8px;
+}
