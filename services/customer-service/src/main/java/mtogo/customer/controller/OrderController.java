@@ -91,6 +91,10 @@ public class OrderController {
         }
     }
 
+    /**
+     * Retrieves menu items for a given supplier ID. Calls the MenuService to fetch the items.
+     * @param ctx the Javalin context
+     */
     public void getItemsBySupplierId(Context ctx){
         String supplierId = ctx.pathParam("supplierId");
         try

@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -97,6 +98,7 @@ class SQLConnectorTest {
                     CONSTRAINT fk_item_id FOREIGN KEY (item_id)
                         REFERENCES menu_item(item_id)
                 );
+            
             """);
         }
 
@@ -219,7 +221,7 @@ class SQLConnectorTest {
         try {
             OrderDTO dto = connector.createLegacyOrder(legacy, conn);
 
-            assertEquals(null, dto.getCustomer_id());
+            assertEquals(0, dto.getCustomer_id());
 
             try (PreparedStatement ps = conn.prepareStatement(
                     "SELECT * FROM \"orders\" WHERE order_id = ?")) {
@@ -227,11 +229,104 @@ class SQLConnectorTest {
                 ResultSet rs = ps.executeQuery();
 
                 assertTrue(rs.next());
-                assertEquals(null, rs.getObject("customer_id", Integer.class));
+                assertEquals(0, rs.getInt("customer_id"));
             }
 
         } catch (SQLException e) {
             fail(e.getMessage());
+        }
+    }
+
+    @Test
+    void createAnonymousCustomerOnNoMatchedLegacyOrder() throws SQLException {
+
+        try (Statement st = conn.createStatement()) {
+            st.execute("INSERT INTO customer (customer_name, customer_zip, customer_phone) VALUES ('Test Customer', '2450', '22222222');");
+            st.execute("INSERT INTO menu_item (item_id) VALUES (10);");
+            st.execute("INSERT INTO menu_item (item_id) VALUES (11);");
+        }
+
+        UUID id = UUID.randomUUID();
+        LegacyOrderDetailsDTO legacy = new LegacyOrderDetailsDTO(
+                id,
+                "11111111",
+                List.of(
+                        new OrderLineDTO(id, 10, 1.0f, 1),
+                        new OrderLineDTO(id, 11, 2.0f, 2)
+                )
+        );
+
+        try (PreparedStatement ps = conn.prepareStatement("SELECT * FROM customer WHERE customer_id = ?")) {
+
+            ps.setInt(1, 0);
+            ResultSet rs = ps.executeQuery();
+
+            // No anonymous user exists with id 0
+            assertFalse(rs.next());
+        }
+
+        // Create legacy order with uknown customer
+        connector.createLegacyOrder(legacy, conn);
+
+        try (PreparedStatement ps = conn.prepareStatement("SELECT * FROM customer WHERE customer_id = ?")) {
+
+            ps.setInt(1, 0);
+            ResultSet rs = ps.executeQuery();
+
+            // Anonymous user exists after non-matched legacy order created
+            assertTrue(rs.next());
+
+            assertEquals(0, rs.getInt("customer_id"));
+            assertEquals("Anonymous", rs.getString("customer_name"));
+        }
+
+        try (PreparedStatement ps = conn.prepareStatement("SELECT * FROM \"orders\" WHERE customer_id = ?")) {
+
+            ps.setInt(1, 0);
+            ResultSet rs = ps.executeQuery();
+
+            // Order created with anonymous customer
+            assertTrue(rs.next());
+        }
+    }
+
+    @Test
+    void matchLegacyOrderWithExistingAnonymousCustomer() throws SQLException {
+
+        try (Statement st = conn.createStatement()) {
+            st.execute("INSERT INTO customer (customer_id, customer_name, customer_zip, customer_phone) VALUES (0, 'Anonymous', '0', '0');");
+            st.execute("INSERT INTO menu_item (item_id) VALUES (10);");
+            st.execute("INSERT INTO menu_item (item_id) VALUES (11);");
+        }
+
+        UUID id = UUID.randomUUID();
+        LegacyOrderDetailsDTO legacy = new LegacyOrderDetailsDTO(
+                id,
+                "11111111",
+                List.of(
+                        new OrderLineDTO(id, 10, 1.0f, 1),
+                        new OrderLineDTO(id, 11, 2.0f, 2)
+                )
+        );
+
+        try (PreparedStatement ps = conn.prepareStatement("SELECT * FROM customer WHERE customer_id = ?")) {
+
+            ps.setInt(1, 0);
+            ResultSet rs = ps.executeQuery();
+
+            // Anonymous user exists with id 0
+            assertTrue(rs.next());
+        }
+
+        connector.createLegacyOrder(legacy, conn);
+
+        try (PreparedStatement ps = conn.prepareStatement("SELECT * FROM \"orders\" WHERE customer_id = ?")) {
+
+            ps.setInt(1, 0);
+            ResultSet rs = ps.executeQuery();
+
+            // Order created with anonymous order
+            assertTrue(rs.next());
         }
     }
 }

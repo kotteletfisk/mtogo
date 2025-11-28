@@ -4,13 +4,16 @@ import io.javalin.http.Context;
 import io.javalin.validation.BodyValidator;
 import mtogo.customer.DTO.OrderDetailsDTO;
 import mtogo.customer.DTO.OrderLineDTO;
+import mtogo.customer.DTO.menuItemDTO;
 import mtogo.customer.controller.OrderController;
 import mtogo.customer.exceptions.APIException;
 import mtogo.customer.messaging.Producer;
+import mtogo.customer.service.MenuService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
@@ -115,6 +118,40 @@ class OrderControllerTest {
 
         assertNotNull(actual);
         assertEquals(expected.getOrderId(), actual.getOrderId());
+    }
+
+    @Test
+    void getItemsBySupplierId_returns200AndItems() throws Exception {
+
+        OrderController controller = OrderController.getInstance();
+
+        when(ctx.pathParam("supplierId")).thenReturn("1");
+
+        when(ctx.status(anyInt())).thenReturn(ctx);
+        when(ctx.json(any())).thenReturn(ctx);
+
+        // Fake menu items returned from MenuService
+        List<menuItemDTO> fakeItems = List.of(
+                new menuItemDTO(1, "Pizza", 85.0, 1, true),
+                new menuItemDTO(2, "Burger", 60.0, 1, true)
+        );
+
+        try (MockedStatic<MenuService> menuServiceStatic = Mockito.mockStatic(MenuService.class)) {
+            MenuService menuServiceMock = mock(MenuService.class);
+
+            // When MenuService.getInstance() is called, return our mock
+            menuServiceStatic.when(MenuService::getInstance).thenReturn(menuServiceMock);
+
+            // When requestMenuBlocking(1) is called, return fakeItems
+            when(menuServiceMock.requestMenuBlocking(1)).thenReturn(fakeItems);
+
+            controller.getItemsBySupplierId(ctx);
+
+            verify(menuServiceMock).requestMenuBlocking(1);
+            verify(ctx).status(200);
+            verify(ctx).json(fakeItems);
+            verify(ctx, never()).result(anyString());
+        }
     }
 
 }
