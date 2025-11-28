@@ -19,9 +19,6 @@ RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-RUN ls -la /src/main/resources/public
-
-
 # 3. Java application
 FROM maven:3.9.6-eclipse-temurin-21 AS java-build
 
@@ -30,7 +27,7 @@ COPY pom.xml .
 RUN mvn -f pom.xml dependency:go-offline
 COPY src ./src
 
-# copy Svelte build output into Java resources
+# copy Svelte build into Java resources
 COPY --from=node-build /src/main/resources/public/ src/main/resources/public/
 
 RUN mvn -B -DskipTests --batch-mode clean package 
