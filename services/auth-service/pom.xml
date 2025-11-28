@@ -28,7 +28,7 @@
                             <finalName>${project.artifactId}</finalName>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>mtogo.courier.server.Main</mainClass>
+                                    <mainClass>mtogo.auth.server.Main</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>
