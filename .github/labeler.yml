@@ -9,7 +9,8 @@ frontend:
       
 configuration:
   - changed-files:
-      - any-glob-to-any-file: "*.yml"
+      - any-glob-to-any-file: "**/*.yml"
+      - any-glob-to-any-file: "**/*.yaml"
 
 documentation:
   - changed-files:
