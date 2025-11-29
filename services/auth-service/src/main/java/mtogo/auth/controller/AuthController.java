@@ -68,8 +68,6 @@ public class AuthController {
                 throw new APIException(401, "Invalid Login Request - User not found");
             }
 
-            log.info("retrieved the following user: " + userNode.asText());
-
             String email = userNode.path("email").asText();
             String passwordHash = userNode.path("password_hash").asText(null);
             String role = userNode.path("roles").asText(null);

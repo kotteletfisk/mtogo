@@ -23,7 +23,7 @@ public class AuthReceiver {
 
             if (auth != null) {
                 List<String> roles = authQueries.fetchRolesForAuth(auth.id);
-                if(roles != null){
+                if(roles == null || roles.isEmpty()){
                     roles = List.of();
                 }
                 ObjectMapper mapper = new ObjectMapper();
