@@ -70,18 +70,15 @@ public class AuthController {
 
             log.info("retrieved the following user: " + userNode.asText());
 
-            long userId = userNode.path("id").asLong();
+            String email = userNode.path("email").asText();
             String passwordHash = userNode.path("password_hash").asText(null);
-            String role = userNode.path("role").asText(null);
-            String entityType = userNode.path("entity_type").asText(null);
-            Long entityId = userNode.has("entity_id") && !userNode.get("entity_id").isNull()
-                    ? userNode.get("entity_id").asLong() : null;
+            String role = userNode.path("roles").asText(null);
 
             if (passwordHash == null || !passwordService.verify(req.password, passwordHash)) {
                 throw new APIException(401, "Invalid Login Request - Incorrect password");
             }
 
-            String token = jwtService.createToken(userId, role, entityType, entityId);
+            String token = jwtService.createToken(email, role);
 
             LoginResponse resp = new LoginResponse();
             resp.token = token;

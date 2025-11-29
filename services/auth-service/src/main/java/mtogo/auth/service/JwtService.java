@@ -39,18 +39,16 @@ public class JwtService {
         }
     }
 
-    public String createToken(long userId, String role, String entityType, Long entityId) {
+    public String createToken(String email, String role) {
         Instant now = Instant.now();
         Instant exp = now.plusSeconds(3600);
 
         return JWT.create()
                 .withIssuer(issuer)
-                .withSubject(String.valueOf(userId))
+                .withSubject(String.valueOf(email))
                 .withIssuedAt(Date.from(now))
                 .withExpiresAt(Date.from(exp))
                 .withClaim("role", role)
-                .withClaim("entity_type", entityType)
-                .withClaim("entity_id", entityId)
                 .sign(algorithm);
     }
 }

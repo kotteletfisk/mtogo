@@ -30,7 +30,6 @@ public class AuthReceiver {
                 Map<String, Object> resp = Map.of(
                         "status", "ok",
                         "user", Map.of(
-                                "id", auth.id,
                                 "email", auth.email,
                                 "password_hash", auth.passwordHash,
                                 "roles", roles
