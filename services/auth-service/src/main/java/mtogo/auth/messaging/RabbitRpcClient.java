@@ -23,7 +23,7 @@ public class RabbitRpcClient implements AutoCloseable {
         this.connection = factory.newConnection();
         this.channel = connection.createChannel();
         channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
-        this.replyQueueName = channel.queueDeclare("", false, true, true, null).getQueue();
+        this.replyQueueName = channel.queueDeclare("", false, true, false, null).getQueue();
     }
 
     public String rpcCall(String requestJson, String routingKey) throws IOException, InterruptedException {
@@ -45,9 +45,9 @@ public class RabbitRpcClient implements AutoCloseable {
             }
         }, consumerTag -> {});
 
-        channel.basicPublish("", routingKey, props, requestJson.getBytes(StandardCharsets.UTF_8));
+        channel.basicPublish(EXCHANGE_NAME, routingKey, props, requestJson.getBytes(StandardCharsets.UTF_8));
 
-        String result = response.poll(5, java.util.concurrent.TimeUnit.SECONDS); // timeout
+        String result = response.poll(5, java.util.concurrent.TimeUnit.SECONDS);
         channel.basicCancel(ctag);
         if (result == null) throw new IOException("RPC timeout waiting for reply from " + routingKey);
         return result;
