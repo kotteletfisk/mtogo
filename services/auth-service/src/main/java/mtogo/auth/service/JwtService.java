@@ -11,6 +11,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
+import java.util.List;
 
 public class JwtService {
 
@@ -39,7 +40,7 @@ public class JwtService {
         }
     }
 
-    public String createToken(String email, String role) {
+    public String createToken(String email, List<String> roles) {
         Instant now = Instant.now();
         Instant exp = now.plusSeconds(3600);
 
@@ -48,7 +49,7 @@ public class JwtService {
                 .withSubject(String.valueOf(email))
                 .withIssuedAt(Date.from(now))
                 .withExpiresAt(Date.from(exp))
-                .withClaim("role", role)
+                .withClaim("role", roles)
                 .sign(algorithm);
     }
 }

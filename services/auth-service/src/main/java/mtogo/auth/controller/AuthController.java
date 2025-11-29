@@ -13,6 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class AuthController {
@@ -70,13 +72,17 @@ public class AuthController {
 
             String email = userNode.path("email").asText();
             String passwordHash = userNode.path("password_hash").asText(null);
-            String role = userNode.path("roles").asText(null);
+            List<String> roles = new ArrayList<>();
+            for (JsonNode r : userNode.withArray("roles")) {
+                roles.add(r.asText());
+            }
+
 
             if (passwordHash == null || !passwordService.verify(req.password, passwordHash)) {
                 throw new APIException(401, "Invalid Login Request - Incorrect password");
             }
 
-            String token = jwtService.createToken(email, role);
+            String token = jwtService.createToken(email, roles);
 
             LoginResponse resp = new LoginResponse();
             resp.token = token;
