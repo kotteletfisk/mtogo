@@ -17,9 +17,9 @@ public class KeyLoader {
 
     public static String loadPrivateKey() {
         String env = System.getenv("ENV");
-        boolean production = "prod".equalsIgnoreCase(env);
+        boolean server = "prod".equalsIgnoreCase(env) || "test".equalsIgnoreCase(env);
 
-        if (production) {
+        if (server) {
             return readSecret("/run/secrets/auth_private_pkcs8.pem");
         }
         return loadOrGenerateLocal();
