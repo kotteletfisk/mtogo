@@ -198,8 +198,8 @@
             const cleanedLines = orderLines
                 .filter((l) => l.item_id && l.amount && l.price_snapshot)
                 .map((l) => ({
-                    item_id: Number(l.item_id),
-                    price_snapshot: Number(l.price_snapshot),
+                    itemId: Number(l.item_id),
+                    priceSnapshot: Number(l.price_snapshot),
                     amount: Number(l.amount),
                 }));
 

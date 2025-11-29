@@ -46,7 +46,7 @@ public class OrderController {
             try {
 
                 double total = orderDetailsDTO.getOrderLines().stream()
-                        .mapToDouble(line -> line.getPrice_snapshot() * line.getAmount())
+                        .mapToDouble(line -> line.getPriceSnapshot() * line.getAmount())
                         .sum();
 
 
