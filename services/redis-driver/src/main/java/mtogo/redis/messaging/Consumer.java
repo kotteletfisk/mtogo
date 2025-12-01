@@ -9,6 +9,7 @@ import com.rabbitmq.client.DeliverCallback;
 import mtogo.redis.DTO.OrderDTO;
 import mtogo.redis.DTO.OrderDetailsDTO;
 import mtogo.redis.DTO.OrderLineDTO;
+import mtogo.redis.DTO.SupplierDTO;
 import mtogo.redis.persistence.RedisConnector;
 
 import java.util.ArrayList;
@@ -92,6 +93,20 @@ public class Consumer {
                 redisConnector.createOrder(orderDTO);
                 redisConnector.createOrderLines(orderLineDTOS);
 
+            }
+            if (delivery.getEnvelope().getRoutingKey().equals("customer:supplier_request")) {
+                try {
+                    String zipCode = objectMapper.readValue(delivery.getBody(), String.class);
+                    RedisConnector redisConnector = RedisConnector.getInstance();
+
+                    List<SupplierDTO> suppliers = redisConnector.findSuppliersByZipAndStatus(zipCode, SupplierDTO.status.active);
+
+                    String payload = objectMapper.writeValueAsString(suppliers);
+                    Producer.publishMessage("customer:supplier_response", payload);
+                }
+                catch (Exception e){
+                    e.printStackTrace();
+                }
             }
 
         };

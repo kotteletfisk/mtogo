@@ -46,7 +46,7 @@ public class OrderController {
             try {
 
                 double total = orderDetailsDTO.getOrderLines().stream()
-                        .mapToDouble(line -> line.getPrice_snapshot() * line.getAmount())
+                        .mapToDouble(line -> line.getPriceSnapshot() * line.getAmount())
                         .sum();
 
 
@@ -88,29 +88,6 @@ public class OrderController {
             }
         } else {
             ctx.status(400).result("Invalid order data");
-        }
-    }
-
-    /**
-     * Retrieves menu items for a given supplier ID. Calls the MenuService to fetch the items.
-     * @param ctx the Javalin context
-     */
-    public void getItemsBySupplierId(Context ctx){
-        String supplierId = ctx.pathParam("supplierId");
-        try
-        {
-            int supplierIdInt = Integer.parseInt(supplierId);
-
-            List<menuItemDTO> items = MenuService.getInstance().requestMenuBlocking(supplierIdInt);
-            ctx.status(200).json(items);
-
-        }
-         catch (NumberFormatException e) {
-            ctx.status(400).result("Invalid supplierId: " + supplierId);
-        } catch (java.util.concurrent.TimeoutException e) {
-            ctx.status(504).result("Timed out waiting for menu items");
-        } catch (Exception e) {
-            ctx.status(500).result("Failed to retrieve menu items");
         }
     }
 

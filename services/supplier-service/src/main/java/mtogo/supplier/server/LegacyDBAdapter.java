@@ -14,7 +14,6 @@ import mtogo.supplier.DTO.LegacyOrderDetailsDTO;
 import mtogo.supplier.factory.OrderDTOFactory;
 import mtogo.supplier.messaging.Producer;
 import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.dataformat.xml.XmlMapper;
 
 /**
@@ -25,13 +24,11 @@ public class LegacyDBAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(LegacyDBAdapter.class);
     private static LegacyDBAdapter instance;
-    private final ObjectMapper objectMapper;
     private final XmlMapper xmlMapper;
     private ServerSocket serverSocket;
 
     private LegacyDBAdapter() {
         xmlMapper = new XmlMapper();
-        objectMapper = new ObjectMapper();
     }
 
     ;

@@ -1,11 +1,15 @@
 package mtogo.redis.DTO;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.UUID;
 
 public class OrderLineDTO {
     private int orderLineId;
     private UUID orderId;
+    @JsonProperty("itemId")
     private int item_id;
+    @JsonProperty("priceSnapshot")
     private float price_snapshot;
     private int amount;
 

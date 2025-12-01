@@ -2,6 +2,7 @@ package mtogo.customer.server;
 
 import io.javalin.http.staticfiles.Location;
 import mtogo.customer.controller.OrderController;
+import mtogo.customer.controller.ProductController;
 import mtogo.customer.exceptions.APIException;
 import mtogo.customer.exceptions.ExceptionHandler;
 
@@ -14,6 +15,7 @@ import io.javalin.validation.ValidationException;
 public class JavalinBuilder {
 
     private static final OrderController orderController = OrderController.getInstance();
+    private static final ProductController productController= ProductController.getInstance();
 
     public static void startServer(int port) {
         Javalin.create(config -> {
@@ -30,7 +32,8 @@ public class JavalinBuilder {
                             get("/health", (ctx) -> ctx.status(200));
                             get("/", (ctx) -> ctx.status(418)); // Visit me in the browser ;)
                             post("/createorder", orderController::createOrder);
-                            get("/{supplierId}/items", orderController::getItemsBySupplierId);
+                            get("/{supplierId}/items", productController::getItemsBySupplierId);
+                            get("/suppliers/{zipcode}", productController::getActiveSuppliers);
 
                         });
                     });

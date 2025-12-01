@@ -3,4 +3,5 @@ target/
 .idea/
 *.env
 Caddyfile
+*test.yml
 keys/
