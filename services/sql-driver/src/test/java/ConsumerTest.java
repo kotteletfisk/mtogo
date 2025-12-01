@@ -178,7 +178,7 @@ class ConsumerTest {
 
             // Assert: DB write attempted
             SQLConnector connector = sqlMock.constructed().get(0);
-            verify(connector).createOrder(any(), anyList(), any(Connection.class));
+            verify(connector).createOrder(any(), anyList(), any(Connection.class)); // ???
 
             // Assert: NO publish on failure
             producerMock.verifyNoInteractions();
