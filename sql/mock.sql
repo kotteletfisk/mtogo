@@ -144,11 +144,5 @@ VALUES
     -- Dorthe handles Order 3
     (2, '11111111-2222-3333-4444-555555555555');
 
-INSERT INTO public.auth_user (email, password_hash)
-VALUES ('mtogo-admin', '$2a$12$qkm041Qiqxiq3NiI42lNsOSIX1ZST0Ua3P8r0rKg2bPVfBeXvtHSS');
-
-INSERT INTO public.auth_user_role (user_id, role_name)
-VALUES (1, 'customer'), (1, 'courier');
-
 
 COMMIT;
