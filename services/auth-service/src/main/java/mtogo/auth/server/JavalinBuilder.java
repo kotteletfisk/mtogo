@@ -7,6 +7,8 @@ import mtogo.auth.exceptions.APIException;
 import mtogo.auth.exceptions.ExceptionHandler;
 import mtogo.auth.messaging.RabbitRpcClient;
 
+import mtogo.auth.server.security.AppRole;
+import mtogo.auth.server.security.Middleware;
 import mtogo.auth.service.JwtService;
 import mtogo.auth.util.KeyLoader;
 import org.slf4j.Logger;
@@ -37,10 +39,12 @@ public class JavalinBuilder {
                             path("/api", () -> {
                                 get("/health", (ctx) -> ctx.status(200));
                                 post("/login", (ctx) -> AuthController.getInstance(rpcClient, jwtService).login(ctx));
+                                get("/access-test", ctx -> ctx.status(200), AppRole.MANAGER);
                             });
                         });
                     })
-                    .exception(APIException.class, (ExceptionHandler::apiExceptionHandler));
+                    .exception(APIException.class, (ExceptionHandler::apiExceptionHandler))
+                    .beforeMatched("/api/*", ctx -> Middleware.registerAuth(ctx));
 
             app.start(port);
         } catch (Exception e) {
