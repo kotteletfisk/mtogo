@@ -174,6 +174,7 @@ class ConsumerTest {
 
             // Act
             cb.handle("ctag-2", delivery);
+            
 
             // Assert: DB write attempted
             SQLConnector connector = sqlMock.constructed().get(0);

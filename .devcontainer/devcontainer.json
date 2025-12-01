@@ -18,6 +18,9 @@
 			]
 		}
 	},
+	"containerEnv": {
+		"LOG_LEVEL": "debug"
+	},
 	"runArgs": [
 		"--env-file",
 		".env"

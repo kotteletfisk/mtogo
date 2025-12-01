@@ -25,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import mtogo.sql.DTO.LegacyOrderDetailsDTO;
 import mtogo.sql.DTO.OrderDTO;
+import mtogo.sql.DTO.OrderDetailsDTO;
 import mtogo.sql.DTO.OrderLineDTO;
 import mtogo.sql.persistence.SQLConnector;
 
@@ -200,10 +201,9 @@ class SQLConnectorTest {
     }
 
     @Test
-    void createAnonymousLegacyOrderOnNoCustomerMatchTest() throws Exception {
-
+    void enrichLegacyOrderWithMatchedCustomer() throws SQLException {
         try (Statement st = conn.createStatement()) {
-            st.execute("INSERT INTO customer (customer_name, customer_zip, customer_phone) VALUES ('Test Customer', '2450', '22222222');");
+            st.execute("INSERT INTO customer (customer_id, customer_name, customer_zip, customer_phone) VALUES (1, 'Test Customer', '2450', '11111111');");
             st.execute("INSERT INTO menu_item (item_id) VALUES (10);");
             st.execute("INSERT INTO menu_item (item_id) VALUES (11);");
         }
@@ -211,33 +211,44 @@ class SQLConnectorTest {
         UUID id = UUID.randomUUID();
         LegacyOrderDetailsDTO legacy = new LegacyOrderDetailsDTO(
                 id,
-                "11111111",
+                "11111111", // Phone number exists
                 List.of(
                         new OrderLineDTO(id, 10, 1.0f, 1),
                         new OrderLineDTO(id, 11, 2.0f, 2)
                 )
         );
 
-        try {
-            OrderDTO dto = connector.createLegacyOrder(legacy, conn);
+        OrderDetailsDTO dto = connector.customerEnrichLegacyOrder(legacy, conn);
 
-            assertEquals(0, dto.getCustomer_id());
-
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "SELECT * FROM \"orders\" WHERE order_id = ?")) {
-                ps.setObject(1, id);
-                ResultSet rs = ps.executeQuery();
-
-                assertTrue(rs.next());
-                assertEquals(0, rs.getInt("customer_id"));
-            }
-
-        } catch (SQLException e) {
-            fail(e.getMessage());
-        }
+        // Legacy order matched with existing customer
+        assertEquals(1, dto.getCustomerId());
     }
 
+
     @Test
+    void enrichLegacyOrderWithUnmatchedAnonymousCustomer() throws SQLException {
+        try (Statement st = conn.createStatement()) {
+            st.execute("INSERT INTO customer (customer_id, customer_name, customer_zip, customer_phone) VALUES (1, 'Test Customer', '2450', '11111111');");
+            st.execute("INSERT INTO menu_item (item_id) VALUES (10);");
+            st.execute("INSERT INTO menu_item (item_id) VALUES (11);");
+        }
+
+        UUID id = UUID.randomUUID();
+        LegacyOrderDetailsDTO legacy = new LegacyOrderDetailsDTO(
+                id,
+                "22222222", // Phone number exists
+                List.of(
+                        new OrderLineDTO(id, 10, 1.0f, 1),
+                        new OrderLineDTO(id, 11, 2.0f, 2)
+                )
+        );
+
+        OrderDetailsDTO dto = connector.customerEnrichLegacyOrder(legacy, conn);
+
+        // Legacy order set to anonymous customer id 0 on no match
+        assertEquals(0, dto.getCustomerId());
+    }
+/*     @Test
     void createAnonymousCustomerOnNoMatchedLegacyOrder() throws SQLException {
 
         try (Statement st = conn.createStatement()) {
@@ -328,5 +339,5 @@ class SQLConnectorTest {
             // Order created with anonymous order
             assertTrue(rs.next());
         }
-    }
+    } */
 }

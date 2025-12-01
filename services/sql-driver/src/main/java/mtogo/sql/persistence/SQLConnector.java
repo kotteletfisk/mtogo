@@ -16,6 +16,7 @@ import mtogo.sql.DTO.OrderDTO;
 import mtogo.sql.DTO.OrderDetailsDTO;
 import mtogo.sql.DTO.OrderLineDTO;
 import mtogo.sql.DTO.menuItemDTO;
+import mtogo.sql.DTO.OrderDetailsDTO.PaymentMethod;
 import mtogo.sql.messaging.Producer;
 
 public class SQLConnector {
@@ -168,7 +169,7 @@ public class SQLConnector {
         }
     }
 
-    public void createLegacyOrder(LegacyOrderDetailsDTO legacyDTO,
+    public OrderDetailsDTO customerEnrichLegacyOrder(LegacyOrderDetailsDTO legacyDTO,
             Connection connection) throws SQLException {
 
         log.info("Creating legacy order");
@@ -198,8 +199,9 @@ public class SQLConnector {
             }
             OrderDetailsDTO orderDetailsDTO = new OrderDetailsDTO(legacyDTO.getOrderId(), customerId,
                     OrderDetailsDTO.orderStatus.created, legacyDTO.getOrderLineDTOS());
+            log.debug("Enriched dto:\n" + orderDetailsDTO.toString());
 
-            Producer.publishObject("customer:order_creation", orderDetailsDTO);
+            return orderDetailsDTO;
         }
     }
 

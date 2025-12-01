@@ -5,13 +5,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import lombok.ToString;
+
+@ToString
 public class OrderDetailsDTO {
     private UUID orderId;
     private int customerId;
 
     public enum PaymentMethod {
         PAYPAL,
-        MOBILEPAY
+        MOBILEPAY,
+        LEGACY
     }
 
     public enum orderStatus{

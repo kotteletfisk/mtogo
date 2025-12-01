@@ -55,8 +55,8 @@ public class RedisConnector {
             Map<String, String> map = new HashMap<>();
             map.put("order_line_id", String.valueOf(l.getOrderLineId()));
             map.put("order_id", l.getOrderId().toString());
-            map.put("item_id", String.valueOf(l.getItem_id()));
-            map.put("price_snapshot", String.valueOf(l.getPrice_snapshot()));
+            map.put("item_id", String.valueOf(l.getItemId()));
+            map.put("price_snapshot", String.valueOf(l.getPriceSnapshot()));
             map.put("amount", String.valueOf(l.getAmount()));
 
             jedis.hset("orderline:" + l.getOrderLineId(), map);
