@@ -5,7 +5,6 @@ import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.UnauthorizedResponse;
 import io.javalin.security.RouteRole;
-import mtogo.auth.controller.AuthController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,13 +43,13 @@ public class Middleware {
         DecodedJWT jwt = parser.validate(token);
 
         ctx.attribute("email", jwt.getClaim("email").asString());
-        ctx.attribute("roles", jwt.getClaim("roles").asList(String.class));
+        ctx.attribute("role", jwt.getClaim("role").asList(String.class));
 
         var permittedRoles = ctx.routeRoles();
         if (permittedRoles == null || permittedRoles.isEmpty()) {
             return;
         }
-        for (String r : (List<String>) ctx.attribute("roles")) {
+        for (String r : (List<String>) ctx.attribute("role")) {
             for (RouteRole role : permittedRoles) {
                 if (role.toString().equalsIgnoreCase(r)) {
                     return;
