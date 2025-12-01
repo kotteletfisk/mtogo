@@ -13,9 +13,9 @@ public class Main {
         JavalinBuilder.startServer(7070);
 
         try {
-            String[] bindingKeys = {"customer:menu_response"};
+            String[] bindingKeys = {"customer:menu_response", "customer:supplier_response"};
             Consumer.consumeMessages(bindingKeys);
-            log.info("SQL-driver started, listening for order events...");
+            log.info("Customer-service started, listening for order events...");
         } catch (Exception e) {
             log.error(e.getMessage());
         }

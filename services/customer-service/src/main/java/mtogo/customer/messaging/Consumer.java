@@ -4,8 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.*;
 import mtogo.customer.DTO.OrderDetailsDTO;
 import mtogo.customer.DTO.OrderLineDTO;
+import mtogo.customer.DTO.SupplierDTO;
 import mtogo.customer.DTO.menuItemDTO;
 import mtogo.customer.service.MenuService;
+import mtogo.customer.service.SupplierService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,6 +109,26 @@ public class Consumer {
 
                     } catch (Exception e) {
                         log.error("Error handling customer:menu_response", e);
+                    }
+                }
+                case "customer:supplier_response" -> {
+                    try {
+                        String body = new String(
+                                delivery.getBody(),
+                                java.nio.charset.StandardCharsets.UTF_8
+                        );
+
+                        log.info("Received supplier response: {}", body);
+                        List<SupplierDTO> suppliers = objectMapper.readValue(
+                                body,
+                                objectMapper.getTypeFactory()
+                                        .constructCollectionType(List.class, SupplierDTO.class)
+                        );
+
+                        SupplierService.getInstance().completeSupplierRequest(suppliers);
+
+                    } catch (Exception e) {
+                        log.error("Error handling customer:supplier_response", e);
                     }
                 }
 
