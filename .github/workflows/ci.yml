@@ -15,7 +15,7 @@ on:
 jobs:
   detect-changes:
     name: Detect Changed Services
-    runs-on: [self-hosted, test]
+    runs-on: ubuntu-24.04
     outputs:
       changed-services: ${{ steps.filter.outputs.changes }}
     steps:
