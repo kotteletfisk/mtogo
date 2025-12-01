@@ -1,0 +1,291 @@
+version: "3.9"
+
+services:
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    deploy:
+      replicas: 1
+    networks:
+      - backend
+
+  courier-service:
+    image: ${DOCKER_USER}/courier-service:${COURIER_SERVICE_TAG}
+    ports:
+      - target: 7070
+        published: 7070
+        protocol: tcp
+        mode: host
+    depends_on:
+      - rabbitmq
+      - redis-active-db
+      - sql-driver
+    deploy:
+      replicas: 1
+    environment:
+      ENV: ${ENV}
+  #  configs:
+  #    - source: jwt_public.pem
+  #      target: /run/configs/jwt_public.pem
+    networks:
+      - backend
+
+  customer-service:
+    image: ${DOCKER_USER}/customer-service:${CUSTOMER_SERVICE_TAG}
+    # image: kotteletfisk/customer-service:test
+    ports:
+      - target: 7070
+        published: 7071
+        protocol: tcp
+        mode: host
+    depends_on:
+      - rabbitmq
+      - redis-active-db
+      - sql-driver
+    deploy:
+      replicas: 1
+    environment:
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      ENV: ${ENV}
+  #  configs:
+  #    - source: jwt_public.pem
+  #      target: /run/configs/jwt_public.pem
+    networks:
+      - backend
+
+  management-service:
+    image: ${DOCKER_USER}/management-service:${MANAGEMENT_SERVICE_TAG}
+    ports:
+      - "7072:7070"
+    depends_on:
+      - rabbitmq
+      - sql-driver
+    deploy:
+      replicas: 1
+    environment:
+      ENV: ${ENV}
+  #  configs:
+  #    - source: jwt_public.pem
+  #      target: /run/configs/jwt_public.pem
+    networks:
+      - backend
+
+  supplier-service:
+    image: ${DOCKER_USER}/supplier-service:${SUPPLIER_SERVICE_TAG}
+    ports:
+      - target: 7070
+        published: 7073
+        protocol: tcp
+        mode: host
+      - target: 8080
+        published: 8080
+        protocol: tcp
+        mode: host
+    depends_on:
+      - rabbitmq
+      - redis-active-db
+      - sql-driver
+    deploy:
+      replicas: 1
+    environment:
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      ENV: ${ENV}
+  #  configs:
+  #    - source: jwt_public.pem
+  #      target: /run/configs/jwt_public.pem
+    networks:
+      - backend
+
+  support-service:
+    image: ${DOCKER_USER}/support-service:${SUPPORT_SERVICE_TAG}
+    ports:
+      - "7074:7070"
+    depends_on:
+      - mongo-driver
+      - rabbitmq
+    deploy:
+      replicas: 1
+    environment:
+      ENV: ${ENV}
+  #  configs:
+  #    - source: jwt_public.pem
+  #      target: /run/configs/jwt_public.pem
+    networks:
+      - backend
+
+  rabbitmq:
+    image: rabbitmq:3.13-alpine
+    ports:
+      - target: 15672
+        published: 15672
+        protocol: tcp
+        mode: host
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    command: >
+      sh -c "rabbitmq-plugins enable rabbitmq_management &&
+             rabbitmq-server"
+    deploy:
+      replicas: 1
+    networks:
+      - backend
+
+  redis-active-db:
+    image: redis:8.2.3-alpine
+    deploy:
+      replicas: 1
+    networks:
+      - backend
+
+  redis-driver:
+    # image: ${DOCKER_USER}/redis-driver:${REDIS_DRIVER_TAG}
+    image: kotteletfisk/redis-driver:test
+    depends_on:
+      - redis-active-db
+      - rabbitmq
+    environment:
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+    networks:
+      - backend
+
+  mtogo-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${MTOGO_USER}
+      POSTGRES_PASSWORD: ${MTOGO_PASS}
+      POSTGRES_DB: ${MTOGO_DB}
+    volumes:
+      - mtogo_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    deploy:
+      replicas: 1
+    networks:
+      - backend
+
+  metrics-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${METRICS_USER}
+      POSTGRES_PASSWORD: ${METRICS_PASS}
+      POSTGRES_DB: ${METRICS_DB}
+    volumes:
+      - metrics_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    deploy:
+      replicas: 1
+    networks:
+      - backend
+
+  sql-driver:
+    # image: ${DOCKER_USER}/sql-driver:${SQL_DRIVER_TAG}
+    image: kotteletfisk/sql-driver:test # TODO
+    depends_on:
+      - mtogo-db
+      - metrics-db
+      - rabbitmq
+    environment:
+        RABBITMQ_USER: ${RABBITMQ_USER}
+        RABBITMQ_PASS: ${RABBITMQ_PASS}
+        POSTGRES_USER: ${MTOGO_USER}
+        POSTGRES_PASSWORD: ${MTOGO_PASS}
+        POSTGRES_DB: ${MTOGO_DB}
+    deploy:
+      replicas: 1
+    networks:
+      - backend
+
+  support-db:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${SUPPORT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${SUPPORT_PASS}
+    volumes:
+      - support_data:/data/db
+    ports:
+      - "27017:27017"
+    deploy:
+      replicas: 1
+    networks:
+      - backend
+
+  applicant-db:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${APPLICANT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${APPLICANT_PASS}
+    volumes:
+      - applicant_data:/data/db
+    ports:
+      - "27018:27017"
+    deploy:
+      replicas: 1
+    networks:
+      - backend
+
+  mongo-driver:
+    image: ${DOCKER_USER}/mongodb-driver:${MONGODB_DRIVER_TAG}
+    depends_on:
+      - support-db
+      - applicant-db
+    deploy:
+      replicas: 1
+    networks:
+      - backend
+
+
+ # auth-service:
+ #   image: ${DOCKER_USER}/auth-service:${AUTH_SERVICE_TAG}
+ #   ports:
+ #     - target: 7070
+ #       published: 7075
+ #       protocol: tcp
+ #       mode: host
+ #   environment:
+ #     ENV: prod
+ #     RABBITMQ_USER: ${RABBITMQ_USER}
+ #     RABBITMQ_PASS: ${RABBITMQ_PASS}
+ #   secrets:
+ #     - source: auth_private_pkcs8.pem
+ #       target: auth_private_pkcs8.pem
+ #   networks:
+ #     - backend
+
+
+networks:
+  backend:
+    driver: overlay
+
+volumes:
+  mtogo_data:
+  metrics_data:
+  support_data:
+  applicant_data:
+  caddy_data:
+  caddy_config:
+
+#secrets:
+#  auth_private_pkcs8.pem:
+#    external: true
+
+#configs:
+#  jwt_public.pem:
+#    external: true
