@@ -5,12 +5,16 @@ import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.UnauthorizedResponse;
 import io.javalin.security.RouteRole;
+import mtogo.auth.controller.AuthController;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 public class Middleware {
 
     private static final JwtTokenParser parser;
+    public static final Logger log = LoggerFactory.getLogger(Middleware.class);
 
     static {
         try {
@@ -23,13 +27,15 @@ public class Middleware {
     public static void registerAuth(Context ctx) {
 
         String path = ctx.path();
-
+        log.info("Registering auth");
         if (path.equals("/api/login") || path.equals("/api/health")) {
+            log.info("public route");
             return;
         }
 
         String header = ctx.header("Authorization");
         if (header == null || !header.startsWith("Bearer ")) {
+            log.info("Invalid authorization header");
             throw new UnauthorizedResponse("Missing or invalid Authorization header");
         }
 
@@ -51,6 +57,7 @@ public class Middleware {
                 }
             }
         }
+        log.info("Not allowed");
         throw new ForbiddenResponse("Not allowed");
     }
 
