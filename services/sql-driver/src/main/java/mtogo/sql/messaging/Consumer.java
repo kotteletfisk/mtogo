@@ -158,9 +158,7 @@ public class Consumer {
                         if ("find_user_by_email".equals(action)) {
                             String email = reqJson.get("email").asText();
                             AuthReceiver ar =  new AuthReceiver();
-                            log.info("Auth lookup started");
                             String resp = ar.handleAuthLookup(email);
-                            log.info("Auth lookup finished");
                             var props = new AMQP.BasicProperties.Builder()
                                     .correlationId(delivery.getProperties().getCorrelationId())
                                     .contentType("application/json")
