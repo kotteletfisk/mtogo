@@ -71,7 +71,7 @@ public class AuthLoginHandler implements IMessageHandler {
                         props,
                         "{\"status\":\"error\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
             } catch (IOException ignored) {
-                log.error(ignored.getMessage());
+                log.warn("IGNORED: {}", ignored.getMessage());
             }
             try {
                 channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);

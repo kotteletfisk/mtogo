@@ -39,11 +39,12 @@ public class Main {
 
             MessageRouter router = new MessageRouter(map);
 
-            // String[] k = map.keySet().toArray(new String[0]);
+            String[] bindingKeys = map.keySet().toArray(new String[map.size()]);
 
-            String[] bindingKeys = {"customer:order_creation", "supplier:order_creation", "customer:menu_request", "auth:login"};
+            // String[] bindingKeys = {"customer:order_creation", "supplier:order_creation", "customer:menu_request", "auth:login"};
             Consumer.consumeMessages(bindingKeys, router);
             log.info("SQL-driver started, listening for order events...");
+            log.debug("Debug logging is enabled");
         } catch (Exception e) {
             log.error(e.getMessage());
         }

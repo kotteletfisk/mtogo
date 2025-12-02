@@ -9,7 +9,7 @@ FROM eclipse-temurin:21-jre-jammy
 
 WORKDIR /app
 
-COPY --from=build /app/target/*.jar app.jar
+COPY --from=build /app/target/sql-driver.jar app.jar
 
 EXPOSE 5672
 

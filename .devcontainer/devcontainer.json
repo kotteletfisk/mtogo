@@ -17,14 +17,14 @@
       ]
     }
   },
-  "runArgs": [
-    "--env-file",
-    ".env"
-  ],
   "containerEnv": {
     "MTOGO_WORKSPACE": "${containerWorkspaceFolder}",
     "LOG_LEVEL": "debug"
   },
+  "runArgs": [
+    "--env-file",
+    ".env"
+  ],
   "postCreateCommand": "java -version && mvn -version",
   "postStartCommand": "./.devcontainer/keys-for-dev.sh"
 }
