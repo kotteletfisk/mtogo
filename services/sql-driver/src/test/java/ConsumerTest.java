@@ -35,7 +35,7 @@ import com.rabbitmq.client.Envelope;
 import mtogo.sql.DTO.OrderDetailsDTO;
 import mtogo.sql.DTO.OrderLineDTO;
 import mtogo.sql.messaging.Consumer;
-import mtogo.sql.messaging.MessageHandler;
+import mtogo.sql.messaging.MessageRouter;
 import mtogo.sql.messaging.Producer;
 import mtogo.sql.persistence.SQLConnector;
 
@@ -61,8 +61,9 @@ class ConsumerTest {
     @Mock
     AMQP.Queue.DeclareOk declareOk;
 
-    @Mock 
-    MessageHandler mockHandler;
+    @Mock
+    MessageRouter router;
+
 
     @Test
     void consumeMessages_declaresExchange_bindsKeys_andStartsConsuming() throws Exception {
@@ -76,8 +77,7 @@ class ConsumerTest {
 
         // Inject mocked factory into Consumer
         Consumer.setConnectionFactory(factory);
-
-        Consumer.consumeMessages(bindingKeys);
+        Consumer.setMessageRouter(router);
 
         verify(channel).exchangeDeclare("order", "topic", true);
         verify(channel).queueDeclare();
@@ -179,7 +179,6 @@ class ConsumerTest {
         Delivery delivery = mock(Delivery.class);
         when(delivery.getEnvelope()).thenReturn(envelope);
         when(delivery.getBody()).thenReturn(body);
-        Consumer.setMessageHandler(mockHandler);
 
         try (MockedConstruction<SQLConnector> sqlMock = mockConstruction(SQLConnector.class,
                 (mock, context) -> {

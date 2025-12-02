@@ -28,13 +28,13 @@ import mtogo.sql.persistence.SQLConnector;
 public class Consumer {
 
     private static final Logger log = LoggerFactory.getLogger(Consumer.class);
-    private static MessageHandler handler = new MessageHandler();
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final String EXCHANGE_NAME = "order";
     private static StringWriter sw = new StringWriter();
     private static PrintWriter pw = new PrintWriter(sw);
 
+    private static MessageRouter router;
     static ConnectionFactory connectionFactory = createDefaultFactory();
 
     private static ConnectionFactory createDefaultFactory() {
@@ -46,14 +46,13 @@ public class Consumer {
         return factory;
     }
 
-
     // Injectable connectionfactory for testing
     public static void setConnectionFactory(ConnectionFactory factory) {
         connectionFactory = factory;
     }
 
-    public static void setMessageHandler(MessageHandler mh) {
-        handler = mh;
+    public static void setMessageRouter(MessageRouter msgRouter) {
+        router = msgRouter;
     }
 
     /**
@@ -62,7 +61,9 @@ public class Consumer {
      * @param bindingKeys the routing keys to bind the queue to
      * @throws Exception if an error occurs while consuming messages
      */
-    public static void consumeMessages(String[] bindingKeys) throws Exception {
+    public static void consumeMessages(String[] bindingKeys, MessageRouter msgRouter) throws Exception {
+
+        router = msgRouter;
 
         try {
             Connection connection = connectionFactory.newConnection();
@@ -132,9 +133,14 @@ public class Consumer {
                         log.error(e.getMessage());
                     }
                 }
-
+                
+                // TODO: TES FOR NOW. REPLACES SWITCH CASE
                 case "supplier:order_creation" -> {
-                    handler.handleLegacyOrder(delivery);
+                    try {
+                        router.getMessageHandler(routingKey).handle(delivery);
+                    } catch (IllegalArgumentException e) {
+                        log.error(e.getMessage());
+                    }
                 }
                 case "customer:menu_request" -> {
                     try {

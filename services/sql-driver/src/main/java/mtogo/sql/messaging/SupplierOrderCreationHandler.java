@@ -13,12 +13,18 @@ import mtogo.sql.DTO.LegacyOrderDetailsDTO;
 import mtogo.sql.DTO.OrderDetailsDTO;
 import mtogo.sql.persistence.SQLConnector;
 
-public class MessageHandler {
-    private static final Logger log = LoggerFactory.getLogger(MessageHandler.class);
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-    SQLConnector sqlConnector = new SQLConnector();
+public class SupplierOrderCreationHandler implements IMessageHandler {
+    private final Logger log = LoggerFactory.getLogger(SupplierOrderCreationHandler.class);
+    private final ObjectMapper objectMapper;
+    private final SQLConnector sqlConnector;
 
-    public void handleLegacyOrder(Delivery delivery) {
+    public SupplierOrderCreationHandler(SQLConnector sqlConnector, ObjectMapper mapper) {
+        this.sqlConnector = sqlConnector;
+        this.objectMapper = mapper;
+    }
+
+    @Override
+    public void handle(Delivery delivery) {
         log.info("Handling legay order message");
         try {
             LegacyOrderDetailsDTO legacyOrderDetailsDTO = objectMapper.readValue(delivery.getBody(),
