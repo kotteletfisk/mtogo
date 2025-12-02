@@ -1,17 +1,3 @@
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.*;
-import mtogo.sql.DTO.OrderDetailsDTO;
-import mtogo.sql.DTO.OrderLineDTO;
-import mtogo.sql.messaging.Consumer;
-import mtogo.sql.messaging.Producer;
-import mtogo.sql.persistence.SQLConnector;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.MockedConstruction;
-import org.mockito.MockedStatic;
-import org.mockito.junit.jupiter.MockitoExtension;
-
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -19,8 +5,39 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import org.mockito.Mock;
+import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.CancelCallback;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.DeliverCallback;
+import com.rabbitmq.client.Delivery;
+import com.rabbitmq.client.Envelope;
+
+import mtogo.sql.DTO.OrderDetailsDTO;
+import mtogo.sql.DTO.OrderLineDTO;
+import mtogo.sql.messaging.Consumer;
+import mtogo.sql.messaging.MessageHandler;
+import mtogo.sql.messaging.Producer;
+import mtogo.sql.persistence.SQLConnector;
 
 @ExtendWith(MockitoExtension.class)
 class ConsumerTest {
@@ -43,6 +60,9 @@ class ConsumerTest {
 
     @Mock
     AMQP.Queue.DeclareOk declareOk;
+
+    @Mock 
+    MessageHandler mockHandler;
 
     @Test
     void consumeMessages_declaresExchange_bindsKeys_andStartsConsuming() throws Exception {
@@ -159,6 +179,7 @@ class ConsumerTest {
         Delivery delivery = mock(Delivery.class);
         when(delivery.getEnvelope()).thenReturn(envelope);
         when(delivery.getBody()).thenReturn(body);
+        Consumer.setMessageHandler(mockHandler);
 
         try (MockedConstruction<SQLConnector> sqlMock = mockConstruction(SQLConnector.class,
                 (mock, context) -> {
