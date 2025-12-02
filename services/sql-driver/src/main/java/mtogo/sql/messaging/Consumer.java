@@ -3,7 +3,6 @@ package mtogo.sql.messaging;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -16,9 +15,6 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
 
-import mtogo.sql.DTO.OrderDTO;
-import mtogo.sql.DTO.OrderDetailsDTO;
-import mtogo.sql.DTO.OrderLineDTO;
 import mtogo.sql.DTO.menuItemDTO;
 import mtogo.sql.persistence.SQLConnector;
 
@@ -100,38 +96,7 @@ public class Consumer {
             switch (routingKey) {
 
                 case "customer:order_creation" -> {
-                    try {
-                        OrderDetailsDTO orderDetailsDTO = objectMapper.readValue(delivery.getBody(),
-                                OrderDetailsDTO.class);
-
-                        OrderDTO order = new OrderDTO(orderDetailsDTO);
-
-                        List<OrderLineDTO> orderLines = new ArrayList<>();
-                        for (OrderLineDTO line : orderDetailsDTO.getOrderLines()) {
-                            orderLines.add(
-                                    new OrderLineDTO(
-                                            line.getOrderLineId(),
-                                            line.getOrderId(),
-                                            line.getItemId(),
-                                            line.getPriceSnapshot(),
-                                            line.getAmount()));
-                        }
-
-                        log.info(" [x] Received '" + routingKey + "':'" + orderDetailsDTO + "'");
-                        String bodyStr = new String(delivery.getBody(), java.nio.charset.StandardCharsets.UTF_8);
-                        log.info(" [x] Raw message body: " + bodyStr);
-
-                        SQLConnector sqlConnector = new SQLConnector();
-                        try (java.sql.Connection conn = sqlConnector.getConnection()) {
-                            sqlConnector.createOrder(order, orderLines, conn);
-                        }
-
-                        String payload = objectMapper.writeValueAsString(orderDetailsDTO);
-                        Producer.publishMessage("supplier:order_persisted", payload);
-
-                    } catch (Exception e) {
-                        log.error(e.getMessage());
-                    }
+                    router.getMessageHandler(routingKey).handle(delivery);
                 }
                 
                 // TODO: TEST FOR NOW. REPLACES SWITCH CASE
