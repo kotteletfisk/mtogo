@@ -1,26 +1,18 @@
 package mtogo.sql.messaging;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
-
-import mtogo.sql.DTO.OrderDTO;
-import mtogo.sql.DTO.OrderDetailsDTO;
-import mtogo.sql.DTO.OrderLineDTO;
-import mtogo.sql.DTO.menuItemDTO;
-import mtogo.sql.persistence.SQLConnector;
 
 /**
  * Consumes messages from RabbitMQ
@@ -28,13 +20,13 @@ import mtogo.sql.persistence.SQLConnector;
 public class Consumer {
 
     private static final Logger log = LoggerFactory.getLogger(Consumer.class);
-    private static MessageHandler handler = new MessageHandler();
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final String EXCHANGE_NAME = "order";
     private static StringWriter sw = new StringWriter();
     private static PrintWriter pw = new PrintWriter(sw);
 
+    private static MessageRouter router;
     static ConnectionFactory connectionFactory = createDefaultFactory();
 
     private static ConnectionFactory createDefaultFactory() {
@@ -46,14 +38,13 @@ public class Consumer {
         return factory;
     }
 
-
     // Injectable connectionfactory for testing
     public static void setConnectionFactory(ConnectionFactory factory) {
         connectionFactory = factory;
     }
 
-    public static void setMessageHandler(MessageHandler mh) {
-        handler = mh;
+    public static void setMessageRouter(MessageRouter msgRouter) {
+        router = msgRouter;
     }
 
     /**
@@ -62,7 +53,10 @@ public class Consumer {
      * @param bindingKeys the routing keys to bind the queue to
      * @throws Exception if an error occurs while consuming messages
      */
-    public static void consumeMessages(String[] bindingKeys) throws Exception {
+    public static void consumeMessages(String[] bindingKeys, MessageRouter msgRouter) throws Exception {
+
+        router = msgRouter;
+        log.debug("Registering binding keys: {}", bindingKeys.toString());
 
         try {
             Connection connection = connectionFactory.newConnection();
@@ -77,7 +71,7 @@ public class Consumer {
 
             channel.basicConsume(queueName, false, deliverCallback(channel), consumerTag -> {
             });
-        } catch (Exception e) {
+        } catch (IOException | TimeoutException e) {
             log.error("Error consuming message:\n" + e.getMessage());
             e.printStackTrace(pw);
             log.error("Stacktrace:\n" + sw.toString());
@@ -93,125 +87,13 @@ public class Consumer {
      */
     private static DeliverCallback deliverCallback(Channel channel) {
         return (consumerTag, delivery) -> {
-            log.info("Consumer received message");
             String routingKey = delivery.getEnvelope().getRoutingKey();
+            log.info("Consumer received message with key: {}", routingKey);
 
-            switch (routingKey) {
-
-                case "customer:order_creation" -> {
-                    try {
-                        OrderDetailsDTO orderDetailsDTO = objectMapper.readValue(delivery.getBody(),
-                                OrderDetailsDTO.class);
-
-                        OrderDTO order = new OrderDTO(orderDetailsDTO);
-
-                        List<OrderLineDTO> orderLines = new ArrayList<>();
-                        for (OrderLineDTO line : orderDetailsDTO.getOrderLines()) {
-                            orderLines.add(
-                                    new OrderLineDTO(
-                                            line.getOrderLineId(),
-                                            line.getOrderId(),
-                                            line.getItemId(),
-                                            line.getPriceSnapshot(),
-                                            line.getAmount()));
-                        }
-
-                        log.info(" [x] Received '" + routingKey + "':'" + orderDetailsDTO + "'");
-                        String bodyStr = new String(delivery.getBody(), java.nio.charset.StandardCharsets.UTF_8);
-                        log.info(" [x] Raw message body: " + bodyStr);
-
-                        SQLConnector sqlConnector = new SQLConnector();
-                        try (java.sql.Connection conn = sqlConnector.getConnection()) {
-                            sqlConnector.createOrder(order, orderLines, conn);
-                        }
-
-                        String payload = objectMapper.writeValueAsString(orderDetailsDTO);
-                        Producer.publishMessage("supplier:order_persisted", payload);
-
-                    } catch (Exception e) {
-                        log.error(e.getMessage());
-                    }
-                }
-
-                case "supplier:order_creation" -> {
-                    handler.handleLegacyOrder(delivery);
-                }
-                case "customer:menu_request" -> {
-                    try {
-                        String body = new String(
-                                delivery.getBody(),
-                                java.nio.charset.StandardCharsets.UTF_8
-                        );
-                        log.info(" [x] Received '{}' with payload: {}", routingKey, body);
-
-                        int supplierId = Integer.parseInt(body.trim());
-                        log.info(" [x] Supplier ID: {}", supplierId);
-
-                        SQLConnector sqlConnector = new SQLConnector();
-                        List<menuItemDTO> items;
-
-                        try (java.sql.Connection conn = sqlConnector.getConnection()) {
-                            log.info(" [x] Fetching menu items from DB for supplier {}", supplierId);
-                            items = sqlConnector.getMenuItemsBySupplierId(supplierId, conn);
-                            log.info(" [x] Found {} menu items for supplier {}",
-                                    (items == null ? 0 : items.size()), supplierId);
-                        }
-
-                        if (items == null) {
-                            items = java.util.Collections.emptyList();
-                        }
-
-                        String payload = objectMapper.writeValueAsString(items);
-                        log.info(" [x] Sending menu response, length={} bytes", payload.length());
-
-                        Producer.publishMessage("customer:menu_response", payload);
-
-                    } catch (Exception e) {
-                        log.error("Error handling customer:menu_request", e);
-                    }
-                }
-                case "auth:login" -> {
-                    try {
-                        log.info(" [x] Received '{}' with correlationId '{}': '{}'", routingKey,
-                                delivery.getProperties().getCorrelationId(),
-                                new String(delivery.getBody(), StandardCharsets.UTF_8));
-                        var body = new String(delivery.getBody(), java.nio.charset.StandardCharsets.UTF_8);
-                        var reqJson = objectMapper.readTree(body);
-                        String action = reqJson.get("action").asText();
-
-                        if ("find_user_by_email".equals(action)) {
-                            String email = reqJson.get("email").asText();
-                            AuthReceiver ar = new AuthReceiver();
-                            String resp = ar.handleAuthLookup(email);
-                            var props = new AMQP.BasicProperties.Builder()
-                                    .correlationId(delivery.getProperties().getCorrelationId())
-                                    .contentType("application/json")
-                                    .build();
-
-                            channel.basicPublish(
-                                    "",
-                                    delivery.getProperties().getReplyTo(),
-                                    props,
-                                    resp.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                            channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
-                        }
-                    } catch (Exception ex) {
-                        log.info("RPC handler error: {}", ex.getMessage());
-                        try {
-                            var props = new AMQP.BasicProperties.Builder()
-                                    .correlationId(delivery.getProperties().getCorrelationId())
-                                    .contentType("application/json")
-                                    .build();
-                            channel.basicPublish(
-                                    "",
-                                    delivery.getProperties().getReplyTo(),
-                                    props,
-                                    "{\"status\":\"error\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                        } catch (Exception ignored) {
-                        }
-                        channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
-                    }
-                }
+            try {
+                router.getMessageHandler(routingKey).handle(delivery, channel);
+            } catch (IllegalArgumentException e) {
+                log.error(e.getMessage());
             }
         };
     }

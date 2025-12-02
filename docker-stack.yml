@@ -37,6 +37,7 @@ services:
       replicas: 1
     environment:
       ENV: ${ENV}
+      LOG_LEVEL: ${LOG_LEVEL}
     configs:
       - source: jwt_public.pem
         target: /run/configs/jwt_public.pem
@@ -60,6 +61,7 @@ services:
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASS: ${RABBITMQ_PASS}
       ENV: ${ENV}
+      LOG_LEVEL: ${LOG_LEVEL}
     configs:
       - source: jwt_public.pem
         target: /run/configs/jwt_public.pem
@@ -77,6 +79,7 @@ services:
       replicas: 1
     environment:
       ENV: ${ENV}
+      LOG_LEVEL: ${LOG_LEVEL}
     configs:
       - source: jwt_public.pem
         target: /run/configs/jwt_public.pem
@@ -104,6 +107,7 @@ services:
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASS: ${RABBITMQ_PASS}
       ENV: ${ENV}
+      LOG_LEVEL: ${LOG_LEVEL}
     configs:
       - source: jwt_public.pem
         target: /run/configs/jwt_public.pem
@@ -121,6 +125,7 @@ services:
       replicas: 1
     environment:
       ENV: ${ENV}
+      LOG_LEVEL: ${LOG_LEVEL}
     configs:
       - source: jwt_public.pem
         target: /run/configs/jwt_public.pem
@@ -160,6 +165,7 @@ services:
     environment:
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASS: ${RABBITMQ_PASS}
+      LOG_LEVEL: ${LOG_LEVEL}
     networks:
       - backend
 
@@ -205,6 +211,7 @@ services:
         POSTGRES_USER: ${MTOGO_USER}
         POSTGRES_PASSWORD: ${MTOGO_PASS}
         POSTGRES_DB: ${MTOGO_DB}
+        LOG_LEVEL: ${LOG_LEVEL}
     deploy:
       replicas: 1
     networks:
@@ -243,6 +250,8 @@ services:
     depends_on:
       - support-db
       - applicant-db
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL}
     deploy:
       replicas: 1
     networks:
@@ -260,6 +269,7 @@ services:
       ENV: prod
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASS: ${RABBITMQ_PASS}
+      LOG_LEVEL: ${LOG_LEVEL}
     secrets:
       - source: auth_private_pkcs8.pem
         target: auth_private_pkcs8.pem

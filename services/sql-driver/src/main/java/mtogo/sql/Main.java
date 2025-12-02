@@ -1,19 +1,50 @@
 package mtogo.sql;
 
-import mtogo.sql.messaging.Consumer;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import mtogo.sql.handlers.AuthLoginHandler;
+import mtogo.sql.handlers.CustomerMenuRequestHandler;
+import mtogo.sql.handlers.CustomerOrderCreationHandler;
+import mtogo.sql.handlers.IMessageHandler;
+import mtogo.sql.handlers.SupplierOrderCreationHandler;
+import mtogo.sql.messaging.AuthReceiver;
+import mtogo.sql.messaging.Consumer;
+import mtogo.sql.messaging.MessageRouter;
+import mtogo.sql.persistence.SQLConnector;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
 
     private static final Logger log = LoggerFactory.getLogger(Main.class);
+
     public static void main(String[] args) {
         try {
-            String[] bindingKeys = {"customer:order_creation", "supplier:order_creation", "customer:menu_request", "auth:login"};
-            Consumer.consumeMessages(bindingKeys);
+
+            SQLConnector connector = new SQLConnector();
+            ObjectMapper mapper = new ObjectMapper();
+            AuthReceiver authReceiver = new AuthReceiver();
+
+            Map<String, IMessageHandler> map = Map.of(
+                    "customer:order_creation", new CustomerOrderCreationHandler(connector, mapper),
+                    "supplier:order_creation", new SupplierOrderCreationHandler(connector, mapper),
+                    "customer:menu_request", new CustomerMenuRequestHandler(connector, mapper),
+                    "auth:login", new AuthLoginHandler(authReceiver, mapper)
+            );
+
+            MessageRouter router = new MessageRouter(map);
+
+            String[] bindingKeys = map.keySet().toArray(new String[map.size()]);
+
+            // String[] bindingKeys = {"customer:order_creation", "supplier:order_creation", "customer:menu_request", "auth:login"};
+            Consumer.consumeMessages(bindingKeys, router);
             log.info("SQL-driver started, listening for order events...");
+            log.debug("Debug logging is enabled");
         } catch (Exception e) {
             log.error(e.getMessage());
         }
