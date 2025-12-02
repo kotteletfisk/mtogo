@@ -1,20 +1,24 @@
 package mtogo.sql.DTO;
 
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import lombok.ToString;
+
+@ToString
 public class OrderDetailsDTO {
+
     private UUID orderId;
     private int customerId;
 
     public enum PaymentMethod {
         PAYPAL,
-        MOBILEPAY
+        MOBILEPAY,
+        LEGACY
     }
 
-    public enum orderStatus{
+    public enum orderStatus {
         created,
         rejected,
         accepted,
@@ -26,7 +30,8 @@ public class OrderDetailsDTO {
     private List<OrderLineDTO> orderLineDTOS = new ArrayList<>();
     private PaymentMethod paymentMethod;
 
-    public OrderDetailsDTO() {}
+    public OrderDetailsDTO() {
+    }
 
     public OrderDetailsDTO(int customerId, orderStatus status, List<OrderLineDTO> orderLineDTOS) {
         this.customerId = customerId;
@@ -41,16 +46,17 @@ public class OrderDetailsDTO {
         this.paymentMethod = paymentMethod;
     }
 
-
     public OrderDetailsDTO(UUID orderId, int customerId, orderStatus status, List<OrderLineDTO> orderLineDTOS) {
         this.orderId = orderId;
         this.customerId = customerId;
         this.status = status;
         this.orderLineDTOS = orderLineDTOS;
     }
+
     public void setOrderLines(List<OrderLineDTO> orderLines) {
         this.orderLineDTOS = (orderLines != null) ? orderLines : new ArrayList<>();
     }
+
     public PaymentMethod getPaymentMethod() {
         return paymentMethod;
     }

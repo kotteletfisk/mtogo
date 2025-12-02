@@ -22,7 +22,8 @@
     ".env"
   ],
   "containerEnv": {
-    "MTOGO_WORKSPACE": "${containerWorkspaceFolder}"
+    "MTOGO_WORKSPACE": "${containerWorkspaceFolder}",
+    "LOG_LEVEL": "debug"
   },
   "postCreateCommand": "java -version && mvn -version",
   "postStartCommand": "./.devcontainer/keys-for-dev.sh"

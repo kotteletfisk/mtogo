@@ -69,14 +69,14 @@ public class RedisTest {
 
         when(orderLineDTO1.getOrderLineId()).thenReturn(1);
         when(orderLineDTO1.getOrderId()).thenReturn(orderId);
-        when(orderLineDTO1.getItem_id()).thenReturn(100);
-        when(orderLineDTO1.getPrice_snapshot()).thenReturn(50F);
+        when(orderLineDTO1.getItemId()).thenReturn(100);
+        when(orderLineDTO1.getPriceSnapshot()).thenReturn(50F);
         when(orderLineDTO1.getAmount()).thenReturn(2);
 
         when(orderLineDTO2.getOrderLineId()).thenReturn(2);
         when(orderLineDTO2.getOrderId()).thenReturn(orderId);
-        when(orderLineDTO2.getItem_id()).thenReturn(101);
-        when(orderLineDTO2.getPrice_snapshot()).thenReturn(75F);
+        when(orderLineDTO2.getItemId()).thenReturn(101);
+        when(orderLineDTO2.getPriceSnapshot()).thenReturn(75F);
         when(orderLineDTO2.getAmount()).thenReturn(1);
 
         List<OrderLineDTO> orderLineDTOS = List.of(orderLineDTO1, orderLineDTO2);
@@ -126,15 +126,15 @@ public class RedisTest {
         OrderLineDTO line1 = mock(OrderLineDTO.class);
         when(line1.getOrderLineId()).thenReturn(1);
         when(line1.getOrderId()).thenReturn(orderId);
-        when(line1.getItem_id()).thenReturn(200);
-        when(line1.getPrice_snapshot()).thenReturn(99F);
+        when(line1.getItemId()).thenReturn(200);
+        when(line1.getPriceSnapshot()).thenReturn(99F);
         when(line1.getAmount()).thenReturn(2);
 
         OrderLineDTO line2 = mock(OrderLineDTO.class);
         when(line2.getOrderLineId()).thenReturn(2);
         when(line2.getOrderId()).thenReturn(orderId);
-        when(line2.getItem_id()).thenReturn(300);
-        when(line2.getPrice_snapshot()).thenReturn(149F);
+        when(line2.getItemId()).thenReturn(300);
+        when(line2.getPriceSnapshot()).thenReturn(149F);
         when(line2.getAmount()).thenReturn(1);
 
         ArgumentCaptor<Map<String,String>> mapCaptor = ArgumentCaptor.forClass(Map.class);

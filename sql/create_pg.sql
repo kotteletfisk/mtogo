@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS public.customer
     customer_creds character varying(50),
     PRIMARY KEY (customer_id)
 );
+
 CREATE TABLE IF NOT EXISTS public."orders"
 (
     order_id uuid NOT NULL,

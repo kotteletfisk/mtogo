@@ -13,8 +13,11 @@ import org.slf4j.LoggerFactory;
 
 import mtogo.sql.DTO.LegacyOrderDetailsDTO;
 import mtogo.sql.DTO.OrderDTO;
+import mtogo.sql.DTO.OrderDetailsDTO;
 import mtogo.sql.DTO.OrderLineDTO;
 import mtogo.sql.DTO.menuItemDTO;
+import mtogo.sql.DTO.OrderDetailsDTO.PaymentMethod;
+import mtogo.sql.messaging.Producer;
 
 public class SQLConnector {
 
@@ -166,7 +169,7 @@ public class SQLConnector {
         }
     }
 
-    public OrderDTO createLegacyOrder(LegacyOrderDetailsDTO legacyDTO,
+    public OrderDetailsDTO customerEnrichLegacyOrder(LegacyOrderDetailsDTO legacyDTO,
             Connection connection) throws SQLException {
 
         log.info("Creating legacy order");
@@ -189,14 +192,16 @@ public class SQLConnector {
                 log.info("No match customer match found. Creating anonymously");
                 createAnonUser(connection);
             }
-            OrderDTO orderDTO = new OrderDTO(legacyDTO.getOrderId(), customerId);
-
+            // OrderDTO orderDTO = new OrderDTO(legacyDTO.getOrderId(), customerId);
             int index = 1;
             for (var line : legacyDTO.getOrderLineDTOS()) {
                 line.setOrderLineId(index++);
             }
+            OrderDetailsDTO orderDetailsDTO = new OrderDetailsDTO(legacyDTO.getOrderId(), customerId,
+                    OrderDetailsDTO.orderStatus.created, legacyDTO.getOrderLineDTOS());
+            log.debug("Enriched dto:\n" + orderDetailsDTO.toString());
 
-            return createOrder(orderDTO, legacyDTO.getOrderLineDTOS(), connection);
+            return orderDetailsDTO;
         }
     }
 
