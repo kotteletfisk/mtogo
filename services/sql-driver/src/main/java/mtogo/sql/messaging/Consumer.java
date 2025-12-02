@@ -129,23 +129,38 @@ public class Consumer {
                         log.error(e.getMessage());
                     }
                 }
-                case "customer:menu_request"->{
+                case "customer:menu_request" -> {
                     try {
-                        log.info(" [x] Received '" + routingKey + "':'" + delivery.getBody() + "'");
-                        int supplierId = objectMapper.readValue(delivery.getBody(), Integer.class);
-                        log.info(" [x] Supplier ID: " + supplierId);
+                        String body = new String(
+                                delivery.getBody(),
+                                java.nio.charset.StandardCharsets.UTF_8
+                        );
+                        log.info(" [x] Received '{}' with payload: {}", routingKey, body);
+
+                        int supplierId = Integer.parseInt(body.trim());
+                        log.info(" [x] Supplier ID: {}", supplierId);
 
                         SQLConnector sqlConnector = new SQLConnector();
                         List<menuItemDTO> items;
+
                         try (java.sql.Connection conn = sqlConnector.getConnection()) {
+                            log.info(" [x] Fetching menu items from DB for supplier {}", supplierId);
                             items = sqlConnector.getMenuItemsBySupplierId(supplierId, conn);
+                            log.info(" [x] Found {} menu items for supplier {}",
+                                    (items == null ? 0 : items.size()), supplierId);
+                        }
+
+                        if (items == null) {
+                            items = java.util.Collections.emptyList();
                         }
 
                         String payload = objectMapper.writeValueAsString(items);
+                        log.info(" [x] Sending menu response, length={} bytes", payload.length());
+
                         Producer.publishMessage("customer:menu_response", payload);
 
                     } catch (Exception e) {
-                        log.error(e.getMessage());
+                        log.error("Error handling customer:menu_request", e);
                     }
                 }
                 case "auth:login" -> {
