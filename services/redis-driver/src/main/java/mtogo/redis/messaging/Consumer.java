@@ -11,6 +11,8 @@ import mtogo.redis.DTO.OrderDetailsDTO;
 import mtogo.redis.DTO.OrderLineDTO;
 import mtogo.redis.DTO.SupplierDTO;
 import mtogo.redis.persistence.RedisConnector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +22,8 @@ import java.util.UUID;
  * Consumes messages from RabbitMQ
  */
 public class Consumer {
+
+    public static final Logger log = LoggerFactory.getLogger(Consumer.class);
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final String EXCHANGE_NAME = "order";
@@ -96,16 +100,34 @@ public class Consumer {
             }
             if (delivery.getEnvelope().getRoutingKey().equals("customer:supplier_request")) {
                 try {
-                    String zipCode = objectMapper.readValue(delivery.getBody(), String.class);
-                    RedisConnector redisConnector = RedisConnector.getInstance();
+                    String body = new String(
+                            delivery.getBody(),
+                            java.nio.charset.StandardCharsets.UTF_8
+                    );
+                    log.info(" [x] Received '{}' with payload: {}", routingKey, body);
 
-                    List<SupplierDTO> suppliers = redisConnector.findSuppliersByZipAndStatus(zipCode, SupplierDTO.status.active);
+                    String zip = body.trim();
+                    log.info(" [x] Looking up active suppliers for zip {}", zip);
+
+                    RedisConnector redis = RedisConnector.getInstance();
+                    List<SupplierDTO> suppliers =
+                            redis.findSuppliersByZipAndStatus(zip, SupplierDTO.status.active);
+
+                    log.info(" [x] Found {} active suppliers for zip {}",
+                            suppliers == null ? 0 : suppliers.size(),
+                            zip);
+
+                    if (suppliers == null) {
+                        suppliers = java.util.Collections.emptyList();
+                    }
 
                     String payload = objectMapper.writeValueAsString(suppliers);
+                    log.info(" [x] Sending supplier response, length={} bytes", payload.length());
+
                     Producer.publishMessage("customer:supplier_response", payload);
-                }
-                catch (Exception e){
-                    e.printStackTrace();
+
+                } catch (Exception e) {
+                    log.error("Error handling customer:supplier_request", e);
                 }
             }
 
