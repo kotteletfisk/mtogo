@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Delivery;
 
 import mtogo.sql.DTO.LegacyOrderDetailsDTO;
@@ -15,7 +16,7 @@ import mtogo.sql.messaging.Producer;
 import mtogo.sql.persistence.SQLConnector;
 
 public class SupplierOrderCreationHandler implements IMessageHandler {
-    private final Logger log = LoggerFactory.getLogger(SupplierOrderCreationHandler.class);
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
     private final ObjectMapper objectMapper;
     private final SQLConnector sqlConnector;
 
@@ -25,7 +26,7 @@ public class SupplierOrderCreationHandler implements IMessageHandler {
     }
 
     @Override
-    public void handle(Delivery delivery) {
+    public void handle(Delivery delivery, Channel channel) {
         log.info("Handling legay order message");
         try {
             LegacyOrderDetailsDTO legacyOrderDetailsDTO = objectMapper.readValue(delivery.getBody(),

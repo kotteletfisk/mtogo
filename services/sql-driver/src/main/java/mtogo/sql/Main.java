@@ -7,9 +7,12 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import mtogo.sql.handlers.AuthLoginHandler;
+import mtogo.sql.handlers.CustomerMenuRequestHandler;
 import mtogo.sql.handlers.CustomerOrderCreationHandler;
 import mtogo.sql.handlers.IMessageHandler;
 import mtogo.sql.handlers.SupplierOrderCreationHandler;
+import mtogo.sql.messaging.AuthReceiver;
 import mtogo.sql.messaging.Consumer;
 import mtogo.sql.messaging.MessageRouter;
 import mtogo.sql.persistence.SQLConnector;
@@ -25,10 +28,13 @@ public class Main {
 
             SQLConnector connector = new SQLConnector();
             ObjectMapper mapper = new ObjectMapper();
+            AuthReceiver authReceiver = new AuthReceiver();
 
             Map<String, IMessageHandler> map = Map.of(
                     "customer:order_creation", new CustomerOrderCreationHandler(connector, mapper),
-                    "supplier:order_creation", new SupplierOrderCreationHandler(connector, mapper)
+                    "supplier:order_creation", new SupplierOrderCreationHandler(connector, mapper),
+                    "customer:menu_request", new CustomerMenuRequestHandler(connector, mapper),
+                    "auth:login", new AuthLoginHandler(authReceiver, mapper)
             );
 
             MessageRouter router = new MessageRouter(map);

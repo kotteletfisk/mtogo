@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Delivery;
 
 import mtogo.sql.DTO.OrderDTO;
@@ -38,7 +39,7 @@ public class CustomerOrderCreationHandler implements IMessageHandler {
 
 
     @Override
-    public void handle(Delivery delivery) {
+    public void handle(Delivery delivery, Channel channel) {
         try {
             OrderDetailsDTO orderDetailsDTO = objectMapper.readValue(delivery.getBody(),
                     OrderDetailsDTO.class);

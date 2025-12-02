@@ -1,5 +1,4 @@
 
-import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
@@ -44,13 +43,6 @@ import mtogo.sql.persistence.SQLConnector;
 @ExtendWith(MockitoExtension.class)
 class ConsumerTest {
 
-    // Helper: get the private deliverCallback() method
-    private DeliverCallback getDeliverCallback() throws Exception {
-        Method m = Consumer.class.getDeclaredMethod("deliverCallback", Channel.class);
-        m.setAccessible(true);
-        return (DeliverCallback) m.invoke(null, channel);
-    }
-
     @Mock
     ConnectionFactory factory;
 
@@ -66,9 +58,6 @@ class ConsumerTest {
     @Mock
     MessageRouter router;
 
-    @Mock
-    SQLConnector sqlConnector;
-
     @Test
     void consumeMessages_declaresExchange_bindsKeys_andStartsConsuming() throws Exception {
         String[] bindingKeys = {"customer:order_creation", "something.else"};
@@ -83,6 +72,7 @@ class ConsumerTest {
         Consumer.setConnectionFactory(factory);
         Consumer.setMessageRouter(router);
 
+        // Start consumer
         Consumer.consumeMessages(bindingKeys, router);
 
         verify(channel).exchangeDeclare("order", "topic", true);
@@ -155,7 +145,7 @@ class ConsumerTest {
             );
 
             // Act
-            handler.handle(delivery);
+            handler.handle(delivery, channel);
 
             // Assert: SQLConnector.createOrder was called
             assertFalse(sqlMock.constructed().isEmpty(), "SQLConnector was never constructed");
@@ -183,7 +173,6 @@ class ConsumerTest {
                 "customer:order_creation"
         );
         Delivery delivery = mock(Delivery.class);
-        when(delivery.getEnvelope()).thenReturn(envelope);
         when(delivery.getBody()).thenReturn(body);
 
         try (MockedConstruction<SQLConnector> sqlMock = mockConstruction(SQLConnector.class,
@@ -201,7 +190,7 @@ class ConsumerTest {
             );
 
             // Act
-            handler.handle(delivery);
+            handler.handle(delivery, channel);
 
             // Assert: SQLConnector.createOrder was called
             SQLConnector connector = sqlMock.constructed().get(0);
