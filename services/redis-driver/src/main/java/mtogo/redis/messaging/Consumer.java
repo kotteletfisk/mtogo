@@ -37,7 +37,7 @@ public class Consumer {
 
     private static ConnectionFactory createDefaultFactory() {
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost("rabbitmq");
+        factory.setHost("rabbitMQ");
         factory.setPort(5672);
         factory.setUsername(System.getenv("RABBITMQ_USER"));
         factory.setPassword(System.getenv("RABBITMQ_PASS"));
@@ -51,7 +51,7 @@ public class Consumer {
 
     /**
      * Consumes messages from RabbitMQ based on the provided binding keys.
-     * 
+     *
      * @param bindingKeys the routing keys to bind the queue to
      * @throws Exception if an error occurs while consuming messages
      */
@@ -76,13 +76,12 @@ public class Consumer {
             e.printStackTrace(pw);
             log.error("Stacktrace:\n" + sw.toString());
         }
-
     }
 
     /**
      * Creates a DeliverCallback to handle incoming messages. The callbacks
      * functionality can vary on keyword
-     * 
+     *
      * @return the DeliverCallback function
      */
     private static DeliverCallback deliverCallback() {
@@ -113,16 +112,34 @@ public class Consumer {
             }
             if (delivery.getEnvelope().getRoutingKey().equals("customer:supplier_request")) {
                 try {
-                    String zipCode = objectMapper.readValue(delivery.getBody(), String.class);
-                    RedisConnector redisConnector = RedisConnector.getInstance();
+                    String body = new String(
+                            delivery.getBody(),
+                            java.nio.charset.StandardCharsets.UTF_8
+                    );
+                    log.info(" [x] Received '{}' with payload: {}", delivery.getEnvelope().getRoutingKey(), body);
 
-                    List<SupplierDTO> suppliers = redisConnector.findSuppliersByZipAndStatus(zipCode, SupplierDTO.status.active);
+                    String zip = body.trim();
+                    log.info(" [x] Looking up active suppliers for zip {}", zip);
+
+                    RedisConnector redis = RedisConnector.getInstance();
+                    List<SupplierDTO> suppliers =
+                            redis.findSuppliersByZipAndStatus(zip, SupplierDTO.status.active);
+
+                    log.info(" [x] Found {} active suppliers for zip {}",
+                            suppliers == null ? 0 : suppliers.size(),
+                            zip);
+
+                    if (suppliers == null) {
+                        suppliers = java.util.Collections.emptyList();
+                    }
 
                     String payload = objectMapper.writeValueAsString(suppliers);
+                    log.info(" [x] Sending supplier response, length={} bytes", payload.length());
+
                     Producer.publishMessage("customer:supplier_response", payload);
-                }
-                catch (Exception e){
-                    e.printStackTrace();
+
+                } catch (Exception e) {
+                    log.error("Error handling customer:supplier_request", e);
                 }
             }
 
