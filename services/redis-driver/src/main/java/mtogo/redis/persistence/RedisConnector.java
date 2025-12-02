@@ -2,10 +2,10 @@ package mtogo.redis.persistence;
 
 import mtogo.redis.DTO.OrderDTO;
 import mtogo.redis.DTO.OrderLineDTO;
+import mtogo.redis.DTO.SupplierDTO;
 import redis.clients.jedis.UnifiedJedis;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 
 /**
  * Singleton class for connecting to Redis and performing operations
@@ -61,6 +61,46 @@ public class RedisConnector {
 
             jedis.hset("orderline:" + l.getOrderLineId(), map);
         }
+    }
+
+    public void saveSupplier(SupplierDTO supplier) {
+
+        Map<String, String> map = new HashMap<>();
+        map.put("supplier_id", String.valueOf(supplier.getSupplierId()));
+        map.put("name", supplier.getName());
+        map.put("zip_code", supplier.getZipCode());
+        map.put("status", supplier.getSupplierStatus().name());
+
+        String key = "supplier:"
+                + supplier.getZipCode() + ":"
+                + supplier.getSupplierStatus().name() + ":"
+                + supplier.getSupplierId();
+
+        jedis.hset(key, map);
+    }
+
+    public List<SupplierDTO> findSuppliersByZipAndStatus(
+            String zip, SupplierDTO.status stat) {
+
+        String pattern = "supplier:" + zip + ":" + stat.name() + ":*";
+        Set<String> keys = jedis.keys(pattern);
+
+        List<SupplierDTO> result = new ArrayList<>();
+
+        for (String key : keys) {
+            Map<String, String> data = jedis.hgetAll(key);
+
+            if (data != null && !data.isEmpty()) {
+                SupplierDTO dto = new SupplierDTO();
+                dto.setSupplierId(Integer.parseInt(data.get("supplier_id")));
+                dto.setName(data.get("name"));
+                dto.setZipCode(data.get("zip_code"));
+                dto.setSupplierStatus(SupplierDTO.status.valueOf(data.get("status")));
+                result.add(dto);
+            }
+        }
+
+        return result;
     }
 
 

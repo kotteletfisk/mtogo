@@ -10,6 +10,8 @@ import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 
 import java.security.*;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
 public class KeyLoader {
@@ -35,7 +37,8 @@ public class KeyLoader {
     }
 
     private static String loadOrGenerateLocal() {
-        Path dir = Path.of("keys");
+        String workspace = System.getenv().getOrDefault("MTOGO_WORKSPACE", ".");
+        Path dir = Path.of(workspace, "keys");
         Path priv = dir.resolve("private.pem");
 
         try {
@@ -45,7 +48,7 @@ public class KeyLoader {
             }
             return Files.readString(priv);
         } catch (Exception e) {
-            throw new RuntimeException("Could not read/generate local dev keys");
+            throw new RuntimeException("Could not read/generate local dev keys", e);
         }
     }
 

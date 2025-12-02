@@ -4,3 +4,4 @@ target/
 *.env
 Caddyfile
 *test.yml
+keys/

@@ -135,10 +135,8 @@
 </head>
 
 <body>
-<!-- IMPORTANT: this must exist before the React code runs -->
 <div id="root"></div>
 
-<!-- Your React/Babel app -->
 <script type="text/babel">
     const { useState, useMemo } = React;
 
@@ -151,6 +149,23 @@
         const [paymentMethod, setPaymentMethod] = useState("PAYPAL");
         const [isSubmitting, setIsSubmitting] = useState(false);
         const [message, setMessage] = useState(null);
+
+        // NEW: supplier / menu state
+        const [zipcode, setZipcode] = useState("");
+        const [suppliers, setSuppliers] = useState([]);
+        const [selectedSupplierId, setSelectedSupplierId] = useState("");
+        const [menuItems, setMenuItems] = useState([]);
+        const [isLoadingSuppliers, setIsLoadingSuppliers] = useState(false);
+        const [isLoadingItems, setIsLoadingItems] = useState(false);
+
+        // Helpers to be robust against DTO property names
+        const getItemId = (item) => item.itemId ?? item.id ?? item.item_id;
+        const getItemName = (item) => item.name ?? item.itemName ?? item.title ?? `Item ${getItemId(item)}`;
+        const getItemPrice = (item) =>
+            item.price ??
+            item.priceSnapshot ??
+            item.price_snapshot ??
+            0;
 
         const total = useMemo(() => {
             return orderLines.reduce((sum, line) => {
@@ -184,6 +199,127 @@
             setStatus("created");
             setOrderLines([{ item_id: "", price_snapshot: "", amount: "" }]);
             setPaymentMethod("PAYPAL");
+            // Keep supplier selection, it's a separate concern
+        };
+
+        // NEW: fetch active suppliers by zipcode
+        const fetchSuppliers = async () => {
+            setMessage(null);
+            setSuppliers([]);
+            setMenuItems([]);
+            setSelectedSupplierId("");
+
+            const trimmedZip = zipcode.trim();
+            if (!trimmedZip) {
+                setMessage({
+                    type: "error",
+                    text: "Please enter a zipcode before searching for suppliers.",
+                });
+                return;
+            }
+
+            setIsLoadingSuppliers(true);
+            try {
+                const res = await fetch(`/api/suppliers/${encodeURIComponent(trimmedZip)}`);
+                const text = await res.text();
+
+                if (!res.ok) {
+                    setMessage({
+                        type: "error",
+                        text:
+                            text && text.trim().length > 0
+                                ? `Error ${res.status} while fetching suppliers: ${text}`
+                                : `Error ${res.status} while fetching suppliers.`,
+                    });
+                    return;
+                }
+
+                const data = text ? JSON.parse(text) : [];
+                setSuppliers(Array.isArray(data) ? data : []);
+                if (Array.isArray(data) && data.length === 0) {
+                    setMessage({
+                        type: "error",
+                        text: "No active suppliers found for that zipcode.",
+                    });
+                }
+            } catch (err) {
+                setMessage({
+                    type: "error",
+                    text: "Network or server error while fetching suppliers: " + err.message,
+                });
+            } finally {
+                setIsLoadingSuppliers(false);
+            }
+        };
+
+        // NEW: fetch menu items for selected supplier
+        const fetchMenuItems = async () => {
+            setMessage(null);
+            setMenuItems([]);
+
+            if (!selectedSupplierId) {
+                setMessage({
+                    type: "error",
+                    text: "Please select a supplier before loading menu items.",
+                });
+                return;
+            }
+
+            setIsLoadingItems(true);
+            try {
+                const res = await fetch(`/api/${encodeURIComponent(selectedSupplierId)}/items`);
+                const text = await res.text();
+
+                if (!res.ok) {
+                    setMessage({
+                        type: "error",
+                        text:
+                            text && text.trim().length > 0
+                                ? `Error ${res.status} while fetching menu items: ${text}`
+                                : `Error ${res.status} while fetching menu items.`,
+                    });
+                    return;
+                }
+
+                const data = text ? JSON.parse(text) : [];
+                setMenuItems(Array.isArray(data) ? data : []);
+                if (Array.isArray(data) && data.length === 0) {
+                    setMessage({
+                        type: "error",
+                        text: "No menu items returned for this supplier.",
+                    });
+                }
+            } catch (err) {
+                setMessage({
+                    type: "error",
+                    text: "Network or server error while fetching menu items: " + err.message,
+                });
+            } finally {
+                setIsLoadingItems(false);
+            }
+        };
+
+        // NEW: add item from menu into order lines
+        const addOrderLineFromMenuItem = (item) => {
+            const itemId = getItemId(item);
+            const price = getItemPrice(item);
+
+            if (!itemId) {
+                setMessage({
+                    type: "error",
+                    text: "Selected menu item is missing an ID.",
+                });
+                return;
+            }
+
+            setOrderLines((prev) => [
+                ...prev,
+                {
+                    item_id: String(itemId),
+                    price_snapshot: String(price),
+                    amount: "1",
+                },
+            ]);
         };
 
         const handleSubmit = async (e) => {
@@ -267,6 +403,119 @@
                     Internal tool for placing orders directly into the system.
                     <span className="badge">CS only</span>
                 </p>
+
+                {/* NEW: Suppliers & Menu */}
+                <div className="section">
+                    <h3>Suppliers & Menu</h3>
+
+                    {/* Zipcode + fetch suppliers */}
+                    <div className="grid" style={{ marginBottom: "0.75rem" }}>
+                        <div>
+                            <label htmlFor="zipcode">Zipcode</label>
+                            <input
+                                id="zipcode"
+                                type="text"
+                                value={zipcode}
+                                onChange={(e) => setZipcode(e.target.value)}
+                                placeholder="e.g. 2100"
+                            />
+                        </div>
+                        <div style={{ display: "flex", alignItems: "flex-end" }}>
+                            <button
+                                type="button"
+                                className="btn btn-secondary"
+                                onClick={fetchSuppliers}
+                                disabled={isLoadingSuppliers}
+                            >
+                                {isLoadingSuppliers ? "Loading suppliers…" : "Find active suppliers"}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Supplier dropdown */}
+                    {suppliers.length > 0 && (
+                        <div className="grid" style={{ marginBottom: "0.75rem" }}>
+                            <div>
+                                <label htmlFor="supplierSelect">Select supplier</label>
+                                <select
+                                    id="supplierSelect"
+                                    value={selectedSupplierId}
+                                    onChange={(e) => setSelectedSupplierId(e.target.value)}
+                                >
+                                    <option value="">-- choose --</option>
+                                    {suppliers.map((s) => (
+                                        <option key={s.supplierId} value={s.supplierId}>
+                                            {s.name} (#{s.supplierId})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "flex-end" }}>
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={fetchMenuItems}
+                                    disabled={isLoadingItems || !selectedSupplierId}
+                                >
+                                    {isLoadingItems ? "Loading menu…" : "Load menu items"}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Menu items list */}
+                    {menuItems.length > 0 && (
+                        <div style={{ marginTop: "0.5rem" }}>
+                            <label>Menu items for selected supplier</label>
+                            <div
+                                style={{
+                                    border: "1px solid #e5e7eb",
+                                    borderRadius: "8px",
+                                    padding: "0.5rem",
+                                    maxHeight: "200px",
+                                    overflowY: "auto",
+                                    fontSize: "0.9rem",
+                                }}
+                            >
+                                {menuItems.map((item) => {
+                                    const itemId = getItemId(item);
+                                    const name = getItemName(item);
+                                    const price = getItemPrice(item);
+
+                                    return (
+                                        <div
+                                            key={itemId}
+                                            style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "center",
+                                                padding: "0.25rem 0",
+                                                borderBottom: "1px solid #f3f4f6",
+                                            }}
+                                        >
+                                            <div>
+                                                <strong>{name}</strong>{" "}
+                                                <span style={{ color: "#6b7280" }}>
+                                                    (ID: {itemId})
+                                                </span>
+                                            </div>
+                                            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                                                <span>{price} kr</span>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-primary"
+                                                    onClick={() => addOrderLineFromMenuItem(item)}
+                                                >
+                                                    Add to order
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 <form onSubmit={handleSubmit}>
                     {/* Order info */}

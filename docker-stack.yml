@@ -263,6 +263,9 @@ services:
     secrets:
       - source: auth_private_pkcs8.pem
         target: auth_private_pkcs8.pem
+    configs:
+      - source: jwt_public.pem
+        target: /run/configs/jwt_public.pem
     networks:
       - backend
 

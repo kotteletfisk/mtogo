@@ -1,29 +1,30 @@
 {
-	"name": "Java 21 + Maven Dev Container (Ubuntu 24.04)",
-	"image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
-  
-	"features": {
-		"ghcr.io/devcontainers/features/java:1": {
-			"version": "21",
-			"installMaven": "true",
-			"installGradle": "false"
-		},
-		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
-	},
-	"customizations": {
-		"vscode": {
-			"extensions": [
-				"vscjava.vscode-java-pack",
-				"vscjava.vscode-maven"
-			]
-		}
-	},
-	"containerEnv": {
-		"LOG_LEVEL": "debug"
-	},
-	"runArgs": [
-		"--env-file",
-		".env"
-	],
-	"postCreateCommand": "java -version && mvn -version"
+  "name": "Java 21 + Maven Dev Container (Ubuntu 24.04)",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "21",
+      "installMaven": "true",
+      "installGradle": "false"
+    },
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vscjava.vscode-maven"
+      ]
+    }
+  },
+  "runArgs": [
+    "--env-file",
+    ".env"
+  ],
+  "containerEnv": {
+    "MTOGO_WORKSPACE": "${containerWorkspaceFolder}",
+    "LOG_LEVEL": "debug"
+  },
+  "postCreateCommand": "java -version && mvn -version",
+  "postStartCommand": "./.devcontainer/keys-for-dev.sh"
 }
