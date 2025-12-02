@@ -1,4 +1,4 @@
-package mtogo.sql.messaging;
+package mtogo.sql.handlers;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -11,6 +11,7 @@ import com.rabbitmq.client.Delivery;
 
 import mtogo.sql.DTO.LegacyOrderDetailsDTO;
 import mtogo.sql.DTO.OrderDetailsDTO;
+import mtogo.sql.messaging.Producer;
 import mtogo.sql.persistence.SQLConnector;
 
 public class SupplierOrderCreationHandler implements IMessageHandler {

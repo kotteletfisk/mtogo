@@ -6,6 +6,8 @@ package mtogo.sql.messaging;
 
 import java.util.Map;
 
+import mtogo.sql.handlers.IMessageHandler;
+
 /**
  *
  * @author kotteletfisk

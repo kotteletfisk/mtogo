@@ -8,9 +8,9 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import mtogo.sql.messaging.Consumer;
-import mtogo.sql.messaging.IMessageHandler;
+import mtogo.sql.handlers.IMessageHandler;
 import mtogo.sql.messaging.MessageRouter;
-import mtogo.sql.messaging.SupplierOrderCreationHandler;
+import mtogo.sql.handlers.SupplierOrderCreationHandler;
 import mtogo.sql.persistence.SQLConnector;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
@@ -25,11 +25,11 @@ public class Main {
             SQLConnector connector = new SQLConnector();
             ObjectMapper mapper = new ObjectMapper();
 
-            Map<String, IMessageHandler> routeMap = Map.of(
+            Map<String, IMessageHandler> map = Map.of(
                     "supplier:order_creation", new SupplierOrderCreationHandler(connector, mapper)
             );
 
-            MessageRouter router = new MessageRouter(routeMap);
+            MessageRouter router = new MessageRouter(map);
 
             // String[] k = map.keySet().toArray(new String[0]);
 

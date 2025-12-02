@@ -79,6 +79,8 @@ class ConsumerTest {
         Consumer.setConnectionFactory(factory);
         Consumer.setMessageRouter(router);
 
+        Consumer.consumeMessages(bindingKeys, router);
+
         verify(channel).exchangeDeclare("order", "topic", true);
         verify(channel).queueDeclare();
         verify(declareOk).getQueue();

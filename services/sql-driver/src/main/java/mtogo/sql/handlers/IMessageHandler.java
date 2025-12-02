@@ -3,7 +3,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Interface.java to edit this template
  */
 
-package mtogo.sql.messaging;
+package mtogo.sql.handlers;
 
 import com.rabbitmq.client.Delivery;
 

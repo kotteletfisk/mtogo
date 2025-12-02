@@ -134,7 +134,7 @@ public class Consumer {
                     }
                 }
                 
-                // TODO: TES FOR NOW. REPLACES SWITCH CASE
+                // TODO: TEST FOR NOW. REPLACES SWITCH CASE
                 case "supplier:order_creation" -> {
                     try {
                         router.getMessageHandler(routingKey).handle(delivery);
