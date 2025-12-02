@@ -1,20 +1,25 @@
 package mtogo.sql.messaging;
 
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.rabbitmq.client.*;
-import mtogo.sql.DTO.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.DeliverCallback;
 
+import mtogo.sql.DTO.OrderDTO;
+import mtogo.sql.DTO.OrderDetailsDTO;
+import mtogo.sql.DTO.OrderLineDTO;
+import mtogo.sql.DTO.menuItemDTO;
 import mtogo.sql.persistence.SQLConnector;
 
 /**
@@ -23,6 +28,7 @@ import mtogo.sql.persistence.SQLConnector;
 public class Consumer {
 
     private static final Logger log = LoggerFactory.getLogger(Consumer.class);
+    private static MessageHandler handler = new MessageHandler();
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final String EXCHANGE_NAME = "order";
@@ -44,6 +50,10 @@ public class Consumer {
     // Injectable connectionfactory for testing
     public static void setConnectionFactory(ConnectionFactory factory) {
         connectionFactory = factory;
+    }
+
+    public static void setMessageHandler(MessageHandler mh) {
+        handler = mh;
     }
 
     /**
@@ -83,6 +93,7 @@ public class Consumer {
      */
     private static DeliverCallback deliverCallback(Channel channel) {
         return (consumerTag, delivery) -> {
+            log.info("Consumer received message");
             String routingKey = delivery.getEnvelope().getRoutingKey();
 
             switch (routingKey) {
@@ -123,11 +134,7 @@ public class Consumer {
                 }
 
                 case "supplier:order_creation" -> {
-                    try {
-                        handleLegacyOrder(delivery);
-                    } catch (SQLException e) {
-                        log.error(e.getMessage());
-                    }
+                    handler.handleLegacyOrder(delivery);
                 }
                 case "customer:menu_request" -> {
                     try {
@@ -165,14 +172,16 @@ public class Consumer {
                 }
                 case "auth:login" -> {
                     try {
-                        log.info(" [x] Received '{}' with correlationId '{}': '{}'", routingKey, delivery.getProperties().getCorrelationId(), new String(delivery.getBody(), StandardCharsets.UTF_8));
+                        log.info(" [x] Received '{}' with correlationId '{}': '{}'", routingKey,
+                                delivery.getProperties().getCorrelationId(),
+                                new String(delivery.getBody(), StandardCharsets.UTF_8));
                         var body = new String(delivery.getBody(), java.nio.charset.StandardCharsets.UTF_8);
                         var reqJson = objectMapper.readTree(body);
                         String action = reqJson.get("action").asText();
 
                         if ("find_user_by_email".equals(action)) {
                             String email = reqJson.get("email").asText();
-                            AuthReceiver ar =  new AuthReceiver();
+                            AuthReceiver ar = new AuthReceiver();
                             String resp = ar.handleAuthLookup(email);
                             var props = new AMQP.BasicProperties.Builder()
                                     .correlationId(delivery.getProperties().getCorrelationId())
@@ -183,8 +192,7 @@ public class Consumer {
                                     "",
                                     delivery.getProperties().getReplyTo(),
                                     props,
-                                    resp.getBytes(java.nio.charset.StandardCharsets.UTF_8)
-                            );
+                                    resp.getBytes(java.nio.charset.StandardCharsets.UTF_8));
                             channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
                         }
                     } catch (Exception ex) {
@@ -198,23 +206,13 @@ public class Consumer {
                                     "",
                                     delivery.getProperties().getReplyTo(),
                                     props,
-                                    "{\"status\":\"error\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8)
-                            );
-                        } catch (Exception ignored) {}
+                                    "{\"status\":\"error\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                        } catch (Exception ignored) {
+                        }
                         channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
                     }
                 }
             }
         };
-    }
-
-    private static void handleLegacyOrder(Delivery delivery) throws IOException, SQLException {
-        LegacyOrderDetailsDTO legacyOrderDetailsDTO = objectMapper.readValue(delivery.getBody(),
-                LegacyOrderDetailsDTO.class);
-        
-        SQLConnector sqlConnector = new SQLConnector();
-        try (java.sql.Connection conn = sqlConnector.getConnection()) {
-            sqlConnector.createLegacyOrder(legacyOrderDetailsDTO, conn);
-        }
     }
 }

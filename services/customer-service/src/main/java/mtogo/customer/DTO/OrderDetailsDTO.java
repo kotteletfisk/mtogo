@@ -1,6 +1,5 @@
 package mtogo.customer.DTO;
 
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -32,7 +31,7 @@ public class OrderDetailsDTO {
         this.customerId = customerId;
         this.status = status;
         this.orderLineDTOS = orderLineDTOS;
-    }
+    }    
 
     public OrderDetailsDTO(int customerId, orderStatus status, List<OrderLineDTO> orderLineDTOS, PaymentMethod paymentMethod) {
         this.customerId = customerId;
