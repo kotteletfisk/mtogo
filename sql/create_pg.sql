@@ -96,7 +96,7 @@ ALTER TABLE IF EXISTS public.order_line
     ADD CONSTRAINT fk_order_id FOREIGN KEY (order_id)
     REFERENCES public."orders" (order_id) MATCH SIMPLE
     ON UPDATE NO ACTION
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     NOT VALID;
 
 
@@ -104,7 +104,7 @@ ALTER TABLE IF EXISTS public.order_line
     ADD CONSTRAINT fk_item_id FOREIGN KEY (item_id)
     REFERENCES public.menu_item (item_id) MATCH SIMPLE
     ON UPDATE NO ACTION
-    ON DELETE CASCADE
+    ON DELETE NO ACTION
     NOT VALID;
 
 
