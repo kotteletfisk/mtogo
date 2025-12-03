@@ -16,8 +16,6 @@ import mtogo.sql.DTO.OrderDTO;
 import mtogo.sql.DTO.OrderDetailsDTO;
 import mtogo.sql.DTO.OrderLineDTO;
 import mtogo.sql.DTO.menuItemDTO;
-import mtogo.sql.DTO.OrderDetailsDTO.PaymentMethod;
-import mtogo.sql.messaging.Producer;
 
 public class SQLConnector {
 
@@ -82,8 +80,8 @@ public class SQLConnector {
             // Insert order with provided int orderId
             String insertOrderSql
                     = "INSERT INTO \"orders\" "
-                    + "(order_id, customer_id, order_created, order_updated, order_status) "
-                    + "VALUES (?, ?, ?, ?, ?)";
+                    + "(order_id, customer_id, order_created, order_updated, order_status, supplier_id) "
+                    + "VALUES (?, ?, ?, ?, ?, ?)";
 
             orderStmt = connection.prepareStatement(insertOrderSql);
             orderStmt.setObject(1, orderDTO.getOrder_id());
@@ -91,6 +89,7 @@ public class SQLConnector {
             orderStmt.setTimestamp(3, orderDTO.getOrder_created());
             orderStmt.setTimestamp(4, orderDTO.getOrder_updated());
             orderStmt.setString(5, orderDTO.getOrderStatus().name());
+            orderStmt.setInt(6, orderDTO.getSupplierId());
 
             int affectedOrders = orderStmt.executeUpdate();
             if (affectedOrders != 1) {
@@ -192,13 +191,19 @@ public class SQLConnector {
                 log.info("No match customer match found. Creating anonymously");
                 createAnonUser(connection);
             }
-            // OrderDTO orderDTO = new OrderDTO(legacyDTO.getOrderId(), customerId);
+            
             int index = 1;
             for (var line : legacyDTO.getOrderLineDTOS()) {
                 line.setOrderLineId(index++);
             }
-            OrderDetailsDTO orderDetailsDTO = new OrderDetailsDTO(legacyDTO.getOrderId(), customerId,
-                    OrderDetailsDTO.orderStatus.created, legacyDTO.getOrderLineDTOS());
+            OrderDetailsDTO orderDetailsDTO = OrderDetailsDTO.builder()
+                    .orderId(legacyDTO.getOrderId())
+                    .customerId(customerId)
+                    .status(OrderDetailsDTO.orderStatus.created)
+                    .supplierId(legacyDTO.getSupplierId())
+                    .orderLineDTOS(legacyDTO.getOrderLineDTOS())
+                    .build();
+
             log.debug("Enriched dto:\n" + orderDetailsDTO.toString());
 
             return orderDetailsDTO;

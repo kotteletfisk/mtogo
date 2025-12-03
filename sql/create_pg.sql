@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS public."orders"
 (
     order_id uuid NOT NULL,
     customer_id int NOT NULL,
+    supplier_id int,
     order_created timestamp without time zone NOT NULL,
     order_updated timestamp without time zone NOT NULL,
     order_status VARCHAR(50) NOT NULL,

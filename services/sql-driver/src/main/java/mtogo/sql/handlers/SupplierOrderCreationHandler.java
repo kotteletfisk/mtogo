@@ -1,6 +1,7 @@
 package mtogo.sql.handlers;
 
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.SQLException;
 
 import org.slf4j.Logger;
@@ -16,6 +17,7 @@ import mtogo.sql.messaging.Producer;
 import mtogo.sql.persistence.SQLConnector;
 
 public class SupplierOrderCreationHandler implements IMessageHandler {
+
     private final Logger log = LoggerFactory.getLogger(this.getClass());
     private final ObjectMapper objectMapper;
     private final SQLConnector sqlConnector;
@@ -27,16 +29,17 @@ public class SupplierOrderCreationHandler implements IMessageHandler {
 
     @Override
     public void handle(Delivery delivery, Channel channel) {
-        log.info("Handling legay order message");
+        log.info("Handling legacy order message");
         try {
             LegacyOrderDetailsDTO legacyOrderDetailsDTO = objectMapper.readValue(delivery.getBody(),
                     LegacyOrderDetailsDTO.class);
             log.debug("Received:\n" + legacyOrderDetailsDTO.toString());
 
-            try (java.sql.Connection conn = sqlConnector.getConnection()) {
+            try (Connection conn = sqlConnector.getConnection()) {
                 OrderDetailsDTO enriched = sqlConnector.customerEnrichLegacyOrder(legacyOrderDetailsDTO, conn);
-                Producer.publishObject("customer:order_creation", enriched);
-                log.debug("Published:\n" + enriched.toString());
+                if (Producer.publishObject("customer:order_creation", enriched)) {
+                    log.debug("Published:\n" + enriched.toString());
+                }
             }
         } catch (SQLException | IOException e) {
             log.error(e.getMessage());
