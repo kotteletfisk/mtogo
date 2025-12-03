@@ -7,6 +7,8 @@ import io.javalin.http.staticfiles.Location;
 import io.javalin.validation.ValidationException;
 import mtogo.supplier.exceptions.APIException;
 import mtogo.supplier.exceptions.ExceptionHandler;
+import mtogo.supplier.server.security.AppRole;
+import mtogo.supplier.server.security.Middleware;
 
 public class JavalinBuilder {
 
@@ -24,6 +26,7 @@ public class JavalinBuilder {
                 path("/api", () -> {
                     get("/health", (ctx) -> ctx.status(200));
                     get("/", (ctx) -> ctx.status(418)); // Visit me in the browser ;)
+                    get("/access-test",  (ctx) -> ctx.status(200), AppRole.MANAGER);
                 });
             });
             //Insert other configuration here if needed.
@@ -38,6 +41,7 @@ public class JavalinBuilder {
                         .getResourceAsStream("/public/200.html"));
             }
         })
+                .beforeMatched("/api/*", ctx -> Middleware.registerAuth(ctx))
         .start(port);
     }
 }
