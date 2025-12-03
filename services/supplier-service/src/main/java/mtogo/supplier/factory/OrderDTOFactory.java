@@ -31,7 +31,7 @@ public class OrderDTOFactory {
                 return new OrderLineDTO(id, line.getItemId(), line.getUnitPrice(), line.getAmount());
             }).collect(Collectors.toList());
 
-            return new LegacyOrderDetailsDTO(id, legacy.getPhone(), lines);
+            return new LegacyOrderDetailsDTO(id, legacy.getPhone(), legacy.getSupplier(), lines);
 
         } catch (Exception e) {
             throw new IllegalArgumentException(e);
