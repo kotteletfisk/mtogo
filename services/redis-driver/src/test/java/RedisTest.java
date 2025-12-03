@@ -46,6 +46,7 @@ public class RedisTest {
         when(orderDTO.getOrder_created()).thenReturn(created);
         when(orderDTO.getOrder_updated()).thenReturn(updated);
         when(orderDTO.getOrderStatus()).thenReturn(OrderDTO.orderStatus.created);
+        when(orderDTO.getSupplierId()).thenReturn(1);
 
         ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
 
@@ -59,6 +60,7 @@ public class RedisTest {
         assertEquals(String.valueOf(created.getTime()), map.get("order_created"));
         assertEquals(String.valueOf(updated.getTime()), map.get("order_updated"));
         assertEquals("created", map.get("order_status"));
+        assertEquals("1", map.get("supplier_id"));
     }
 
     @Test
@@ -115,6 +117,7 @@ public class RedisTest {
         OrderDTO orderDTO = mock(OrderDTO.class);
         when(orderDTO.getOrder_id()).thenReturn(orderId);
         when(orderDTO.getCustomer_id()).thenReturn(50);
+        when(orderDTO.getSupplierId()).thenReturn(1);
 
         Timestamp created = new Timestamp(1_700_000_000_000L);
         Timestamp updated = new Timestamp(1_700_000_500_000L);
@@ -137,7 +140,7 @@ public class RedisTest {
         when(line2.getPriceSnapshot()).thenReturn(149F);
         when(line2.getAmount()).thenReturn(1);
 
-        ArgumentCaptor<Map<String,String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
+        ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
 
         connector.createOrder(orderDTO);
         connector.createOrderLines(List.of(line1, line2));
@@ -151,10 +154,11 @@ public class RedisTest {
         assertEquals(String.valueOf(created.getTime()), orderMap.get("order_created"));
         assertEquals(String.valueOf(updated.getTime()), orderMap.get("order_updated"));
         assertEquals("created", orderMap.get("order_status"));
+        assertEquals("1", orderMap.get("supplier_id"));
 
         // Orderline 1
         verify(jedis).hset(eq("orderline:1"), mapCaptor.capture());
-        Map<String,String> l1 = mapCaptor.getValue();
+        Map<String, String> l1 = mapCaptor.getValue();
         assertEquals("1", l1.get("order_line_id"));
         assertEquals(orderId.toString(), l1.get("order_id"));
         assertEquals("200", l1.get("item_id"));
@@ -163,7 +167,7 @@ public class RedisTest {
 
         // Orderline 2
         verify(jedis).hset(eq("orderline:2"), mapCaptor.capture());
-        Map<String,String> l2 = mapCaptor.getValue();
+        Map<String, String> l2 = mapCaptor.getValue();
         assertEquals("2", l2.get("order_line_id"));
         assertEquals(orderId.toString(), l2.get("order_id"));
         assertEquals("300", l2.get("item_id"));

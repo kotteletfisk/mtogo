@@ -89,7 +89,14 @@ public class SQLConnector {
             orderStmt.setTimestamp(3, orderDTO.getOrder_created());
             orderStmt.setTimestamp(4, orderDTO.getOrder_updated());
             orderStmt.setString(5, orderDTO.getOrderStatus().name());
-            orderStmt.setInt(6, orderDTO.getSupplierId());
+
+            // TODO: nullable for compatiblity
+            if (orderDTO.getSupplierId() != null) {
+                orderStmt.setInt(6, orderDTO.getSupplierId());
+            }
+            else {
+                orderStmt.setNull(6, 0);
+            }
 
             int affectedOrders = orderStmt.executeUpdate();
             if (affectedOrders != 1) {

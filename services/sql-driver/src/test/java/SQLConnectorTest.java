@@ -101,6 +101,16 @@ class SQLConnectorTest {
                         );
 
                     """);
+                        st.execute("""
+                            CREATE TABLE supplier (
+                        supplier_id serial NOT NULL,
+                        supplier_name character varying(50) NOT NULL,
+                        supplier_zip character varying(10) NOT NULL,
+                        supplier_creds character varying(50),
+                        PRIMARY KEY (supplier_id)
+                        );
+
+                                    """);
         }
 
         connector = new SQLConnector();

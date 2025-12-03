@@ -103,6 +103,7 @@ public class OrderController {
                 .check(r-> r.getStatus() == OrderDetailsDTO.orderStatus.created, "Order status must be provided")
                 .check(r-> r.getOrderLines() != null && !r.getOrderLines().isEmpty(), "Order must contain at least one order line")
                 .check(r -> r.getPaymentMethod() != null, "Payment method must be provided")
+                // .check(r -> r.getSupplierId() != null, "plz give supplierid?") :o) // TODO: consider this
                 .get();
     }
 

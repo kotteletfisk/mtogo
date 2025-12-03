@@ -6,6 +6,7 @@ import java.util.UUID;
 public class OrderDTO {
     private UUID order_id;
     private int customer_id;
+    private int supplierId;
     private Timestamp order_created;
     private Timestamp order_updated;
     public enum orderStatus{
@@ -32,6 +33,7 @@ public class OrderDTO {
         this.order_created = new Timestamp(System.currentTimeMillis());
         this.order_updated = new Timestamp(System.currentTimeMillis());
         this.orderStatus = orderStatus.created;
+        this.supplierId = orderDetailsDTO.getSupplierId();
     }
 
     public UUID getOrder_id() {
@@ -52,5 +54,9 @@ public class OrderDTO {
 
     public orderStatus getOrderStatus() {
         return orderStatus;
+    }
+
+    public int getSupplierId() {
+        return this.supplierId;
     }
 }

@@ -43,6 +43,7 @@ public class RedisConnector {
         map.put("order_created", String.valueOf(order.getOrder_created().getTime()));
         map.put("order_updated", String.valueOf(order.getOrder_updated().getTime()));
         map.put("order_status", order.getOrderStatus().name());
+        map.put("supplier_id", String.valueOf(order.getSupplierId())); // TODO: inserts 0 on uninitialized value
 
         jedis.hset("order:" + order.getOrder_id().toString(), map);
     }

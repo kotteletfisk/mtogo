@@ -12,7 +12,7 @@ public class OrderDTO {
     private final int customer_id;
     private final Timestamp order_created;
     private final Timestamp order_updated;
-    private int supplierId;
+    private Integer supplierId; // TODO: fix wrapper for compatiblity
 
     public enum orderStatus{
         created,
