@@ -11,6 +11,8 @@ import static io.javalin.apibuilder.ApiBuilder.get;
 import static io.javalin.apibuilder.ApiBuilder.path;
 import static io.javalin.apibuilder.ApiBuilder.post;
 import io.javalin.validation.ValidationException;
+import mtogo.customer.server.security.AppRole;
+import mtogo.customer.server.security.Middleware;
 
 public class JavalinBuilder {
 
@@ -34,13 +36,14 @@ public class JavalinBuilder {
                             post("/createorder", orderController::createOrder);
                             get("/{supplierId}/items", productController::getItemsBySupplierId);
                             get("/suppliers/{zipcode}", productController::getActiveSuppliers);
-
+                            get("/access-test",  (ctx) -> ctx.status(200), AppRole.MANAGER);
                         });
                     });
                     //Insert other configuration here if needed.
                 })
                 .exception(APIException.class, (ExceptionHandler::apiExceptionHandler))
                 .exception(ValidationException.class, (ExceptionHandler::validationExceptionHandler))
+                .beforeMatched("/api/*", ctx -> Middleware.registerAuth(ctx))
                 .start(port);
     }
 }

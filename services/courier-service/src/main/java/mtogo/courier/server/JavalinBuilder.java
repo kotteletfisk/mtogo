@@ -4,6 +4,8 @@ import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
 import mtogo.courier.exceptions.APIException;
 import mtogo.courier.exceptions.ExceptionHandler;
+import mtogo.courier.server.security.AppRole;
+import mtogo.courier.server.security.Middleware;
 
 import static io.javalin.apibuilder.ApiBuilder.*;
 
@@ -21,12 +23,12 @@ public class JavalinBuilder {
                     config.router.apiBuilder(() -> {
                         path("/api", () -> {
                             get("/health", (ctx) -> ctx.status(200));
-
-
+                            get("/access-test",  (ctx) -> ctx.status(200), AppRole.MANAGER);
                         });
                     });
                 })
-                .exception(APIException.class, (ExceptionHandler::apiExceptionHandler));
+                .exception(APIException.class, (ExceptionHandler::apiExceptionHandler))
+                .beforeMatched("/api/*", ctx -> Middleware.registerAuth(ctx));
 
         app.before(ctx -> {
             System.out.println("Request: " + ctx.method() + " " + ctx.path());
