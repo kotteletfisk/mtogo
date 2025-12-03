@@ -25,7 +25,9 @@ public class LegacyOrder {
     @JacksonXmlProperty(localName = "Total")
     private float total;
     @JacksonXmlProperty(localName = "Phone")
-    private String phone;
+    private String phone;    
+    @JacksonXmlProperty(localName = "Supplier")
+    private int supplier;
 
     @JacksonXmlElementWrapper(useWrapping = false)
     @JacksonXmlProperty(localName = "OrderLine")

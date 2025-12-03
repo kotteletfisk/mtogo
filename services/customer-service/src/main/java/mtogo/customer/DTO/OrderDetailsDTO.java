@@ -7,6 +7,7 @@ import java.util.UUID;
 public class OrderDetailsDTO {
     private UUID orderId;
     private int customerId;
+    private int supplierId;
 
     public enum PaymentMethod {
         PAYPAL,
@@ -38,8 +39,16 @@ public class OrderDetailsDTO {
         this.status = status;
         this.orderLineDTOS = orderLineDTOS;
         this.paymentMethod = paymentMethod;
+    }    
+    
+    // TODO: consider this
+    public OrderDetailsDTO(int customerId, int supplierId, orderStatus status, List<OrderLineDTO> orderLineDTOS, PaymentMethod paymentMethod) {
+        this.customerId = customerId;
+        this.supplierId = supplierId;
+        this.status = status;
+        this.orderLineDTOS = orderLineDTOS;
+        this.paymentMethod = paymentMethod;
     }
-
 
     public OrderDetailsDTO(UUID orderId, int customerId, orderStatus status, List<OrderLineDTO> orderLineDTOS) {
         this.orderId = orderId;
@@ -47,6 +56,7 @@ public class OrderDetailsDTO {
         this.status = status;
         this.orderLineDTOS = orderLineDTOS;
     }
+
     public void setOrderLines(List<OrderLineDTO> orderLines) {
         this.orderLineDTOS = (orderLines != null) ? orderLines : new ArrayList<>();
     }
@@ -78,6 +88,10 @@ public class OrderDetailsDTO {
         return orderLineDTOS;
     }
 
+    public int getSupplierId() {
+        return this.supplierId;
+    }
+
     public void setOrderId(UUID orderId) {
         this.orderId = orderId;
     }
@@ -92,5 +106,9 @@ public class OrderDetailsDTO {
 
     public void setOrderLineDTOS(List<OrderLineDTO> orderLineDTOS) {
         this.orderLineDTOS = orderLineDTOS;
+    }
+
+    public void setSupplierId(int supplierId) {
+        this.supplierId = supplierId;
     }
 }

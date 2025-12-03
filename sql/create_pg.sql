@@ -11,10 +11,12 @@ CREATE TABLE IF NOT EXISTS public.customer
     PRIMARY KEY (customer_id)
 );
 
+-- supplier_id nullable for compatibility
 CREATE TABLE IF NOT EXISTS public."orders"
 (
     order_id uuid NOT NULL,
     customer_id int NOT NULL,
+    supplier_id int,
     order_created timestamp without time zone NOT NULL,
     order_updated timestamp without time zone NOT NULL,
     order_status VARCHAR(50) NOT NULL,
@@ -73,6 +75,13 @@ ALTER TABLE IF EXISTS public."orders"
     ON UPDATE NO ACTION
     ON DELETE NO ACTION
     NOT VALID;
+    
+ALTER TABLE IF EXISTS public."orders"
+    ADD CONSTRAINT fk_supplier_id FOREIGN KEY (supplier_id)
+    REFERENCES public.supplier (supplier_id) MATCH SIMPLE
+    ON UPDATE NO ACTION
+    ON DELETE NO ACTION
+    NOT VALID;
 
 
 ALTER TABLE IF EXISTS public.menu_item
@@ -87,7 +96,7 @@ ALTER TABLE IF EXISTS public.order_line
     ADD CONSTRAINT fk_order_id FOREIGN KEY (order_id)
     REFERENCES public."orders" (order_id) MATCH SIMPLE
     ON UPDATE NO ACTION
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     NOT VALID;
 
 

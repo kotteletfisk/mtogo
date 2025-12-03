@@ -58,6 +58,7 @@ struct Order {
     order_line: Vec<OrderLine>,
     total: f32,
     phone: String,
+    supplier: i32,
 }
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
