@@ -5,8 +5,8 @@ import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.UnauthorizedResponse;
 import io.javalin.security.RouteRole;
-import mtogo.auth.server.security.JwtTokenParser;
-import mtogo.auth.server.security.PublicKeyLoader;
+import mtogo.courier.server.security.JwtTokenParser;
+import mtogo.courier.server.security.PublicKeyLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
