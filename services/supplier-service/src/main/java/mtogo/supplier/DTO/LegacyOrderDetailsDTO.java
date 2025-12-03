@@ -21,5 +21,11 @@ public class LegacyOrderDetailsDTO {
         this.customerPhone = customerPhone;
         this.supplierId = supplierId;
         this.orderLineDTOS = orderLineDTOS;
+    }    
+    
+    public LegacyOrderDetailsDTO(UUID orderId, String customerPhone, List<OrderLineDTO> orderLineDTOS) {
+        this.orderId = orderId;
+        this.customerPhone = customerPhone;
+        this.orderLineDTOS = orderLineDTOS;
     }
 }

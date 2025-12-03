@@ -4,12 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-@ToString @Getter @Setter @Builder
+@ToString @Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
 public class OrderDetailsDTO {
 
     private UUID orderId;
@@ -35,8 +37,6 @@ public class OrderDetailsDTO {
     private List<OrderLineDTO> orderLineDTOS = new ArrayList<>();
     private PaymentMethod paymentMethod;
 
-    public OrderDetailsDTO() {
-    }
 
     public OrderDetailsDTO(int customerId, orderStatus status, List<OrderLineDTO> orderLineDTOS) {
         this.customerId = customerId;
