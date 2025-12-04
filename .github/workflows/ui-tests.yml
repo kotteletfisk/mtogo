@@ -36,14 +36,12 @@ on:
 
 jobs:
   run-ui-tests:
-    # Use inputs.* or github.event.inputs.* directly here (env.* NOT allowed yet)
     runs-on:
       - self-hosted
       - ${{ inputs.environment || github.event.inputs.environment }}
 
     name: Run UI Tests on ${{ inputs.environment || github.event.inputs.environment }}
 
-    # Now we can normalize into env vars for steps
     env:
       ENVIRONMENT: ${{ inputs.environment || github.event.inputs.environment }}
       BASE_URL_INPUT: ${{ inputs.base_url || github.event.inputs.base_url }}
@@ -82,6 +80,21 @@ jobs:
           ENVIRONMENT: ${{ env.ENVIRONMENT }}
           BASE_URL_INPUT: ${{ env.BASE_URL_INPUT }}
 
+      - name: Load DB settings from server .env
+        run: |
+          ENV_FILE="/home/${{ secrets.SERVER_NAME }}/mtogo/.env"
+          echo "Loading DB settings from $ENV_FILE"
+
+          # Extract the values WITHOUT printing them
+          MTOGO_DB=$(grep '^MTOGO_DB=' "$ENV_FILE" | cut -d '=' -f2-)
+          MTOGO_USER=$(grep '^MTOGO_USER=' "$ENV_FILE" | cut -d '=' -f2-)
+          MTOGO_PASS=$(grep '^MTOGO_PASS=' "$ENV_FILE" | cut -d '=' -f2-)
+
+          # Export them as POSTGRES_* so CustomerUATests can use them
+          echo "POSTGRES_DB=$MTOGO_DB" >> "$GITHUB_ENV"
+          echo "POSTGRES_USER=$MTOGO_USER" >> "$GITHUB_ENV"
+          echo "POSTGRES_PASSWORD=$MTOGO_PASS" >> "$GITHUB_ENV"
+
       - name: Wait for Services to be Ready
         run: |
           echo "Waiting for services to be ready..."
@@ -111,9 +124,9 @@ jobs:
         env:
           BASE_URL: ${{ env.BASE_URL }}
           ENVIRONMENT: ${{ env.ENVIRONMENT }}
-          POSTGRES_DB: mtogo
-          POSTGRES_USER: mtogo-user
-          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
 
       - name: Generate Test Report Summary
         if: always()
