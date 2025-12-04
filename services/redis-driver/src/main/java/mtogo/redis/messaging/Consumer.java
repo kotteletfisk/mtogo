@@ -10,9 +10,9 @@ import mtogo.redis.DTO.OrderDTO;
 import mtogo.redis.DTO.OrderDetailsDTO;
 import mtogo.redis.DTO.OrderLineDTO;
 import mtogo.redis.DTO.SupplierDTO;
-import mtogo.redis.exceptions.RedisException;
 import mtogo.redis.persistence.RedisConnector;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -60,7 +60,6 @@ public class Consumer {
 
         try {
             Connection connection = connectionFactory.newConnection();
-
             Channel channel = connection.createChannel();
 
             channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
@@ -70,12 +69,18 @@ public class Consumer {
                 channel.queueBind(queueName, EXCHANGE_NAME, bindingKey);
             }
 
-            channel.basicConsume(queueName, true, deliverCallback(), consumerTag -> {
+            // Manual acknowledgment (false)
+            channel.basicConsume(queueName, false, deliverCallback(channel), consumerTag -> {
             });
+
+            log.info("Redis Consumer started, listening on binding keys: {}",
+                    String.join(", ", bindingKeys));
+
         } catch (Exception e) {
             log.error("Error consuming message:\n" + e.getMessage());
             e.printStackTrace(pw);
             log.error("Stacktrace:\n" + sw.toString());
+            throw e;
         }
     }
 
@@ -83,61 +88,131 @@ public class Consumer {
      * Creates a DeliverCallback to handle incoming messages. The callbacks
      * functionality can vary on keyword
      *
+     * @param channel the RabbitMQ channel for acknowledging messages
      * @return the DeliverCallback function
      */
-    private static DeliverCallback deliverCallback() {
+    private static DeliverCallback deliverCallback(Channel channel) {
         return (consumerTag, delivery) -> {
-            log.info("Consumer received message");
-            if (delivery.getEnvelope().getRoutingKey().equals("customer:order_creation")) {
-                objectMapper.registerModule(new JavaTimeModule());
+            String routingKey = delivery.getEnvelope().getRoutingKey();
+            long deliveryTag = delivery.getEnvelope().getDeliveryTag();
 
-                OrderDetailsDTO orderDetailsDTO = objectMapper.readValue(delivery.getBody(), OrderDetailsDTO.class);
-                OrderDTO orderDTO = new OrderDTO(orderDetailsDTO);
-                log.debug(
-                        " [x] Received '" + delivery.getEnvelope().getRoutingKey() + "':'" + orderDetailsDTO + "'");
-                // Persist orderDTO and orderDTO lines to Redis
+            log.info("Consumer received message with routing key: {}", routingKey);
 
-                RedisConnector redisConnector = RedisConnector.getInstance();
-                try {
-                    redisConnector.createOrder(orderDTO);
-                } catch (RedisException e) {
-                    log.error(e.getMessage());
-                }
+            switch (routingKey) {
+                case "customer:order_creation" -> {
+                    try {
+                        objectMapper.registerModule(new JavaTimeModule());
 
-            }
-            if (delivery.getEnvelope().getRoutingKey().equals("customer:supplier_request")) {
-                try {
-                    String body = new String(
-                            delivery.getBody(),
-                            java.nio.charset.StandardCharsets.UTF_8
-                    );
-                    log.info(" [x] Received '{}' with payload: {}", delivery.getEnvelope().getRoutingKey(), body);
+                        OrderDetailsDTO orderDetailsDTO = objectMapper.readValue(
+                                delivery.getBody(),
+                                OrderDetailsDTO.class
+                        );
 
-                    String zip = body.trim();
-                    log.info(" [x] Looking up active suppliers for zip {}", zip);
+                        OrderDTO orderDTO = new OrderDTO(orderDetailsDTO);
+                        List<OrderLineDTO> orderLineDTOS = new ArrayList<>();
 
-                    RedisConnector redis = RedisConnector.getInstance();
-                    List<SupplierDTO> suppliers =
-                            redis.findSuppliersByZipAndStatus(zip, SupplierDTO.status.active);
+                        for (OrderLineDTO line : orderDetailsDTO.getOrderLines()) {
+                            orderLineDTOS.add(new OrderLineDTO(
+                                    line.getOrderLineId(),
+                                    line.getOrderId(),
+                                    line.getItemId(),
+                                    line.getPriceSnapshot(),
+                                    line.getAmount()
+                            ));
+                        }
 
-                    log.info(" [x] Found {} active suppliers for zip {}",
-                            suppliers == null ? 0 : suppliers.size(),
-                            zip);
+                        log.debug(" [x] Received order: {}", orderDetailsDTO);
 
-                    if (suppliers == null) {
-                        suppliers = java.util.Collections.emptyList();
+                        // Persist orderDTO and order lines to Redis
+                        UUID orderId = orderDetailsDTO.getOrderId();
+                        for (OrderLineDTO orderLineDTO : orderLineDTOS) {
+                            orderLineDTO.setOrderId(orderId);
+                        }
+
+                        RedisConnector redisConnector = RedisConnector.getInstance();
+                        redisConnector.createOrder(orderDTO);
+                        redisConnector.createOrderLines(orderLineDTOS);
+
+                        log.info("Successfully persisted order {} to Redis", orderId);
+
+                        // Acknowledge after successful processing
+                        channel.basicAck(deliveryTag, false);
+
+                    } catch (Exception e) {
+                        log.error("Error handling customer:order_creation", e);
+                        try {
+                            channel.basicNack(deliveryTag, false, true); // Requeue for retry
+                        } catch (IOException nackError) {
+                            log.error("Failed to NACK message", nackError);
+                        }
                     }
+                }
 
-                    String payload = objectMapper.writeValueAsString(suppliers);
-                    log.info(" [x] Sending supplier response, length={} bytes", payload.length());
+                case "customer:supplier_request" -> {
+                    try {
+                        String body = new String(
+                                delivery.getBody(),
+                                java.nio.charset.StandardCharsets.UTF_8
+                        );
+                        log.info(" [x] Received supplier request payload: {}", body);
 
-                    Producer.publishMessage("customer:supplier_response", payload);
+                        // Parse "correlationId:zipcode"
+                        int separatorIndex = body.indexOf(":");
+                        if (separatorIndex == -1) {
+                            log.error("Invalid supplier request format - missing ':' separator");
+                            channel.basicNack(deliveryTag, false, false); // Don't requeue bad format
+                            return;
+                        }
 
-                } catch (Exception e) {
-                    log.error("Error handling customer:supplier_request", e);
+                        String correlationId = body.substring(0, separatorIndex);
+                        String zip = body.substring(separatorIndex + 1).trim();
+
+                        log.info(" [x] Looking up active suppliers for zip {} with correlation {}",
+                                zip, correlationId);
+
+                        RedisConnector redis = RedisConnector.getInstance();
+                        List<SupplierDTO> suppliers = redis.findSuppliersByZipAndStatus(
+                                zip,
+                                SupplierDTO.status.active
+                        );
+
+                        log.info(" [x] Found {} active suppliers for zip {}",
+                                suppliers == null ? 0 : suppliers.size(),
+                                zip);
+
+                        if (suppliers == null) {
+                            suppliers = java.util.Collections.emptyList();
+                        }
+
+                        String suppliersJson = objectMapper.writeValueAsString(suppliers);
+                        // Format: "correlationId::[json]"
+                        String payload = correlationId + "::" + suppliersJson;
+                        log.info(" [x] Sending supplier response, length={} bytes", payload.length());
+
+                        Producer.publishMessage("customer:supplier_response", payload);
+
+                        // Acknowledge after successful processing
+                        channel.basicAck(deliveryTag, false);
+
+                    } catch (Exception e) {
+                        log.error("Error handling customer:supplier_request", e);
+                        try {
+                            channel.basicNack(deliveryTag, false, true); // Requeue for retry
+                        } catch (IOException nackError) {
+                            log.error("Failed to NACK message", nackError);
+                        }
+                    }
+                }
+
+                default -> {
+                    log.warn("Received message with unknown routing key: {}", routingKey);
+                    try {
+                        channel.basicAck(deliveryTag, false);
+                    } catch (IOException ackError) {
+                        log.error("Failed to ACK unknown message", ackError);
+                    }
                 }
             }
-
         };
     }
 }

@@ -2,8 +2,6 @@ package mtogo.customer.messaging;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.*;
-import mtogo.customer.DTO.OrderDetailsDTO;
-import mtogo.customer.DTO.OrderLineDTO;
 import mtogo.customer.DTO.SupplierDTO;
 import mtogo.customer.DTO.menuItemDTO;
 import mtogo.customer.service.MenuService;
@@ -14,9 +12,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Consumes messages from RabbitMQ
@@ -29,7 +26,6 @@ public class Consumer {
     private static final String EXCHANGE_NAME = "order";
     private static StringWriter sw = new StringWriter();
     private static PrintWriter pw = new PrintWriter(sw);
-
 
     static ConnectionFactory connectionFactory = createDefaultFactory();
 
@@ -66,28 +62,34 @@ public class Consumer {
                 channel.queueBind(queueName, EXCHANGE_NAME, bindingKey);
             }
 
-            channel.basicConsume(queueName, true, deliverCallback(), consumerTag -> {
+            channel.basicConsume(queueName, false, deliverCallback(channel), consumerTag -> {
             });
-        } catch (Exception e) {
+
+            log.info("Consumer started, listening on binding keys: {}", String.join(", ", bindingKeys));
+
+        } catch (IOException | TimeoutException e) {
             log.error("Error consuming message:\n" + e.getMessage());
             e.printStackTrace(pw);
             log.error("Stacktrace:\n" + sw.toString());
+            throw e;
         }
-
     }
 
     /**
      * Creates a DeliverCallback to handle incoming messages. The callbacks
      * functionality can vary on keyword
      *
+     * @param channel the RabbitMQ channel for acknowledging messages
      * @return the DeliverCallback function
      */
-    private static DeliverCallback deliverCallback() {
+    private static DeliverCallback deliverCallback(Channel channel) {
         return (consumerTag, delivery) -> {
             String routingKey = delivery.getEnvelope().getRoutingKey();
+            long deliveryTag = delivery.getEnvelope().getDeliveryTag();
+
+            log.debug("Received message with routing key: {}", routingKey);
 
             switch (routingKey) {
-
 
                 case "customer:menu_response" -> {
                     try {
@@ -96,21 +98,41 @@ public class Consumer {
                                 java.nio.charset.StandardCharsets.UTF_8
                         );
 
+                        // Expected format: "correlationId::[{...json array...}]"
+                        int separatorIndex = body.indexOf("::");
+                        if (separatorIndex == -1) {
+                            log.error("Invalid menu response format - missing '::' separator");
+                            channel.basicNack(deliveryTag, false, false); // Don't requeue malformed messages
+                            return;
+                        }
+
+                        String correlationId = body.substring(0, separatorIndex);
+                        String jsonArray = body.substring(separatorIndex + 2);
+
                         List<menuItemDTO> menuItems =
                                 objectMapper.readValue(
-                                        body,
+                                        jsonArray,
                                         objectMapper.getTypeFactory()
                                                 .constructCollectionType(List.class, menuItemDTO.class)
                                 );
 
-                        log.info("Received {} menu items", menuItems.size());
+                        log.info("Received {} menu items for correlation {}",
+                                menuItems.size(), correlationId);
 
-                        MenuService.getInstance().completeMenuRequest(menuItems);
+                        MenuService.getInstance().completeMenuRequest(correlationId, menuItems);
+
+                        channel.basicAck(deliveryTag, false);
 
                     } catch (Exception e) {
                         log.error("Error handling customer:menu_response", e);
+                        try {
+                            channel.basicNack(deliveryTag, false, false);
+                        } catch (IOException nackError) {
+                            log.error("Failed to NACK message", nackError);
+                        }
                     }
                 }
+
                 case "customer:supplier_response" -> {
                     try {
                         String body = new String(
@@ -118,22 +140,46 @@ public class Consumer {
                                 java.nio.charset.StandardCharsets.UTF_8
                         );
 
-                        log.info("Received supplier response: {}", body);
+                        log.debug("Received supplier response: {}", body);
+
+                        int separatorIndex = body.indexOf("::");
+                        if (separatorIndex == -1) {
+                            log.error("Invalid supplier response format - missing '::' separator");
+                            channel.basicNack(deliveryTag, false, false);
+                            return;
+                        }
+
+                        String correlationId = body.substring(0, separatorIndex);
+                        String jsonArray = body.substring(separatorIndex + 2);
+
                         List<SupplierDTO> suppliers = objectMapper.readValue(
-                                body,
+                                jsonArray,
                                 objectMapper.getTypeFactory()
                                         .constructCollectionType(List.class, SupplierDTO.class)
                         );
 
-                        SupplierService.getInstance().completeSupplierRequest(suppliers);
+                        log.info("Received {} suppliers for correlation {}",
+                                suppliers.size(), correlationId);
+
+                        SupplierService.getInstance().completeSupplierRequest(correlationId, suppliers);
+
+                        channel.basicAck(deliveryTag, false);
 
                     } catch (Exception e) {
                         log.error("Error handling customer:supplier_response", e);
+                        try {
+                            channel.basicNack(deliveryTag, false, false);
+                        } catch (IOException nackError) {
+                            log.error("Failed to NACK message", nackError);
+                        }
                     }
                 }
 
+                default -> {
+                    log.warn("Received message with unknown routing key: {}", routingKey);
+                    channel.basicAck(deliveryTag, false);
+                }
             }
         };
     }
-
 }

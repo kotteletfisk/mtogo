@@ -53,6 +53,38 @@ jobs:
       - name: Run Heavy Tests
         run: echo "Running very important heavy tests"
 
+      - name: Set up JDK for UI Tests
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Install Chrome
+        run: |
+          wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+
+      - name: Run UI Acceptance Tests
+        run: |
+          cd ua-tests
+          mvn clean test
+        env:
+          BASE_URL: http://172.16.0.11:7071
+          POSTGRES_DB: mtogo
+          POSTGRES_USER: mtogo-user
+          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
+
+      - name: Upload Test Reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-reports-${{ github.run_number }}
+          path: ua-tests/target/surefire-reports/
+          retention-days: 7
+
       - name: Check Test Results
         id: testcheck
         run: echo "Checking if test results are fine"
