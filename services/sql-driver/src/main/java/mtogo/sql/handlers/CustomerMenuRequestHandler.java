@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package mtogo.sql.handlers;
 
 import java.util.List;
@@ -17,10 +13,6 @@ import mtogo.sql.DTO.menuItemDTO;
 import mtogo.sql.messaging.Producer;
 import mtogo.sql.persistence.SQLConnector;
 
-/**
- *
- * @author kotteletfisk
- */
 public class CustomerMenuRequestHandler implements IMessageHandler {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
@@ -35,6 +27,7 @@ public class CustomerMenuRequestHandler implements IMessageHandler {
 
     @Override
     public void handle(Delivery delivery, Channel channel) {
+        long deliveryTag = delivery.getEnvelope().getDeliveryTag();
 
         try {
             String body = new String(
@@ -43,8 +36,18 @@ public class CustomerMenuRequestHandler implements IMessageHandler {
             );
             log.info(" [x] Received payload: {}", body);
 
-            int supplierId = Integer.parseInt(body.trim());
-            log.info(" [x] Supplier ID: {}", supplierId);
+            // Parse "correlationId:supplierId"
+            int separatorIndex = body.indexOf(":");
+            if (separatorIndex == -1) {
+                log.error("Invalid menu request format - missing ':' separator");
+                channel.basicNack(deliveryTag, false, false);
+                return;
+            }
+
+            String correlationId = body.substring(0, separatorIndex);
+            int supplierId = Integer.parseInt(body.substring(separatorIndex + 1).trim());
+
+            log.info(" [x] Supplier ID: {}, Correlation: {}", supplierId, correlationId);
 
             List<menuItemDTO> items;
 
@@ -59,14 +62,34 @@ public class CustomerMenuRequestHandler implements IMessageHandler {
                 items = java.util.Collections.emptyList();
             }
 
-            String payload = objectMapper.writeValueAsString(items);
+            String itemsJson = objectMapper.writeValueAsString(items);
+            // Format: "correlationId::[json]"
+            String payload = correlationId + "::" + itemsJson;
             log.info(" [x] Sending menu response, length={} bytes", payload.length());
 
-            Producer.publishMessage("customer:menu_response", payload);
+            boolean published = Producer.publishMessage("customer:menu_response", payload);
 
+            if (published) {
+                channel.basicAck(deliveryTag, false);
+            } else {
+                log.error("Failed to publish menu response");
+                channel.basicNack(deliveryTag, false, true); // Requeue for retry
+            }
+
+        } catch (NumberFormatException e) {
+            log.error("Invalid supplierId format in request", e);
+            try {
+                channel.basicNack(deliveryTag, false, false); // Don't requeue bad format
+            } catch (Exception nackError) {
+                log.error("Failed to NACK message", nackError);
+            }
         } catch (Exception e) {
             log.error("Error handling customer:menu_request", e);
+            try {
+                channel.basicNack(deliveryTag, false, true); // Requeue for retry
+            } catch (Exception nackError) {
+                log.error("Failed to NACK message", nackError);
+            }
         }
     }
-
 }

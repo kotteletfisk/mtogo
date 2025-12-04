@@ -1,4 +1,3 @@
-
 import com.rabbitmq.client.*;
 import mtogo.redis.messaging.Consumer;
 import org.junit.jupiter.api.Test;
@@ -26,7 +25,7 @@ class ConsumerTest {
 
     @Test
     void consumeMessages_declaresExchange_bindsKeys_andStartsConsuming() throws Exception {
-        String[] bindingKeys = {"customer:order_creation", "something.else"};
+        String[] bindingKeys = {"customer:order_creation", "customer:supplier_request"};
         String queueName = "test-queue";
 
         when(factory.newConnection()).thenReturn(connection);
@@ -40,18 +39,21 @@ class ConsumerTest {
 
         Consumer.consumeMessages(bindingKeys);
 
+        // Verify exchange is declared
         verify(channel).exchangeDeclare("order", "topic", true);
 
+        // Verify queue is declared
         verify(channel).queueDeclare();
         verify(declareOk).getQueue();
 
+        // Verify each binding key is bound
         for (String bindingKey : bindingKeys) {
             verify(channel).queueBind(queueName, "order", bindingKey);
         }
 
         verify(channel).basicConsume(
                 eq(queueName),
-                eq(true),
+                eq(false),  // Changed from true to false
                 any(DeliverCallback.class),
                 any(CancelCallback.class)
         );

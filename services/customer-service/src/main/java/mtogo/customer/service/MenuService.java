@@ -4,11 +4,14 @@ import mtogo.customer.DTO.menuItemDTO;
 import mtogo.customer.messaging.Producer;
 
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.*;
 
 public class MenuService {
 
-    private final BlockingQueue<List<menuItemDTO>> queue = new ArrayBlockingQueue<>(1);
+    private final Map<String, CompletableFuture<List<menuItemDTO>>> pendingRequests =
+            new ConcurrentHashMap<>();
 
     private static final MenuService INSTANCE = new MenuService();
     public static MenuService getInstance() { return INSTANCE; }
@@ -16,31 +19,43 @@ public class MenuService {
     private MenuService() {}
 
     /**
-     * Requests the menu for a given supplierId by blocking until a response is received or a timeout occurs.
+     * Requests the menu for a given supplierId by blocking until a response is received.
      * @param supplierId the ID of the supplier whose menu is being requested.
      * @return a list of menuItemDTO representing the menu items.
      * @throws Exception if a timeout occurs or an error happens during the request.
      */
     public List<menuItemDTO> requestMenuBlocking(int supplierId) throws Exception {
-        // Clear any leftover result
-        queue.clear();
+        String correlationId = UUID.randomUUID().toString();
+        CompletableFuture<List<menuItemDTO>> future = new CompletableFuture<>();
 
-        // Send request to sql-driver
-        Producer.publishMessage("customer:menu_request", String.valueOf(supplierId));
+        pendingRequests.put(correlationId, future);
 
-        // Wait max 2 seconds for the response
-        List<menuItemDTO> items = queue.poll(2, TimeUnit.SECONDS);
-        if (items == null) {
-            throw new TimeoutException("No response from sql-driver");
+        try {
+            // Send request with correlation ID
+            String payload = correlationId + ":" + supplierId;
+            Producer.publishMessage("customer:menu_request", payload);
+
+            List<menuItemDTO> items = future.get(2, TimeUnit.SECONDS);
+            return items;
+
+        } catch (TimeoutException e) {
+            throw new TimeoutException("No response from sql-driver for supplier " + supplierId);
+        } finally {
+            pendingRequests.remove(correlationId);
         }
-        return items;
     }
 
     /**
-     * Completes the menu request by adding the received items to the queue.
+     * Completes the menu request by resolving the appropriate future.
+     * @param correlationId the ID correlating this response to a request
      * @param items the list of menuItemDTO received in response to the menu request.
      */
-    public void completeMenuRequest(List<menuItemDTO> items) {
-        queue.offer(items);
+    public void completeMenuRequest(String correlationId, List<menuItemDTO> items) {
+        CompletableFuture<List<menuItemDTO>> future = pendingRequests.get(correlationId);
+        if (future != null) {
+            future.complete(items);
+        } else {
+            System.err.println("Received menu response for unknown correlation ID: " + correlationId);
+        }
     }
 }
