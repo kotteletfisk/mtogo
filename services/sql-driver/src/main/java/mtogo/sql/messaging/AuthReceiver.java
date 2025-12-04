@@ -26,12 +26,12 @@ public class AuthReceiver {
                 if(roles == null || roles.isEmpty()){
                     roles = List.of();
                 }
-                int actorId = authQueries.fetchActorIdForAuth(email, service);
-                if(actorId == -1){
+                String actorId = authQueries.fetchActorIdForAuth(email, service);
+                if(actorId.equals("-1")){
                     log.info("SQL error while fetching actor id");
-                } else if (actorId == -2){
+                } else if (actorId.equals("-2")){
                     log.info("Service requester not recognized");
-                    return "{\"status\":\"error\"}";
+                    actorId = "none";
                 }
                 ObjectMapper mapper = new ObjectMapper();
                 Map<String, Object> resp = Map.of(
