@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JavalinBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">supplier-service</a> &gt; <a href="index.source.html" class="el_package">mtogo.supplier.server</a> &gt; <span class="el_source">JavalinBuilder.java</span></div><h1>JavalinBuilder.java</h1><pre class="source lang-java linenums">package mtogo.supplier.server;
+
+import io.javalin.Javalin;
+import static io.javalin.apibuilder.ApiBuilder.get;
+import static io.javalin.apibuilder.ApiBuilder.path;
+import io.javalin.http.staticfiles.Location;
+import io.javalin.validation.ValidationException;
+import mtogo.supplier.exceptions.APIException;
+import mtogo.supplier.exceptions.ExceptionHandler;
+import mtogo.supplier.server.security.AppRole;
+import mtogo.supplier.server.security.Middleware;
+
+<span class="nc" id="L13">public class JavalinBuilder {</span>
+
+    public static void startServer(int port) {
+<span class="nc" id="L16">        Javalin.create(config -&gt; {</span>
+<span class="nc" id="L17">            config.staticFiles.add(staticFiles -&gt; {</span>
+<span class="nc" id="L18">                staticFiles.hostedPath = &quot;/&quot;;</span>
+<span class="nc" id="L19">                staticFiles.directory = &quot;public&quot;;</span>
+<span class="nc" id="L20">                staticFiles.precompress = true;</span>
+<span class="nc" id="L21">                staticFiles.location = Location.CLASSPATH;</span>
+<span class="nc" id="L22">            });</span>
+
+<span class="nc" id="L24">            config.router.apiBuilder(() -&gt; {</span>
+
+<span class="nc" id="L26">                path(&quot;/api&quot;, () -&gt; {</span>
+<span class="nc" id="L27">                    get(&quot;/health&quot;, (ctx) -&gt; ctx.status(200));</span>
+<span class="nc" id="L28">                    get(&quot;/&quot;, (ctx) -&gt; ctx.status(418)); // Visit me in the browser ;)</span>
+<span class="nc" id="L29">                    get(&quot;/access-test&quot;,  (ctx) -&gt; ctx.status(200), AppRole.MANAGER);</span>
+<span class="nc" id="L30">                });</span>
+<span class="nc" id="L31">            });</span>
+            //Insert other configuration here if needed.
+<span class="nc" id="L33">        })</span>
+<span class="nc" id="L34">                .exception(APIException.class, (ExceptionHandler::apiExceptionHandler))</span>
+<span class="nc" id="L35">                .exception(ValidationException.class, (ExceptionHandler::validationExceptionHandler))</span>
+
+<span class="nc" id="L37">        .error(404, ctx -&gt; {</span>
+<span class="nc bnc" id="L38" title="All 2 branches missed.">            if (!ctx.path().startsWith(&quot;/api&quot;)) {</span>
+<span class="nc" id="L39">                ctx.contentType(&quot;text/html&quot;);</span>
+<span class="nc" id="L40">                ctx.result(JavalinBuilder.class</span>
+<span class="nc" id="L41">                        .getResourceAsStream(&quot;/public/200.html&quot;));</span>
+            }
+<span class="nc" id="L43">        })</span>
+<span class="nc" id="L44">                .beforeMatched(&quot;/api/*&quot;, ctx -&gt; Middleware.registerAuth(ctx))</span>
+<span class="nc" id="L45">        .start(port);</span>
+<span class="nc" id="L46">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

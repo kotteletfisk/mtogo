@@ -5,3 +5,4 @@ target/
 Caddyfile
 *test.yml
 keys/
+*kfisk*

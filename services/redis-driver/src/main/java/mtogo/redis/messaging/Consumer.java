@@ -69,6 +69,7 @@ public class Consumer {
                 channel.queueBind(queueName, EXCHANGE_NAME, bindingKey);
             }
 
+            // Manual acknowledgment (false)
             channel.basicConsume(queueName, false, deliverCallback(channel), consumerTag -> {
             });
 
@@ -122,7 +123,7 @@ public class Consumer {
 
                         log.debug(" [x] Received order: {}", orderDetailsDTO);
 
-                        // Persist orderDTO and orderDTO lines to Redis
+                        // Persist orderDTO and order lines to Redis
                         UUID orderId = orderDetailsDTO.getOrderId();
                         for (OrderLineDTO orderLineDTO : orderLineDTOS) {
                             orderLineDTO.setOrderId(orderId);
@@ -134,7 +135,7 @@ public class Consumer {
 
                         log.info("Successfully persisted order {} to Redis", orderId);
 
-                        // basickAck makes sure thatwe acknowledge the message after successful processing
+                        // Acknowledge after successful processing
                         channel.basicAck(deliveryTag, false);
 
                     } catch (Exception e) {
@@ -190,6 +191,7 @@ public class Consumer {
 
                         Producer.publishMessage("customer:supplier_response", payload);
 
+                        // Acknowledge after successful processing
                         channel.basicAck(deliveryTag, false);
 
                     } catch (Exception e) {

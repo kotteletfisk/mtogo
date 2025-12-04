@@ -5,17 +5,15 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import mtogo.supplier.DTO.LegacyOrder;
-import mtogo.supplier.DTO.OrderDetailsDTO;
+import mtogo.supplier.DTO.LegacyOrderDetailsDTO;
 import mtogo.supplier.factory.OrderDTOFactory;
 import mtogo.supplier.messaging.Producer;
 import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.dataformat.xml.XmlMapper;
 
 /**
@@ -24,104 +22,85 @@ import tools.jackson.dataformat.xml.XmlMapper;
  */
 public class LegacyDBAdapter {
 
-<span class="fc" id="L27">    private static final Logger log = LoggerFactory.getLogger(LegacyDBAdapter.class);</span>
+<span class="fc" id="L25">    private static final Logger log = LoggerFactory.getLogger(LegacyDBAdapter.class);</span>
     private static LegacyDBAdapter instance;
-    private final ObjectMapper objectMapper;
     private final XmlMapper xmlMapper;
     private ServerSocket serverSocket;
 
-<span class="fc" id="L33">    private LegacyDBAdapter() {</span>
-<span class="fc" id="L34">        xmlMapper = new XmlMapper();</span>
-<span class="fc" id="L35">        objectMapper = new ObjectMapper();</span>
-<span class="fc" id="L36">    }</span>
+<span class="fc" id="L30">    private LegacyDBAdapter() {</span>
+<span class="fc" id="L31">        xmlMapper = new XmlMapper();</span>
+<span class="fc" id="L32">    }</span>
 
     ;
 
     public static LegacyDBAdapter getAdapter() {
 
-<span class="fc bfc" id="L42" title="All 2 branches covered.">        if (instance == null) {</span>
-<span class="fc" id="L43">            instance = new LegacyDBAdapter();</span>
+<span class="fc bfc" id="L38" title="All 2 branches covered.">        if (instance == null) {</span>
+<span class="fc" id="L39">            instance = new LegacyDBAdapter();</span>
         }
-<span class="fc" id="L45">        return instance;</span>
+<span class="fc" id="L41">        return instance;</span>
     }
 
     public LegacyDBAdapter startListener(int port) throws IOException {
 
-<span class="fc" id="L50">        serverSocket = new ServerSocket(port);</span>
-<span class="fc" id="L51">        log.info(&quot;Adapter listener started on port &quot; + port);</span>
+<span class="fc" id="L46">        serverSocket = new ServerSocket(port);</span>
+<span class="fc" id="L47">        log.info(&quot;Adapter listener started on port &quot; + port);</span>
 
-<span class="fc" id="L53">        Thread.ofPlatform().start(() -&gt; {</span>
+<span class="fc" id="L49">        Thread.ofPlatform().start(() -&gt; {</span>
             while (true) {
                 try {
-<span class="nc" id="L56">                    Socket socket = serverSocket.accept();</span>
-<span class="nc" id="L57">                    Thread.ofVirtual().start(() -&gt; handleConnection(socket));</span>
-<span class="nc" id="L58">                } catch (IOException ex) {</span>
-<span class="nc" id="L59">                    log.error(ex.getMessage());</span>
-<span class="nc" id="L60">                }</span>
+<span class="nc" id="L52">                    Socket socket = serverSocket.accept();</span>
+<span class="nc" id="L53">                    Thread.ofVirtual().start(() -&gt; handleConnection(socket));</span>
+<span class="nc" id="L54">                } catch (IOException ex) {</span>
+<span class="nc" id="L55">                    log.error(ex.getMessage());</span>
+<span class="nc" id="L56">                }</span>
             }
         });
-<span class="fc" id="L63">        return this;</span>
+<span class="fc" id="L59">        return this;</span>
     }
 
     // for connection testing
     public ServerSocket getServerSocket() {
-<span class="fc" id="L68">        return this.serverSocket;</span>
+<span class="fc" id="L64">        return this.serverSocket;</span>
     }
 
     private void handleConnection(Socket socket) {
-<span class="nc" id="L72">        try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {</span>
-<span class="nc" id="L73">            StringBuilder sb = new StringBuilder();</span>
+<span class="nc" id="L68">        try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {</span>
+<span class="nc" id="L69">            StringBuilder sb = new StringBuilder();</span>
             String line;
 
-<span class="nc" id="L76">            log.info(&quot;Received connection from Legacy system&quot;);</span>
+<span class="nc" id="L72">            log.info(&quot;Received connection from Legacy system&quot;);</span>
 
-<span class="nc bnc" id="L78" title="All 2 branches missed.">            while ((line = in.readLine()) != null) {</span>
-<span class="nc" id="L79">                sb.append(line).append(&quot;\n&quot;);</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">            while ((line = in.readLine()) != null) {</span>
+<span class="nc" id="L75">                sb.append(line).append(&quot;\n&quot;);</span>
             }
 
-<span class="nc" id="L82">            log.debug(&quot;Data from legacy system:\n&quot; + sb.toString());</span>
+<span class="nc" id="L78">            log.debug(&quot;Data from legacy system:\n&quot; + sb.toString());</span>
 
-<span class="nc" id="L84">            OrderDetailsDTO dto = transformOrder(sb.toString());</span>
-<span class="nc" id="L85">            publishOrder(dto);</span>
-
-<span class="nc" id="L87">        } catch (IOException e) {</span>
-<span class="nc" id="L88">            log.error(&quot;Connection failed&quot;, e);</span>
-<span class="nc" id="L89">        }</span>
-<span class="nc" id="L90">    }</span>
-
-    private OrderDetailsDTO transformOrder(String xmlString) {
-
-        try {
-<span class="nc" id="L95">            LegacyOrder legacyOrder = xmlMapper.readValue(xmlString, LegacyOrder.class);</span>
-<span class="nc" id="L96">            log.debug(&quot;Mapped object:\n&quot; + legacyOrder.toString());</span>
-
-<span class="nc" id="L98">            OrderDetailsDTO dto = OrderDTOFactory.createFromLegacy(legacyOrder);</span>
-<span class="nc" id="L99">            log.debug(&quot;Transformed DTO:\n&quot; + dto.toString());</span>
-
-<span class="nc" id="L101">            return dto;</span>
-
-<span class="nc" id="L103">        } catch (JacksonException | IllegalArgumentException e) {</span>
-<span class="nc" id="L104">            log.error(&quot;Error transforming: &quot; + e.getMessage());</span>
-        }
-<span class="nc" id="L106">        return null;</span>
-    }
-
-    private void publishOrder(OrderDetailsDTO dto) {
-        try {
-<span class="nc bnc" id="L111" title="All 2 branches missed.">            if (dto == null) {</span>
-<span class="nc" id="L112">                throw new IllegalStateException(&quot;Transformed DTO was null!&quot;);</span>
-            }
+<span class="nc" id="L80">            LegacyOrderDetailsDTO dto = xmlToDTO(sb.toString());</span>
             
-<span class="nc" id="L115">            String dtoStr = objectMapper.writeValueAsString(dto);</span>
+<span class="nc" id="L82">            Producer.publishObject(&quot;supplier:order_creation&quot;, dto);</span>
 
-<span class="nc bnc" id="L117" title="All 2 branches missed.">            if (Producer.publishMessage(&quot;supplier:create_order&quot;, dtoStr)) {</span>
-<span class="nc" id="L118">                log.info(&quot;Legacy order published&quot;);</span>
-<span class="nc" id="L119">                log.debug(&quot;Payload: \n&quot; + dtoStr);</span>
-            }
+<span class="nc" id="L84">        } catch (IOException e) {</span>
+<span class="nc" id="L85">            log.error(&quot;Connection failed: &quot;, e);</span>
+<span class="nc" id="L86">        }</span>
+<span class="nc" id="L87">    }</span>
 
-<span class="nc" id="L122">        } catch (IOException | InterruptedException | TimeoutException e) {</span>
-<span class="nc" id="L123">            log.error(&quot;Error publishing legacy order: &quot; + e.getMessage());</span>
-<span class="nc" id="L124">        } </span>
-<span class="nc" id="L125">    }</span>
+    private LegacyOrderDetailsDTO xmlToDTO(String xmlString) {
+
+        try {
+<span class="nc" id="L92">            LegacyOrder legacyOrder = xmlMapper.readValue(xmlString, LegacyOrder.class);</span>
+<span class="nc" id="L93">            log.debug(&quot;Mapped object:\n&quot; + legacyOrder.toString());</span>
+
+<span class="nc" id="L95">            LegacyOrderDetailsDTO dto = OrderDTOFactory.createFromLegacy(legacyOrder);</span>
+<span class="nc" id="L96">            log.debug(&quot;Transformed DTO:\n&quot; + dto.toString());</span>
+
+<span class="nc" id="L98">            return dto;</span>
+
+<span class="nc" id="L100">        } catch (JacksonException | IllegalArgumentException e) {</span>
+<span class="nc" id="L101">            log.error(&quot;Error while transforming: &quot; + e.getMessage());</span>
+        }
+<span class="nc" id="L103">        return null;</span>
+    }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
