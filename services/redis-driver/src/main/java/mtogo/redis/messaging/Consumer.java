@@ -10,6 +10,7 @@ import mtogo.redis.DTO.OrderDTO;
 import mtogo.redis.DTO.OrderDetailsDTO;
 import mtogo.redis.DTO.OrderLineDTO;
 import mtogo.redis.DTO.SupplierDTO;
+import mtogo.redis.exceptions.RedisException;
 import mtogo.redis.persistence.RedisConnector;
 
 import java.io.PrintWriter;
@@ -92,22 +93,16 @@ public class Consumer {
 
                 OrderDetailsDTO orderDetailsDTO = objectMapper.readValue(delivery.getBody(), OrderDetailsDTO.class);
                 OrderDTO orderDTO = new OrderDTO(orderDetailsDTO);
-                List<OrderLineDTO> orderLineDTOS = new ArrayList<>();
-                for (OrderLineDTO line : orderDetailsDTO.getOrderLines()) {
-                    orderLineDTOS.add(new OrderLineDTO(line.getOrderLineId(), line.getOrderId(), line.getItemId(),
-                            line.getPriceSnapshot(), line.getAmount()));
-                }
                 log.debug(
                         " [x] Received '" + delivery.getEnvelope().getRoutingKey() + "':'" + orderDetailsDTO + "'");
                 // Persist orderDTO and orderDTO lines to Redis
 
-                UUID orderId = orderDetailsDTO.getOrderId();
-                for (OrderLineDTO orderLineDTO : orderLineDTOS) {
-                    orderLineDTO.setOrderId(orderId);
-                }
                 RedisConnector redisConnector = RedisConnector.getInstance();
-                redisConnector.createOrder(orderDTO);
-                redisConnector.createOrderLines(orderLineDTOS);
+                try {
+                    redisConnector.createOrder(orderDTO);
+                } catch (RedisException e) {
+                    log.error(e.getMessage());
+                }
 
             }
             if (delivery.getEnvelope().getRoutingKey().equals("customer:supplier_request")) {
