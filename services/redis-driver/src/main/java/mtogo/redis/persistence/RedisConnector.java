@@ -67,7 +67,7 @@ public class RedisConnector {
         String res = jedis.jsonSet("order:" + order.getOrder_id(), Path2.ROOT_PATH, json);
         log.debug("Redis result: {}", res);
 
-        if (!"OK".equals(res)) {
+        if (!res.equals("OK")) {
             throw new RedisException(res);
         }
         log.info("Wrote order to Redis");
