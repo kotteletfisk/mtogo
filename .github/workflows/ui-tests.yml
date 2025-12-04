@@ -36,7 +36,10 @@ on:
 
 jobs:
   run-ui-tests:
-    runs-on: [self-hosted, ${{ inputs.environment }}]
+    runs-on:
+      - self-hosted
+      - ${{ inputs.environment }}
+
     name: Run UI Tests on ${{ inputs.environment }}
     outputs:
       result: ${{ steps.test-execution.outcome }}
