@@ -36,11 +36,16 @@ on:
 
 jobs:
   run-ui-tests:
+    # Normalize the "environment" and "base_url" so it works for BOTH workflow_call and workflow_dispatch
+    env:
+      ENVIRONMENT: ${{ inputs.environment || github.event.inputs.environment }}
+      BASE_URL_INPUT: ${{ inputs.base_url || github.event.inputs.base_url }}
+
     runs-on:
       - self-hosted
-      - ${{ inputs.environment }}
+      - ${{ env.ENVIRONMENT }}
 
-    name: Run UI Tests on ${{ inputs.environment }}
+    name: Run UI Tests on ${{ env.ENVIRONMENT }}
     outputs:
       result: ${{ steps.test-execution.outcome }}
 
@@ -61,15 +66,19 @@ jobs:
       - name: Determine Base URL
         id: url
         run: |
-          if [ -n "${{ inputs.base_url }}" ]; then
-            BASE_URL="${{ inputs.base_url }}"
-          elif [ "${{ inputs.environment }}" == "prod" ]; then
+          if [ -n "${BASE_URL_INPUT}" ]; then
+            BASE_URL="${BASE_URL_INPUT}"
+          elif [ "${ENVIRONMENT}" = "prod" ]; then
             BASE_URL="https://mtogo.dk"
           else
             BASE_URL="http://172.16.0.11:7071"
           fi
-          echo "BASE_URL=$BASE_URL" >> $GITHUB_ENV
+
+          echo "BASE_URL=$BASE_URL" >> "$GITHUB_ENV"
           echo "Testing against: $BASE_URL"
+        env:
+          ENVIRONMENT: ${{ env.ENVIRONMENT }}
+          BASE_URL_INPUT: ${{ env.BASE_URL_INPUT }}
 
       - name: Wait for Services to be Ready
         run: |
@@ -95,10 +104,11 @@ jobs:
         id: test-execution
         run: |
           cd ua-tests
-          echo "Running UI tests against $BASE_URL"
-          mvn clean test -Dtest.environment=${{ inputs.environment }}
+          echo "Running UI tests against $BASE_URL (environment=$ENVIRONMENT)"
+          mvn clean test -Dtest.environment=${ENVIRONMENT}
         env:
           BASE_URL: ${{ env.BASE_URL }}
+          ENVIRONMENT: ${{ env.ENVIRONMENT }}
           POSTGRES_DB: mtogo
           POSTGRES_USER: mtogo-user
           POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
@@ -108,35 +118,38 @@ jobs:
         run: |
           cd ua-tests
           if [ -d "target/surefire-reports" ]; then
-            echo "## UI Test Results" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Environment: **${{ inputs.environment }}**" >> $GITHUB_STEP_SUMMARY
-            echo "Base URL: \`${{ env.BASE_URL }}\`" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## UI Test Results" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Environment: **${ENVIRONMENT}**" >> "$GITHUB_STEP_SUMMARY"
+            echo "Base URL: \`${BASE_URL}\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
           
             # Count test results
             TOTAL=$(find target/surefire-reports -name "TEST-*.xml" -exec grep -h "tests=" {} \; | sed 's/.*tests="\([0-9]*\)".*/\1/' | awk '{s+=$1} END {print s}')
             FAILURES=$(find target/surefire-reports -name "TEST-*.xml" -exec grep -h "failures=" {} \; | sed 's/.*failures="\([0-9]*\)".*/\1/' | awk '{s+=$1} END {print s}')
             ERRORS=$(find target/surefire-reports -name "TEST-*.xml" -exec grep -h "errors=" {} \; | sed 's/.*errors="\([0-9]*\)".*/\1/' | awk '{s+=$1} END {print s}')
           
-            echo "- Total Tests: $TOTAL" >> $GITHUB_STEP_SUMMARY
-            echo "- Failures: $FAILURES" >> $GITHUB_STEP_SUMMARY
-            echo "- Errors: $ERRORS" >> $GITHUB_STEP_SUMMARY
+            echo "- Total Tests: $TOTAL" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Failures: $FAILURES" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Errors: $ERRORS" >> "$GITHUB_STEP_SUMMARY"
           
             if [ "$FAILURES" -eq 0 ] && [ "$ERRORS" -eq 0 ]; then
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "**All tests passed!**" >> $GITHUB_STEP_SUMMARY
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo "**All tests passed!**" >> "$GITHUB_STEP_SUMMARY"
             else
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "**Tests failed!**" >> $GITHUB_STEP_SUMMARY
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo "**Tests failed!**" >> "$GITHUB_STEP_SUMMARY"
             fi
           fi
+        env:
+          ENVIRONMENT: ${{ env.ENVIRONMENT }}
+          BASE_URL: ${{ env.BASE_URL }}
 
       - name: Upload Test Reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ui-test-reports-${{ inputs.environment }}-${{ github.run_number }}
+          name: ui-test-reports-${{ env.ENVIRONMENT }}-${{ github.run_number }}
           path: |
             ua-tests/target/surefire-reports/
             ua-tests/target/screenshots/
@@ -146,6 +159,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: browser-logs-${{ inputs.environment }}-${{ github.run_number }}
+          name: browser-logs-${{ env.ENVIRONMENT }}-${{ github.run_number }}
           path: ua-tests/target/selenium-logs/
           retention-days: 7
