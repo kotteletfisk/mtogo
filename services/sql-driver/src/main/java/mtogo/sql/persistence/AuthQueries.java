@@ -36,7 +36,7 @@ public class AuthQueries {
             authDTO.passwordHash = rs.getString("password_hash");
             authDTO.email = rs.getString("email");
             return authDTO;
-        }  catch (SQLException e) {
+        } catch (SQLException e) {
             return null;
         }
     }
@@ -44,8 +44,8 @@ public class AuthQueries {
     public List<String> fetchRolesForAuth(long id) {
         try {
             var rolesStmt = conn.prepareStatement("""
-                SELECT role_name FROM auth_user_role WHERE user_id = ?
-            """);
+                        SELECT role_name FROM auth_user_role WHERE user_id = ?
+                    """);
             rolesStmt.setLong(1, id);
             var rolesRs = rolesStmt.executeQuery();
 
@@ -54,8 +54,59 @@ public class AuthQueries {
                 roles.add(rolesRs.getString("role_name"));
             }
             return roles;
-        } catch (SQLException e){
+        } catch (SQLException e) {
             return null;
+        }
+    }
+
+    public String fetchActorIdForAuth(String cred, String service) {
+        try {
+            switch (service.toLowerCase()) {
+                case "customer": {
+                    var stmt = conn.prepareStatement("""
+                                SELECT customer_id FROM customer WHERE customer_creds = ?
+                            """);
+                    stmt.setString(1, cred);
+                    var rs = stmt.executeQuery();
+                    if (rs.next()) {
+                        int result = rs.getInt("customer_id");
+                        return String.valueOf(result);
+                    }
+                }
+                case "supplier": {
+                    var stmt = conn.prepareStatement("""
+                                SELECT supplier_id FROM supplier WHERE supplier_creds = ?
+                            """);
+                    stmt.setString(1, cred);
+                    var rs = stmt.executeQuery();
+                    if (rs.next()) {
+                        int result = rs.getInt("supplier_id");
+                        return String.valueOf(result);
+                    }
+                }
+                case "courier": {
+                    var stmt = conn.prepareStatement("""
+                                SELECT courier_id FROM courier WHERE courier_creds = ?
+                            """);
+                    stmt.setString(1, cred);
+                    var rs = stmt.executeQuery();
+                    if (rs.next()) {
+                        int result = rs.getInt("courier_id");
+                        return String.valueOf(result);
+                    }
+                }
+                case "management": {
+                    //TODO: Implement later
+                }
+                case "support": {
+                    //TODO: Implement later
+                }
+                default: {
+                    return String.valueOf(-2);
+                }
+            }
+        } catch (SQLException e) {
+            return String.valueOf(-1);
         }
     }
 }

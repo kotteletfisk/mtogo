@@ -15,7 +15,7 @@ public class AuthReceiver {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-    public String handleAuthLookup(String email) {
+    public String handleAuthLookup(String email, String service) {
         try (Connection conn = new SQLConnector().getConnection()) {
             AuthQueries authQueries = new AuthQueries(conn);
 
@@ -26,13 +26,21 @@ public class AuthReceiver {
                 if(roles == null || roles.isEmpty()){
                     roles = List.of();
                 }
+                String actorId = authQueries.fetchActorIdForAuth(email, service);
+                if(actorId.equals("-1")){
+                    log.info("SQL error while fetching actor id");
+                } else if (actorId.equals("-2")){
+                    log.info("Service requester not recognized");
+                    actorId = "none";
+                }
                 ObjectMapper mapper = new ObjectMapper();
                 Map<String, Object> resp = Map.of(
                         "status", "ok",
                         "user", Map.of(
                                 "email", auth.email,
                                 "password_hash", auth.passwordHash,
-                                "roles", roles
+                                "roles", roles,
+                                "actor_id", actorId
                         )
                 );
                 return mapper.writeValueAsString(resp);
