@@ -26,7 +26,11 @@ public class Middleware {
     }
 
     public static void registerAuth(Context ctx) {
-
+        var permittedRoles = ctx.routeRoles();
+        if (permittedRoles == null || permittedRoles.isEmpty()) {
+            return;
+        }
+        /*
         String path = ctx.path();
         log.info("Registering auth");
         if (path.equals("/api/login") || path.equals("/api/health")) {
@@ -34,6 +38,7 @@ public class Middleware {
             return;
         }
 
+         */
         String header = ctx.header("Authorization");
         if (header == null || !header.startsWith("Bearer ")) {
             log.info("Invalid authorization header");
@@ -47,10 +52,7 @@ public class Middleware {
         ctx.attribute("email", jwt.getClaim("email").asString());
         ctx.attribute("role", jwt.getClaim("role").asList(String.class));
 
-        var permittedRoles = ctx.routeRoles();
-        if (permittedRoles == null || permittedRoles.isEmpty()) {
-            return;
-        }
+
         for (String r : (List<String>) ctx.attribute("role")) {
             for (RouteRole role : permittedRoles) {
                 if (role.toString().equalsIgnoreCase(r)) {
