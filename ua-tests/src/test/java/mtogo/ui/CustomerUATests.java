@@ -322,8 +322,8 @@ public class CustomerUATests extends BaseUITest {
         String host = "172.16.0.11";
         String port = "5432";
         String db = System.getenv().getOrDefault("POSTGRES_DB", "mtogo");
-        String dbUser = System.getenv().getOrDefault("POSTGRES_USER", "mtogo-user");
-        String dbPass = System.getenv().getOrDefault("POSTGRES_PASSWORD", "holdA-135!");
+        String dbUser = System.getenv().getOrDefault("POSTGRES_USER", "mtogo-test1234");
+        String dbPass = System.getenv().getOrDefault("POSTGRES_PASSWORD", "test1234");
         String dbUrl = "jdbc:postgresql://" + host + ":" + port + "/" + db;
 
         System.out.println(">>> Checking DB for order " + orderIdStr);
