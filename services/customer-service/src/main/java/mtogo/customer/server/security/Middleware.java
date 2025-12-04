@@ -51,6 +51,7 @@ public class Middleware {
 
         ctx.attribute("email", jwt.getClaim("email").asString());
         ctx.attribute("role", jwt.getClaim("role").asList(String.class));
+        ctx.attribute("actor_id", jwt.getClaim("actor_id").asString());
 
 
         for (String r : (List<String>) ctx.attribute("role")) {
