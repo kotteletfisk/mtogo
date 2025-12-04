@@ -59,7 +59,7 @@ public class AuthQueries {
         }
     }
 
-    public int fetchActorIdForAuth(String cred, String service) {
+    public String fetchActorIdForAuth(String cred, String service) {
         try {
             switch (service.toLowerCase()) {
                 case "customer": {
@@ -69,7 +69,8 @@ public class AuthQueries {
                     stmt.setString(1, cred);
                     var rs = stmt.executeQuery();
                     if (rs.next()) {
-                        return rs.getInt("customer_id");
+                        int result = rs.getInt("customer_id");
+                        return String.valueOf(result);
                     }
                 }
                 case "supplier": {
@@ -79,7 +80,8 @@ public class AuthQueries {
                     stmt.setString(1, cred);
                     var rs = stmt.executeQuery();
                     if (rs.next()) {
-                        return rs.getInt("supplier_id");
+                        int result = rs.getInt("supplier_id");
+                        return String.valueOf(result);
                     }
                 }
                 case "courier": {
@@ -89,7 +91,8 @@ public class AuthQueries {
                     stmt.setString(1, cred);
                     var rs = stmt.executeQuery();
                     if (rs.next()) {
-                        return rs.getInt("courier_id");
+                        int result = rs.getInt("courier_id");
+                        return String.valueOf(result);
                     }
                 }
                 case "management": {
@@ -99,11 +102,11 @@ public class AuthQueries {
                     //TODO: Implement later
                 }
                 default: {
-                    return -2;
+                    return String.valueOf(-2);
                 }
             }
         } catch (SQLException e) {
-            return -1;
+            return String.valueOf(-1);
         }
     }
 }
