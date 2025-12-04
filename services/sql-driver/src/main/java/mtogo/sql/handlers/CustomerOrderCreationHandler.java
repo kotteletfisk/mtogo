@@ -47,7 +47,7 @@ public class CustomerOrderCreationHandler implements IMessageHandler {
             OrderDTO order = new OrderDTO(orderDetailsDTO);
 
             List<OrderLineDTO> orderLines = new ArrayList<>();
-            for (OrderLineDTO line : orderDetailsDTO.getOrderLines()) {
+            for (OrderLineDTO line : orderDetailsDTO.getOrderLineDTOS()) {
                 orderLines.add(
                         new OrderLineDTO(
                                 line.getOrderLineId(),

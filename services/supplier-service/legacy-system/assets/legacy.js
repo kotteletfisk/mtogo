@@ -50,7 +50,12 @@ function submitOrder(event) {
   const phone = document.getElementById("phone");
 
   if (!phone.value) {
-    document.getElementById("errmsg").textContent = "No phone pumber found!";
+    document.getElementById("errmsg").textContent = "No phone number found!";
+    return;
+  }  
+  
+  if (!supplier.value) {
+    document.getElementById("errmsg").textContent = "No supplier found!";
     return;
   }
 
@@ -86,10 +91,13 @@ function submitOrder(event) {
   });
   const total = xmlDoc.createElement("Total");
   const phone_xml = xmlDoc.createElement("Phone");
+  const supplier_xml = xmlDoc.createElement("Supplier");
   total.textContent = document.getElementById("total_price").textContent;
   phone_xml.textContent = phone.value;
+  supplier_xml.textContent = supplier.value;
   root.appendChild(total);
   root.appendChild(phone_xml);
+  root.appendChild(supplier_xml);
 
   submitXML(xmlDoc)
     .then((result) => {

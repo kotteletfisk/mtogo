@@ -4,13 +4,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.ToString;
 
-@ToString
+@ToString @Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
 public class OrderDetailsDTO {
 
     private UUID orderId;
     private int customerId;
+    private int supplierId;
 
     public enum PaymentMethod {
         PAYPAL,
@@ -27,11 +33,10 @@ public class OrderDetailsDTO {
         delivered
     }
     private orderStatus status;
+    @Builder.Default
     private List<OrderLineDTO> orderLineDTOS = new ArrayList<>();
     private PaymentMethod paymentMethod;
 
-    public OrderDetailsDTO() {
-    }
 
     public OrderDetailsDTO(int customerId, orderStatus status, List<OrderLineDTO> orderLineDTOS) {
         this.customerId = customerId;
@@ -46,58 +51,11 @@ public class OrderDetailsDTO {
         this.paymentMethod = paymentMethod;
     }
 
-    public OrderDetailsDTO(UUID orderId, int customerId, orderStatus status, List<OrderLineDTO> orderLineDTOS) {
+    public OrderDetailsDTO(UUID orderId, int customerId, orderStatus status, int supplierId, List<OrderLineDTO> orderLineDTOS) {
         this.orderId = orderId;
         this.customerId = customerId;
         this.status = status;
-        this.orderLineDTOS = orderLineDTOS;
-    }
-
-    public void setOrderLines(List<OrderLineDTO> orderLines) {
-        this.orderLineDTOS = (orderLines != null) ? orderLines : new ArrayList<>();
-    }
-
-    public PaymentMethod getPaymentMethod() {
-        return paymentMethod;
-    }
-
-    public void setPaymentMethod(PaymentMethod paymentMethod) {
-        this.paymentMethod = paymentMethod;
-    }
-
-    public List<OrderLineDTO> getOrderLines() {
-        return orderLineDTOS;
-    }
-
-    public orderStatus getStatus() {
-        return status;
-    }
-
-    public int getCustomerId() {
-        return customerId;
-    }
-
-    public UUID getOrderId() {
-        return orderId;
-    }
-
-    public List<OrderLineDTO> getOrderLineDTOS() {
-        return orderLineDTOS;
-    }
-
-    public void setOrderId(UUID orderId) {
-        this.orderId = orderId;
-    }
-
-    public void setCustomerId(int customerId) {
-        this.customerId = customerId;
-    }
-
-    public void setStatus(orderStatus status) {
-        this.status = status;
-    }
-
-    public void setOrderLineDTOS(List<OrderLineDTO> orderLineDTOS) {
+        this.supplierId = supplierId;
         this.orderLineDTOS = orderLineDTOS;
     }
 }

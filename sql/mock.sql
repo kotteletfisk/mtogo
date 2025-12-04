@@ -91,22 +91,22 @@ VALUES
 -- =====================================================
 -- Use fixed UUIDs so you can line them up with logs if you want
 
-INSERT INTO public."orders" (order_id, customer_id, order_created, order_updated, order_status)
+INSERT INTO public."orders" (order_id, supplier_id, customer_id, order_created, order_updated, order_status)
 VALUES
     -- Order 1: Alice, just created
-    ('f26ca635-d679-41e5-87b9-f0c10798b2d6', 1,
+    ('f26ca635-d679-41e5-87b9-f0c10798b2d6', 1, 1,
      NOW() - INTERVAL '30 minutes',
      NOW() - INTERVAL '25 minutes',
      'created'),
 
     -- Order 2: Bob, delivering
-    ('09fe8541-6184-4e2e-b425-785deb51a258', 2,
+    ('09fe8541-6184-4e2e-b425-785deb51a258', 2, 2,
      NOW() - INTERVAL '1 hour',
      NOW() - INTERVAL '10 minutes',
      'delivering'),
 
     -- Order 3: Charlotte, delivered
-    ('11111111-2222-3333-4444-555555555555', 3,
+    ('11111111-2222-3333-4444-555555555555', 3, 3,
      NOW() - INTERVAL '2 hours',
      NOW() - INTERVAL '30 minutes',
      'delivered');

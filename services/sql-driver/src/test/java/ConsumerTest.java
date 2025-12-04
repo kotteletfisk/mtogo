@@ -112,6 +112,7 @@ class ConsumerTest {
                 orderId,
                 1,
                 OrderDetailsDTO.orderStatus.created,
+                1,
                 List.of(line)
         );
     }

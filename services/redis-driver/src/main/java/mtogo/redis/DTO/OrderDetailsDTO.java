@@ -11,6 +11,7 @@ import lombok.ToString;
 public class OrderDetailsDTO {
     private UUID orderId;
     private int customerId;
+    private int supplierId;
 
     public enum PaymentMethod {
         PAYPAL,
@@ -40,6 +41,15 @@ public class OrderDetailsDTO {
 
     public OrderDetailsDTO(int customerId, orderStatus status, List<OrderLineDTO> orderLineDTOS, PaymentMethod paymentMethod) {
         this.customerId = customerId;
+        this.status = status;
+        this.orderLineDTOS = orderLineDTOS;
+        this.paymentMethod = paymentMethod;
+    }
+
+      // TODO: consider this
+    public OrderDetailsDTO(int customerId, int supplierId, orderStatus status, List<OrderLineDTO> orderLineDTOS, PaymentMethod paymentMethod) {
+        this.customerId = customerId;
+        this.supplierId = supplierId;
         this.status = status;
         this.orderLineDTOS = orderLineDTOS;
         this.paymentMethod = paymentMethod;
@@ -81,6 +91,10 @@ public class OrderDetailsDTO {
 
     public List<OrderLineDTO> getOrderLineDTOS() {
         return orderLineDTOS;
+    }
+
+    public int getSupplierId() {
+        return this.supplierId;
     }
 
     public void setOrderId(UUID orderId) {
