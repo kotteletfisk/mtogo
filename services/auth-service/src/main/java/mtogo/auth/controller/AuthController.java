@@ -47,7 +47,8 @@ public class AuthController {
 
             var rpcRequest = Map.of(
                     "action", "find_user_by_email",
-                    "email", req.email
+                    "email", req.email,
+                    "service", req.service
             );
             String requestJson = mapper.writeValueAsString(rpcRequest);
 
@@ -76,13 +77,14 @@ public class AuthController {
             for (JsonNode r : userNode.withArray("roles")) {
                 roles.add(r.asText());
             }
+            String actorId = userNode.path("actor_id").asText();
 
 
             if (passwordHash == null || !passwordService.verify(req.password, passwordHash)) {
                 throw new APIException(401, "Invalid Login Request - Incorrect password");
             }
 
-            String token = jwtService.createToken(email, roles);
+            String token = jwtService.createToken(email, roles, actorId);
 
             LoginResponse resp = new LoginResponse();
             resp.token = token;

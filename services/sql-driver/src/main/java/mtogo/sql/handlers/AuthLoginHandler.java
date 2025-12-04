@@ -45,7 +45,8 @@ public class AuthLoginHandler implements IMessageHandler {
 
             if ("find_user_by_email".equals(action)) {
                 String email = reqJson.get("email").asText();
-                String resp = ar.handleAuthLookup(email);
+                String service = reqJson.get("service").asText();
+                String resp = ar.handleAuthLookup(email, service);
                 var props = new AMQP.BasicProperties.Builder()
                         .correlationId(delivery.getProperties().getCorrelationId())
                         .contentType("application/json")

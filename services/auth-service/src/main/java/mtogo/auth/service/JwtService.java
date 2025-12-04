@@ -40,7 +40,7 @@ public class JwtService {
         }
     }
 
-    public String createToken(String email, List<String> roles) {
+    public String createToken(String email, List<String> roles,  String actorId) {
         Instant now = Instant.now();
         Instant exp = now.plusSeconds(3600);
 
@@ -50,6 +50,7 @@ public class JwtService {
                 .withIssuedAt(Date.from(now))
                 .withExpiresAt(Date.from(exp))
                 .withClaim("role", roles)
+                .withClaim("actor_id", actorId)
                 .sign(algorithm);
     }
 }
