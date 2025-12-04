@@ -36,16 +36,18 @@ on:
 
 jobs:
   run-ui-tests:
-    # Normalize the "environment" and "base_url" so it works for BOTH workflow_call and workflow_dispatch
+    # Use inputs.* or github.event.inputs.* directly here (env.* NOT allowed yet)
+    runs-on:
+      - self-hosted
+      - ${{ inputs.environment || github.event.inputs.environment }}
+
+    name: Run UI Tests on ${{ inputs.environment || github.event.inputs.environment }}
+
+    # Now we can normalize into env vars for steps
     env:
       ENVIRONMENT: ${{ inputs.environment || github.event.inputs.environment }}
       BASE_URL_INPUT: ${{ inputs.base_url || github.event.inputs.base_url }}
 
-    runs-on:
-      - self-hosted
-      - ${{ env.ENVIRONMENT }}
-
-    name: Run UI Tests on ${{ env.ENVIRONMENT }}
     outputs:
       result: ${{ steps.test-execution.outcome }}
 
@@ -124,7 +126,6 @@ jobs:
             echo "Base URL: \`${BASE_URL}\`" >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
           
-            # Count test results
             TOTAL=$(find target/surefire-reports -name "TEST-*.xml" -exec grep -h "tests=" {} \; | sed 's/.*tests="\([0-9]*\)".*/\1/' | awk '{s+=$1} END {print s}')
             FAILURES=$(find target/surefire-reports -name "TEST-*.xml" -exec grep -h "failures=" {} \; | sed 's/.*failures="\([0-9]*\)".*/\1/' | awk '{s+=$1} END {print s}')
             ERRORS=$(find target/surefire-reports -name "TEST-*.xml" -exec grep -h "errors=" {} \; | sed 's/.*errors="\([0-9]*\)".*/\1/' | awk '{s+=$1} END {print s}')
