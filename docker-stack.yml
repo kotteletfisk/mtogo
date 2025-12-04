@@ -166,6 +166,8 @@ services:
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASS: ${RABBITMQ_PASS}
       LOG_LEVEL: ${LOG_LEVEL}
+    ports:
+      - "6379:6379"
     networks:
       - backend
 
