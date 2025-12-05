@@ -18,7 +18,7 @@ public abstract class BaseUITest {
     @BeforeAll
     static void setupDriver() {
         baseUrl = System.getProperty("base.url",
-                System.getenv().getOrDefault("BASE_URL", "http://172.16.0.11:7071/cs-order.html"));
+                System.getenv().getOrDefault("BASE_URL", "http://localhost:7071/cs-order.html"));
 
         ChromeOptions options = new ChromeOptions();
         options.setAcceptInsecureCerts(true);
