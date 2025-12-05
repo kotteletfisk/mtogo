@@ -150,7 +150,7 @@
         const [isSubmitting, setIsSubmitting] = useState(false);
         const [message, setMessage] = useState(null);
 
-        // NEW: supplier / menu state
+        // Supplier / menu state
         const [zipcode, setZipcode] = useState("");
         const [suppliers, setSuppliers] = useState([]);
         const [selectedSupplierId, setSelectedSupplierId] = useState("");
@@ -165,6 +165,7 @@
             item.price ??
             item.priceSnapshot ??
             item.price_snapshot ??
+            item.itemPrice ?? // Added this
             0;
 
         const total = useMemo(() => {
@@ -199,10 +200,10 @@
             setStatus("created");
             setOrderLines([{ item_id: "", price_snapshot: "", amount: "" }]);
             setPaymentMethod("PAYPAL");
-            // Keep supplier selection, it's a separate concern
+            // Keep supplier selection
         };
 
-        // NEW: fetch active suppliers by zipcode
+        // Fetch active suppliers by zipcode
         const fetchSuppliers = async () => {
             setMessage(null);
             setSuppliers([]);
@@ -252,7 +253,7 @@
             }
         };
 
-        // NEW: fetch menu items for selected supplier
+        // Fetch menu items for selected supplier
         const fetchMenuItems = async () => {
             setMessage(null);
             setMenuItems([]);
@@ -299,7 +300,7 @@
             }
         };
 
-        // NEW: add item from menu into order lines
+        // Add item from menu into order lines
         const addOrderLineFromMenuItem = (item) => {
             const itemId = getItemId(item);
             const price = getItemPrice(item);
@@ -331,6 +332,15 @@
                 return;
             }
 
+            // ✅ NEW: Validate supplier is selected
+            if (!selectedSupplierId) {
+                setMessage({
+                    type: "error",
+                    text: "Please select a supplier before creating an order."
+                });
+                return;
+            }
+
             const cleanedLines = orderLines
                 .filter((l) => l.item_id && l.amount && l.price_snapshot)
                 .map((l) => ({
@@ -350,6 +360,7 @@
             const payload = {
                 customerId: Number(customerId),
                 status,
+                supplierId: Number(selectedSupplierId), // ✅ ADDED!
                 orderLines: cleanedLines,
                 paymentMethod,
             };
@@ -404,7 +415,7 @@
                     <span className="badge">CS only</span>
                 </p>
 
-                {/* NEW: Suppliers & Menu */}
+                {/* Suppliers & Menu */}
                 <div className="section">
                     <h3>Suppliers & Menu</h3>
 
