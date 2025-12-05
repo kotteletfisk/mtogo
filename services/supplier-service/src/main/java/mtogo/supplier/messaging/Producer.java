@@ -7,6 +7,7 @@ import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -55,6 +56,21 @@ public class Producer {
             channel.confirmSelect();
 
             channel.basicPublish(EXCHANGE_NAME, routingKey, null, message.getBytes("UTF-8"));
+
+            if (!channel.waitForConfirms(5000)) {
+                throw new TimeoutException("Confirm exceeded 5000ms wait");
+            }
+            return true;
+        }
+    }    
+    
+    public static boolean publishMessage(String routingKey, String message, AMQP.BasicProperties props) throws IOException, TimeoutException, InterruptedException {
+
+        try (Connection connection = connectionFactory.newConnection(); Channel channel = connection.createChannel()) {
+            channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
+            channel.confirmSelect();
+
+            channel.basicPublish(EXCHANGE_NAME, routingKey, props, message.getBytes("UTF-8"));
 
             if (!channel.waitForConfirms(5000)) {
                 throw new TimeoutException("Confirm exceeded 5000ms wait");

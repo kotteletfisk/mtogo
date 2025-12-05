@@ -6,8 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,11 +13,19 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import mtogo.redis.DTO.OrderDTO;
+import mtogo.redis.DTO.OrderDetailsDTO;
 import mtogo.redis.DTO.OrderLineDTO;
 import mtogo.redis.DTO.SupplierDTO;
 import mtogo.redis.exceptions.RedisException;
 import redis.clients.jedis.UnifiedJedis;
+import redis.clients.jedis.exceptions.JedisDataException;
 import redis.clients.jedis.json.Path2;
+import redis.clients.jedis.search.Document;
+import redis.clients.jedis.search.IndexDefinition;
+import redis.clients.jedis.search.IndexOptions;
+import redis.clients.jedis.search.Query;
+import redis.clients.jedis.search.Schema;
+import redis.clients.jedis.search.SearchResult;
 
 /**
  * Singleton class for connecting to Redis and performing operations
@@ -37,12 +43,14 @@ public class RedisConnector {
     private RedisConnector() {
         this.jedis = new UnifiedJedis("redis://redis-active-db:6379");
         this.mapper = new ObjectMapper();
+        ensureIndexForOrders();
     }
 
     // Constructor for injecting Jedis instance (for testing)
     public RedisConnector(UnifiedJedis jedis) {
         this.jedis = jedis;
         this.mapper = new ObjectMapper();
+        // ensureIndexForOrders();
     }
 
     public static synchronized RedisConnector getInstance() {
@@ -64,7 +72,7 @@ public class RedisConnector {
 
         String json = mapper.writeValueAsString(order);
         log.debug("Mapped Json: {}", json);
-        String res = jedis.jsonSet("order:" + order.getOrder_id(), Path2.ROOT_PATH, json);
+        String res = jedis.jsonSet("order:" + order.getOrderId(), Path2.ROOT_PATH, json);
         log.debug("Redis result: {}", res);
 
         if (!res.equals("OK")) {
@@ -98,20 +106,21 @@ public class RedisConnector {
      * @param lines the list of order lines to create
      */
 
-      public void createOrderLines(List<OrderLineDTO> lines) {
-          for (OrderLineDTO l : lines) {
-              Map<String, String> map = new HashMap<>();
-              map.put("order_line_id", String.valueOf(l.getOrderLineId()));
-              map.put("order_id", l.getOrderId().toString());
-              map.put("item_id", String.valueOf(l.getItemId()));
-              map.put("price_snapshot", String.valueOf(l.getPriceSnapshot()));
-              map.put("amount", String.valueOf(l.getAmount()));
-
-              jedis.hset("orderline:" + l.getOrderLineId() + ":order:" + l.getOrderId(),
-                      map);
-          }
-      }
-
+    /*
+     * public void createOrderLines(List<OrderLineDTO> lines) {
+     * for (OrderLineDTO l : lines) {
+     * Map<String, String> map = new HashMap<>();
+     * map.put("order_line_id", String.valueOf(l.getOrderLineId()));
+     * map.put("order_id", l.getOrderId().toString());
+     * map.put("item_id", String.valueOf(l.getItemId()));
+     * map.put("price_snapshot", String.valueOf(l.getPriceSnapshot()));
+     * map.put("amount", String.valueOf(l.getAmount()));
+     * 
+     * jedis.hset("orderline:" + l.getOrderLineId() + ":order:" + l.getOrderId(),
+     * map);
+     * }
+     * }
+     */
 
     public void saveSupplier(SupplierDTO supplier) {
 
@@ -152,5 +161,46 @@ public class RedisConnector {
         }
 
         return result;
+    }
+
+    public List<OrderDTO> getOrdersBySupplier(int supplierId) {
+
+        log.info("Getting orders for supplier: {}", supplierId);
+        Query q = new Query().addFilter(new Query.NumericFilter("supplierId", supplierId, supplierId));
+        SearchResult sr = jedis.ftSearch("orders-idx", q);
+        List<OrderDTO> output = new ArrayList<>();
+
+        log.debug("Number of results for supplier {}: {}", supplierId, sr.getTotalResults());
+
+        for (Document doc : sr.getDocuments()) {
+            String json = (String) doc.get("$");
+            try {
+                output.add(mapper.readValue(json, OrderDTO.class));
+            } catch (JsonProcessingException e) {
+                log.error(e.getMessage());
+            }
+        }
+        return output;
+    }
+
+    public void ensureIndexForOrders() {
+        try {
+            jedis.ftInfo("orders-idx");
+        } catch (JedisDataException e) {
+
+            // create index if not found
+            Schema sc = new Schema()
+                    .addNumericField("$.customerId").as("customerId")
+                    .addNumericField("$.supplierId").as("supplierId")
+                    .addTextField("$.orderStatus", 1.0).as("orderStatus");
+
+            IndexDefinition def = new IndexDefinition(IndexDefinition.Type.JSON)
+                    .setPrefixes(new String[] { "order:" });
+
+            jedis.ftCreate(
+                    "orders-idx", IndexOptions.defaultOptions().setDefinition(def), sc);
+            log.info("Created new index orders-idx");
+            log.debug("Index: \n{}", jedis.ftInfo("orders-idx").toString());
+        }
     }
 }

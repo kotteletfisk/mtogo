@@ -2,6 +2,7 @@ package mtogo.redis.messaging;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -38,7 +39,7 @@ public class Consumer {
 
     private static ConnectionFactory createDefaultFactory() {
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost("rabbitMQ");
+        factory.setHost("rabbitmq");
         factory.setPort(5672);
         factory.setUsername(System.getenv("RABBITMQ_USER"));
         factory.setPassword(System.getenv("RABBITMQ_PASS"));
@@ -105,8 +106,7 @@ public class Consumer {
 
                         OrderDetailsDTO orderDetailsDTO = objectMapper.readValue(
                                 delivery.getBody(),
-                                OrderDetailsDTO.class
-                        );
+                                OrderDetailsDTO.class);
 
                         OrderDTO orderDTO = new OrderDTO(orderDetailsDTO);
                         List<OrderLineDTO> orderLineDTOS = new ArrayList<>();
@@ -117,8 +117,7 @@ public class Consumer {
                                     line.getOrderId(),
                                     line.getItemId(),
                                     line.getPriceSnapshot(),
-                                    line.getAmount()
-                            ));
+                                    line.getAmount()));
                         }
 
                         log.debug(" [x] Received order: {}", orderDetailsDTO);
@@ -131,7 +130,7 @@ public class Consumer {
 
                         RedisConnector redisConnector = RedisConnector.getInstance();
                         redisConnector.createOrder(orderDTO);
-                        redisConnector.createOrderLines(orderLineDTOS);
+                        // redisConnector.createOrderLines(orderLineDTOS);
 
                         log.info("Successfully persisted order {} to Redis", orderId);
 
@@ -152,8 +151,7 @@ public class Consumer {
                     try {
                         String body = new String(
                                 delivery.getBody(),
-                                java.nio.charset.StandardCharsets.UTF_8
-                        );
+                                java.nio.charset.StandardCharsets.UTF_8);
                         log.info(" [x] Received supplier request payload: {}", body);
 
                         // Parse "correlationId:zipcode"
@@ -173,8 +171,7 @@ public class Consumer {
                         RedisConnector redis = RedisConnector.getInstance();
                         List<SupplierDTO> suppliers = redis.findSuppliersByZipAndStatus(
                                 zip,
-                                SupplierDTO.status.active
-                        );
+                                SupplierDTO.status.active);
 
                         log.info(" [x] Found {} active suppliers for zip {}",
                                 suppliers == null ? 0 : suppliers.size(),
@@ -196,6 +193,57 @@ public class Consumer {
 
                     } catch (Exception e) {
                         log.error("Error handling customer:supplier_request", e);
+                        try {
+                            channel.basicNack(deliveryTag, false, true); // Requeue for retry
+                        } catch (IOException nackError) {
+                            log.error("Failed to NACK message", nackError);
+                        }
+                    }
+                }
+
+                case "supplier:order_request" -> {
+                    log.info("supplier:order_request hit");
+
+                    try {
+
+                        RedisConnector connector = RedisConnector.getInstance();
+                        String body = new String(
+                                delivery.getBody(),
+                                java.nio.charset.StandardCharsets.UTF_8);
+
+                        // Parse "correlationId:supplierId"
+                        int separatorIndex = body.indexOf(":");
+                        if (separatorIndex == -1) {
+                            log.error("Invalid order format - missing ':' separator");
+                            channel.basicNack(deliveryTag, false, false);
+                            return;
+                        }
+ 
+                        // Get properties
+                        String correlationId = delivery.getProperties().getCorrelationId();
+                        String replyTo = delivery.getProperties().getReplyTo();
+                        int supplierId = Integer.parseInt(body.substring(separatorIndex + 1).trim());
+
+                        // get orders by supplier
+                        List<OrderDTO> orders = connector.getOrdersBySupplier(supplierId);
+
+                        String json = objectMapper.writeValueAsString(orders);
+
+                        AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()
+                                .correlationId(correlationId)
+                                .build();
+
+                        boolean published = Producer.publishMessage(replyTo, json, props);
+
+                        if (published) {
+                            channel.basicAck(deliveryTag, false);
+                        } else {
+                            log.error("Failed to publish menu response");
+                            channel.basicNack(deliveryTag, false, true); // Requeue for retry
+                        }
+
+                    } catch (Exception e) {
+                        log.error("Error handling supplier:order_request", e);
                         try {
                             channel.basicNack(deliveryTag, false, true); // Requeue for retry
                         } catch (IOException nackError) {

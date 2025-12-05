@@ -12,6 +12,8 @@ public class Main {
         try {
             JavalinBuilder.startServer(7070);
             LegacyDBAdapter.getAdapter().startListener(1984);
+
+            // TODO: add consumer start with handler
             
         } catch (IOException ex) {
             log.error(ex.getMessage());

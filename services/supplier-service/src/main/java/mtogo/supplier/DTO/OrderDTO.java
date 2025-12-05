@@ -1,4 +1,4 @@
-package mtogo.redis.DTO;
+package mtogo.supplier.DTO;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -48,15 +48,5 @@ public class OrderDTO {
         this.orderStatus = orderStatus;
         this.supplierId = supplierId;
         this.orderlineDTOs = orderlineDTOs;
-    }
-    // Used for consumer when order is created
-    public OrderDTO(OrderDetailsDTO orderDetailsDTO) {
-        this.orderId = orderDetailsDTO.getOrderId();
-        this.customerId = orderDetailsDTO.getCustomerId();
-        this.orderCreated = new Timestamp(System.currentTimeMillis());
-        this.orderUpdated = new Timestamp(System.currentTimeMillis());
-        this.orderStatus = orderStatus.created;
-        this.supplierId = orderDetailsDTO.getSupplierId();
-        this.orderlineDTOs = orderDetailsDTO.getOrderLineDTOS();
     }
 }
