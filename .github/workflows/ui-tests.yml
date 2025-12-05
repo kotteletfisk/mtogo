@@ -89,7 +89,10 @@ jobs:
           MTOGO_DB=$(grep '^MTOGO_DB=' "$ENV_FILE" | cut -d '=' -f2-)
           MTOGO_USER=$(grep '^MTOGO_USER=' "$ENV_FILE" | cut -d '=' -f2-)
           MTOGO_PASS=$(grep '^MTOGO_PASS=' "$ENV_FILE" | cut -d '=' -f2-)
-
+          
+          echo "::add-mask::$MTOGO_USER"
+          echo "::add-mask::$MTOGO_DB"
+          
           # Export them as POSTGRES_* so CustomerUATests can use them
           echo "POSTGRES_DB=$MTOGO_DB" >> "$GITHUB_ENV"
           echo "POSTGRES_USER=$MTOGO_USER" >> "$GITHUB_ENV"
