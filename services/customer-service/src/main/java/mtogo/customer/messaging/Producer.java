@@ -54,9 +54,14 @@ public class Producer {
                     // Production: create real factory
                     connectionFactory = new ConnectionFactory();
                     String host = System.getenv().getOrDefault("RABBITMQ_HOST", "rabbitmq");
+                    String user =  System.getenv().getOrDefault("RABBITMQ_USERNAME", "guest");
+                    String pass = System.getenv().getOrDefault("RABBITMQ_PASSWORD", "guest");
+
                     connectionFactory.setHost(host);
                     connectionFactory.setRequestedHeartbeat(30);
                     connectionFactory.setConnectionTimeout(5000);
+                    connectionFactory.setUsername(user);
+                    connectionFactory.setPassword(pass);
                 } else {
                     // Testing: use injected factory
                     connectionFactory = factory;
