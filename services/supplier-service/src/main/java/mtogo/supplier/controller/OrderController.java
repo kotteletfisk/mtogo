@@ -1,8 +1,6 @@
 package mtogo.supplier.controller;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -13,12 +11,16 @@ import org.slf4j.LoggerFactory;
 import io.javalin.http.Context;
 import mtogo.supplier.exceptions.APIException;
 import mtogo.supplier.handlers.OrderRPCHandler;
-import tools.jackson.databind.ObjectMapper;
 
 public class OrderController {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
-    private OrderRPCHandler orderRPCHandler = new OrderRPCHandler(new ObjectMapper());
+
+    private final OrderRPCHandler orderRPCHandler;
+
+    public OrderController(OrderRPCHandler orderRPCHandler) {
+        this.orderRPCHandler = orderRPCHandler;
+    }
 
     public void getOrders(Context ctx) throws APIException {
         int supplierId;
@@ -33,7 +35,7 @@ public class OrderController {
         // TODO: Should be validating jwt token and getting ID from there
         ctx.future(() -> {
             try {
-                return orderRPCHandler.requestOrderBlocking(supplierId)
+                return orderRPCHandler.requestOrders(supplierId)
                         .thenApply(result -> {
                             ctx.status(200).json(result);
                             return result;

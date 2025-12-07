@@ -14,66 +14,40 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Delivery;
 
 import mtogo.supplier.DTO.OrderDTO;
-import mtogo.supplier.messaging.ConnectionManager;
-import mtogo.supplier.messaging.Consumer;
 import mtogo.supplier.messaging.Producer;
 import tools.jackson.databind.ObjectMapper;
 
-public class OrderRPCHandler {
+public class OrderRPCHandler implements IMessageHandler {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-    private final Map<String, CompletableFuture<List<OrderDTO>>> pendingRequests = new ConcurrentHashMap<>();
-    private ObjectMapper objectMapper;
+    private final String replyQueue = "supplier:order_response";
 
-    public OrderRPCHandler(ObjectMapper objectMapper) {
+    private final ObjectMapper objectMapper;
+    private final Map<String, CompletableFuture<List<OrderDTO>>> pendingRequests = new ConcurrentHashMap<>();
+
+    public OrderRPCHandler(ObjectMapper objectMapper) throws IOException, InterruptedException {
         this.objectMapper = objectMapper;
+    }   
+
+    public String getReplyQueue() {
+        return this.replyQueue;
     }
 
-    public CompletableFuture<List<OrderDTO>> requestOrderBlocking(int supplierId)
+    public CompletableFuture<List<OrderDTO>> requestOrders(int supplierId)
             throws IOException, InterruptedException, TimeoutException, ExecutionException {
 
         String correlationId = UUID.randomUUID().toString();
         CompletableFuture<List<OrderDTO>> future = new CompletableFuture<>();
 
-        log.info("Creating order request for supplier: {}", supplierId);
-        log.debug("Correlation ID: {}", correlationId);
-
         pendingRequests.put(correlationId, future);
 
-        // open exclusive response consumer:
-        Connection conn = ConnectionManager.getConnectionManager().getConnection();
-        String replyQueue =  new Consumer().consumeExclusiveResponse(conn, (consumerTag, delivery) -> {
-
-            String responseCorrelationId = delivery.getProperties().getCorrelationId();
-
-            if (responseCorrelationId.equals(correlationId)) {
-                log.info("Handling order response");
-
-                String body = new String(
-                        delivery.getBody(),
-                        java.nio.charset.StandardCharsets.UTF_8);
-
-                log.debug("Received correlation ID: {}", correlationId);
-                log.debug("Received message body: {}", body);
-
-                List<OrderDTO> orders = objectMapper.readValue(
-                        body,
-                        objectMapper.getTypeFactory()
-                                .constructCollectionType(List.class, OrderDTO.class));
-
-                future.complete(orders);
-
-                log.info("Completed future for correlation ID {}", correlationId);
-                pendingRequests.remove(correlationId);
-            }
-
-        }, consumerTag -> {
-            log.error("Cancel callback call on consumerTag: {}", consumerTag);
-        });
+        log.info("Creating order request for supplier: {}", supplierId);
+        log.debug("Correlation ID: {}", correlationId);
 
         AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()
                 .correlationId(correlationId)
@@ -89,9 +63,39 @@ public class OrderRPCHandler {
             return future.orTimeout(5, TimeUnit.SECONDS);
 
         } catch (TimeoutException e) {
-            pendingRequests.remove(correlationId);
             log.error(e.getMessage());
             throw new TimeoutException("Publishing request timed out for supplier: " + supplierId);
+        }
+    }
+
+    @Override
+    public void handle(Delivery delivery, Channel channel) {
+
+        log.info("Handling order response");
+        String responseCorrelationId = delivery.getProperties().getCorrelationId();
+        log.debug("Received correlation ID: {}", responseCorrelationId);
+
+        CompletableFuture<List<OrderDTO>> future = pendingRequests.remove(responseCorrelationId);
+
+        if (future != null) {
+
+            String body = new String(
+                    delivery.getBody(),
+                    java.nio.charset.StandardCharsets.UTF_8);
+
+            log.debug("Received message body: {}", body);
+
+            List<OrderDTO> orders = objectMapper.readValue(
+                    body,
+                    objectMapper.getTypeFactory()
+                            .constructCollectionType(List.class, OrderDTO.class));
+
+            future.complete(orders);
+
+            log.info("Completed future for correlation ID {}", responseCorrelationId);
+        }
+        else {
+            log.warn("No requests found with correlation id: {}", responseCorrelationId);
         }
     }
 }

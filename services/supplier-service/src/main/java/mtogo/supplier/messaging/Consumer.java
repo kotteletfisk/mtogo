@@ -3,17 +3,13 @@ package mtogo.supplier.messaging;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.rabbitmq.client.CancelCallback;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
-import com.rabbitmq.client.AMQP.Basic.Cancel;
 
 /**
  * Consumes messages from RabbitMQ
@@ -59,29 +55,6 @@ public class Consumer {
             log.error("Stacktrace:\n" + sw.toString());
         }
 
-    }
-
-    // Opens a channel for a single exclusive response and deletes it after response
-    public String consumeExclusiveResponse(Connection connection, DeliverCallback deliverCallback, CancelCallback cancelCallback)
-            throws InterruptedException, IOException {
-
-        if (connection == null) {
-            throw new IOException("Connection to rabbitmq failed");
-        }
-        Channel channel = connection.createChannel();
-        String replyQueue = channel.queueDeclare("", false, true, true, null).getQueue();
-
-        channel.basicConsume(replyQueue, true, (consumerTag, delivery) -> {
-
-            deliverCallback.handle(consumerTag, delivery);
-            try {
-                channel.close();
-            } catch (TimeoutException e) {
-                log.error(e.getMessage());
-            }
-
-        }, cancelCallback);
-        return replyQueue;
     }
 
     /**

@@ -10,7 +10,6 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.impl.AMQBasicProperties;
 
 public class Producer {
 
@@ -57,7 +56,7 @@ public class Producer {
             if (!channel.waitForConfirms(5000)) {
                 throw new TimeoutException("Publish confirm time exceeded 5000ms");
             }
-            log.info("Message published");
+            log.info("Message published to {}", routingKey);
             return true;
         } catch (IOException | TimeoutException | InterruptedException e) {
             log.error(e.getMessage());

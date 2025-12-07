@@ -13,9 +13,7 @@ import mtogo.supplier.server.security.Middleware;
 
 public class JavalinBuilder {
 
-    private static final OrderController orderController = new OrderController();
-
-    public static void startServer(int port) {
+    public static void startServer(int port, OrderController orderController) {
         Javalin.create(config -> {
             config.staticFiles.add(staticFiles -> {
                 staticFiles.hostedPath = "/";
