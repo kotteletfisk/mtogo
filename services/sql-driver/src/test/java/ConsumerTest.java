@@ -144,6 +144,7 @@ class ConsumerTest {
         );
         Delivery delivery = mock(Delivery.class);
         when(delivery.getBody()).thenReturn(body);
+        when(delivery.getEnvelope()).thenReturn(envelope);
 
         // Mock SQLConnector
         try (MockedConstruction<SQLConnector> sqlMock = mockConstruction(SQLConnector.class,
@@ -164,6 +165,8 @@ class ConsumerTest {
             assertFalse(sqlMock.constructed().isEmpty(), "SQLConnector was never constructed");
             SQLConnector connector = sqlMock.constructed().get(0);
             verify(connector).createOrder(any(), anyList(), any(Connection.class));
+            verify(channel).basicAck(1L, false);
+
 
             // Assert: Producer.publishMessage was called
             producerMock.verify(()
@@ -187,6 +190,7 @@ class ConsumerTest {
         );
         Delivery delivery = mock(Delivery.class);
         when(delivery.getBody()).thenReturn(body);
+        when(delivery.getEnvelope()).thenReturn(envelope);
 
         try (MockedConstruction<SQLConnector> sqlMock = mockConstruction(SQLConnector.class,
                 (mock, context) -> {
@@ -208,6 +212,8 @@ class ConsumerTest {
             // Assert: SQLConnector.createOrder was called
             SQLConnector connector = sqlMock.constructed().get(0);
             verify(connector).createOrder(any(), anyList(), any(Connection.class));
+            verify(channel).basicNack(eq(1L), eq(false), anyBoolean());
+
 
             // Assert: Producer.publishMessage was NOT called
             producerMock.verifyNoInteractions();
