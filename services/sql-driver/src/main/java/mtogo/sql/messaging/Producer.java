@@ -29,6 +29,8 @@ public class Producer {
     private static Connection connection;
     private static BlockingQueue<Channel> channelPool;
     private static final int POOL_SIZE = 10;
+    private static volatile boolean initialized = false;
+    private static final Object initLock = new Object();
 
     private static ConnectionFactory createDefaultFactory() {
         ConnectionFactory factory = new ConnectionFactory();
@@ -44,23 +46,30 @@ public class Producer {
         connectionFactory = factory;
     }
 
-    // Initialize connection pool on first use
-    static {
-        try {
-            connection = connectionFactory.newConnection();
-            channelPool = new ArrayBlockingQueue<>(POOL_SIZE);
+    // Lazy initialization - only runs when first message is published
+    private static void ensureInitialized() {
+        if (!initialized) {
+            synchronized (initLock) {
+                if (!initialized) {
+                    try {
+                        connection = connectionFactory.newConnection();
+                        channelPool = new ArrayBlockingQueue<>(POOL_SIZE);
 
-            for (int i = 0; i < POOL_SIZE; i++) {
-                Channel channel = connection.createChannel();
-                channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
-                channel.confirmSelect();
-                channelPool.offer(channel);
+                        for (int i = 0; i < POOL_SIZE; i++) {
+                            Channel channel = connection.createChannel();
+                            channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
+                            channel.confirmSelect();
+                            channelPool.offer(channel);
+                        }
+
+                        initialized = true;
+                        log.info("Producer initialized with {} channels", POOL_SIZE);
+                    } catch (Exception e) {
+                        log.error("Failed to initialize Producer", e);
+                        throw new RuntimeException(e);
+                    }
+                }
             }
-
-            log.info("Producer initialized with {} channels", POOL_SIZE);
-        } catch (Exception e) {
-            log.error("Failed to initialize Producer", e);
-            throw new RuntimeException(e);
         }
     }
 
@@ -76,6 +85,8 @@ public class Producer {
      *
      */
     public static boolean publishMessage(String routingKey, String message){
+        ensureInitialized(); // Initialize on first use
+
         Channel channel = null;
         try {
             // Get channel from pool
