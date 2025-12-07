@@ -1,4 +1,3 @@
-
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
@@ -11,6 +10,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import org.mockito.Mock;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
@@ -61,12 +61,18 @@ class ConsumerTest {
     @Test
     void consumeMessages_declaresExchange_bindsKeys_andStartsConsuming() throws Exception {
         String[] bindingKeys = {"customer:order_creation", "something.else"};
-        String queueName = "test-queue";
+        String queueName = "sql-driver-queue";
 
         when(factory.newConnection()).thenReturn(connection);
         when(connection.createChannel()).thenReturn(channel);
-        when(channel.queueDeclare()).thenReturn(declareOk);
-        when(declareOk.getQueue()).thenReturn(queueName);
+
+        when(channel.queueDeclare(
+                eq("sql-driver-queue"),
+                eq(true),
+                eq(false),
+                eq(false),
+                isNull()
+        )).thenReturn(declareOk);
 
         // Inject mocked factory into Consumer
         Consumer.setConnectionFactory(factory);
@@ -76,8 +82,15 @@ class ConsumerTest {
         Consumer.consumeMessages(bindingKeys, router);
 
         verify(channel).exchangeDeclare("order", "topic", true);
-        verify(channel).queueDeclare();
-        verify(declareOk).getQueue();
+
+        //Verify the new queueDeclare signature
+        verify(channel).queueDeclare(
+                eq("sql-driver-queue"),
+                eq(true),
+                eq(false),
+                eq(false),
+                isNull()
+        );
 
         for (String bindingKey : bindingKeys) {
             verify(channel).queueBind(queueName, "order", bindingKey);
