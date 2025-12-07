@@ -11,16 +11,11 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.*;
+
 import org.mockito.Mock;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockConstruction;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -66,6 +61,9 @@ class ConsumerTest {
         when(factory.newConnection()).thenReturn(connection);
         when(connection.createChannel()).thenReturn(channel);
 
+        doNothing().when(connection).addShutdownListener(any());
+        doNothing().when(channel).addShutdownListener(any());
+
         when(channel.queueDeclare(
                 eq("sql-driver-queue"),
                 eq(true),
@@ -102,8 +100,9 @@ class ConsumerTest {
                 any(DeliverCallback.class),
                 any(CancelCallback.class)
         );
+        verify(connection).addShutdownListener(any());
+        verify(channel).addShutdownListener(any());
 
-        verifyNoMoreInteractions(channel);
     }
 
     // Helper: build a real OrderDetailsDTO with a non-null orderLines list.

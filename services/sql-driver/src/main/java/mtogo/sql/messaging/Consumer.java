@@ -36,15 +36,15 @@ public class Consumer {
         factory.setUsername(System.getenv("RABBITMQ_USER"));
         factory.setPassword(System.getenv("RABBITMQ_PASS"));
 
-        // ✅ Connection recovery
+        // Connection recovery
         factory.setAutomaticRecoveryEnabled(true);
         factory.setNetworkRecoveryInterval(5000);
         factory.setTopologyRecoveryEnabled(true);
 
-        // ✅ Heartbeat - CRITICAL!
+        // Heartbeat
         factory.setRequestedHeartbeat(60);
 
-        // ✅ Timeouts
+        // Timeouts
         factory.setConnectionTimeout(10000);
         factory.setHandshakeTimeout(10000);
 
@@ -66,48 +66,47 @@ public class Consumer {
 
         try {
             Connection connection = connectionFactory.newConnection();
+            log.info("RabbitMQ connection established");
 
-            // ✅ Add shutdown listener
-            connection.addShutdownListener(new com.rabbitmq.client.ShutdownListener() {
-                @Override
-                public void shutdownCompleted(ShutdownSignalException cause) {
-                    if (cause.isInitiatedByApplication()) {
-                        log.info("RabbitMQ connection closed by application");
-                    } else {
-                        log.error("⚠️ RabbitMQ connection LOST! Reason: {}", cause.getMessage());
-                        log.error("Connection will attempt automatic recovery...");
-                    }
+            // Connection shutdown listener
+            connection.addShutdownListener(cause -> {
+                if (cause.isInitiatedByApplication()) {
+                    log.info("Connection closed by application");
+                } else {
+                    log.error("CONNECTION LOST! Reason: {}", cause.getMessage());
                 }
             });
 
-            // ✅ Add recovery listener
+            // Recovery listener
             if (connection instanceof Recoverable) {
                 ((Recoverable) connection).addRecoveryListener(new RecoveryListener() {
                     @Override
                     public void handleRecovery(Recoverable recoverable) {
-                        log.info("✅ RabbitMQ connection RECOVERED successfully!");
+                        log.info("Connection RECOVERED!");
                     }
 
                     @Override
                     public void handleRecoveryStarted(Recoverable recoverable) {
-                        log.warn("🔄 RabbitMQ connection recovery STARTED...");
+                        log.warn("Connection recovery STARTED...");
                     }
                 });
-                log.info("Recovery listeners attached to connection");
-            } else {
-                log.warn("Connection does not support recovery listeners!");
             }
 
             Channel channel = connection.createChannel();
+            log.info("Channel created");
+
+            // Channel shutdown listener
+            channel.addShutdownListener(cause -> {
+                if (cause.isInitiatedByApplication()) {
+                    log.info("Channel closed by application");
+                } else {
+                    log.error("CHANNEL LOST! Reason: {}", cause.getMessage());
+                    log.error("Hard close: {}, Cause: {}", cause.isHardError(), cause.getReason());
+                }
+            });
 
             channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
-            channel.queueDeclare(
-                    QUEUE_NAME,
-                    true,
-                    false,
-                    false,
-                    null
-            );
+            channel.queueDeclare(QUEUE_NAME, true, false, false, null);
 
             for (String bindingKey : bindingKeys) {
                 channel.queueBind(QUEUE_NAME, EXCHANGE_NAME, bindingKey);
@@ -115,11 +114,11 @@ public class Consumer {
             }
 
             channel.basicConsume(QUEUE_NAME, false, deliverCallback(channel), consumerTag -> {
-                log.info("Consumer cancelled: {}", consumerTag);
+                log.error("CONSUMER CANCELLED! Tag: {}", consumerTag);
             });
 
-            log.info("SQL Driver consumer listening on queue: {}", QUEUE_NAME);
-            log.info("Heartbeat interval: 60 seconds, Recovery enabled: true");
+            log.info("Consumer listening on queue: {}", QUEUE_NAME);
+            log.info("Heartbeat: 60s, Recovery: enabled, Monitoring: ACTIVE");
 
         } catch (IOException | TimeoutException e) {
             log.error("Error consuming message:\n" + e.getMessage());
