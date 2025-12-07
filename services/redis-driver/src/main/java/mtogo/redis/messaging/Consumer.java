@@ -19,6 +19,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +61,13 @@ public class Consumer {
     public static void consumeMessages(String[] bindingKeys) throws Exception {
 
         try {
-            Connection connection = connectionFactory.newConnection();
+            Connection connection = getConnectionOrRetry(2000);
+
+            if (connection == null) {
+                throw new IOException("Connection to rabbitmq failed");
+            }
+            
+            log.info("Connected to rabbitmq");
             Channel channel = connection.createChannel();
 
             channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
@@ -218,9 +225,10 @@ public class Consumer {
                             channel.basicNack(deliveryTag, false, false);
                             return;
                         }
- 
+
                         // Get properties
                         String correlationId = delivery.getProperties().getCorrelationId();
+                        log.debug("Received correlationId: {}", correlationId);
                         String replyTo = delivery.getProperties().getReplyTo();
                         int supplierId = Integer.parseInt(body.substring(separatorIndex + 1).trim());
 
@@ -262,5 +270,20 @@ public class Consumer {
                 }
             }
         };
+    }
+
+    // messagequeue might not be ready for connection accept on deploy, so we retry
+    // n times or crash
+    private static Connection getConnectionOrRetry(int millis) throws InterruptedException {
+        for (int i = 0; i < 10; i++) {
+            try {
+                Connection connection = connectionFactory.newConnection();
+                return connection;
+            } catch (IOException | TimeoutException e) {
+                log.warn("Retrying rabbitmq connection");
+                Thread.sleep(millis);
+            }
+        }
+        return null;
     }
 }

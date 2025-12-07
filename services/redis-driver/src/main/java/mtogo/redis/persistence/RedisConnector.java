@@ -174,8 +174,11 @@ public class RedisConnector {
 
         for (Document doc : sr.getDocuments()) {
             String json = (String) doc.get("$");
+            log.debug("Found Json: {}", json);
             try {
-                output.add(mapper.readValue(json, OrderDTO.class));
+                OrderDTO dto = mapper.readValue(json, OrderDTO.class);
+                output.add(dto);
+                log.debug("Mapped to DTO: {}", dto.toString());
             } catch (JsonProcessingException e) {
                 log.error(e.getMessage());
             }

@@ -1,10 +1,8 @@
 package mtogo.redis;
 
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.javalin.Javalin;
 import mtogo.redis.messaging.Consumer;
 
 public class Main {
@@ -18,7 +16,9 @@ public class Main {
             log.info("redis-driver started, listening for order events...");
             log.debug("Debug logging enabled");
         } catch (Exception e) {
-            log.error(e.getMessage());
+            // A core compoenent is not working. Crash jvm and let orchestrator handle.
+            log.error("CRITICAL: {}", e.getMessage());
+            System.exit(1);
         }
 
     }

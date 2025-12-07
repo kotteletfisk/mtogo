@@ -22,9 +22,22 @@ public class OrderRequester {
 
     private static final Logger log = LoggerFactory.getLogger(OrderRequester.class);
 
-    private static final Map<String, CompletableFuture<List<OrderDTO>>> pendingRequests = new ConcurrentHashMap<>();
+    private final Map<String, CompletableFuture<List<OrderDTO>>> pendingRequests = new ConcurrentHashMap<>();
 
-    public static CompletableFuture<List<OrderDTO>> requestOrderBlocking(int supplierId) throws IOException, InterruptedException, TimeoutException, ExecutionException {
+    private static OrderRequester instance;
+
+    private OrderRequester() {}
+
+    public static OrderRequester getInstance() {
+
+        if (instance == null) {
+            instance = new OrderRequester();
+        }
+
+        return instance;
+    }
+
+    public CompletableFuture<List<OrderDTO>> requestOrderBlocking(int supplierId) throws IOException, InterruptedException, TimeoutException, ExecutionException {
 
         String correlationId = UUID.randomUUID().toString();
         CompletableFuture<List<OrderDTO>> future = new CompletableFuture<>();
@@ -42,23 +55,26 @@ public class OrderRequester {
         try {
             // Send request with correlation ID
             String payload = "supplierId:" + supplierId;
-            Producer.publishMessage("customer:menu_request", payload, props);
+            Producer.publishMessage("supplier:order_request", payload, props);
+            log.debug("publishing payload: {}", payload);
 
-            return future;
+            return future.orTimeout(2, TimeUnit.SECONDS);
 
         } catch (TimeoutException e) {
-            throw new TimeoutException("No message response for supplier " + supplierId);
-        } finally {
             pendingRequests.remove(correlationId);
+            log.error(e.getMessage());
+            throw new TimeoutException("Publishing request timed out for supplier: " + supplierId);
         }
     }
 
-    public static void completeOrderRequest(String correlationId, List<OrderDTO> items) throws IOException {
+    public void completeOrderRequest(String correlationId, List<OrderDTO> items) throws IOException {
         CompletableFuture<List<OrderDTO>> future = pendingRequests.get(correlationId);
         if (future != null) {
             future.complete(items);
+            pendingRequests.remove(correlationId);
+            log.debug("Completed future for correlationId: {}", correlationId);
         } else {
-            log.error("Received menu response for unknown correlation ID: " + correlationId);
+            log.error("Received order response for unknown correlation ID: " + correlationId);
             throw new IOException("Received menu response for unknown correlation ID: " + correlationId);
         }
     }

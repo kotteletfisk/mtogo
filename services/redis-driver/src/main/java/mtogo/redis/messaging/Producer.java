@@ -73,7 +73,7 @@ public class Producer {
             channel.confirmSelect();
 
             channel.basicPublish(EXCHANGE_NAME, routingKey, props, message.getBytes("UTF-8"));
-            // Maybe log the message that is being sent?
+            log.debug("published to routingKey: {}, with payload: {}", routingKey, message);
 
             if (!channel.waitForConfirms(5000)) {
                 throw new TimeoutException("Publish confirm time exceeded 5000ms");

@@ -19,7 +19,7 @@
   },
   "containerEnv": {
     "MTOGO_WORKSPACE": "${containerWorkspaceFolder}",
-    "LOG_LEVEL": "debug"
+    "MTOGO_LOG_LEVEL": "debug"
   },
   "runArgs": [
     "--env-file",

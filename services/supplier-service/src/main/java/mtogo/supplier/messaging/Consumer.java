@@ -13,8 +13,6 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
 
-import tools.jackson.databind.ObjectMapper;
-
 /**
  * Consumes messages from RabbitMQ
  */
@@ -22,7 +20,6 @@ public class Consumer {
 
     private static final Logger log = LoggerFactory.getLogger(Consumer.class);
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final String EXCHANGE_NAME = "order";
     private static StringWriter sw = new StringWriter();
     private static PrintWriter pw = new PrintWriter(sw);
@@ -60,7 +57,11 @@ public class Consumer {
         log.debug("Registering binding keys: {}", bindingKeys.toString());
 
         try {
-            Connection connection = connectionFactory.newConnection();
+            Connection connection = getConnectionOrRetry(2000);
+            if (connection == null) {
+                throw new IOException("Connection to rabbitmq failed");
+            }
+            log.info("Connected to rabbitmq");
             Channel channel = connection.createChannel();
 
             channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
@@ -72,8 +73,8 @@ public class Consumer {
 
             channel.basicConsume(queueName, false, deliverCallback(channel), consumerTag -> {
             });
-        } catch (IOException | TimeoutException e) {
-            log.error("Error consuming message:\n" + e.getMessage());
+        } catch (IOException e) {
+            log.error("Error consuming messages:\n" + e.getMessage());
             e.printStackTrace(pw);
             log.error("Stacktrace:\n" + sw.toString());
         }
@@ -97,5 +98,19 @@ public class Consumer {
                 log.error(e.getMessage());
             }
         };
+    }
+
+    // messagequeue might not be ready for connection accept on deploy, so we retry n times or crash
+    private static Connection getConnectionOrRetry(int millis) throws InterruptedException {
+        for (int i = 0; i < 10; i++) {
+            try {
+                Connection connection = connectionFactory.newConnection();
+                return connection;
+            } catch (IOException | TimeoutException e) {
+                log.warn("Retrying rabbitmq connection");
+                Thread.sleep(millis);
+            }
+        }
+        return null;
     }
 }
