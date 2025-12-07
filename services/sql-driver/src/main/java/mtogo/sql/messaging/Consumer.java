@@ -36,6 +36,10 @@ public class Consumer {
         factory.setPort(5672);
         factory.setUsername(System.getenv("RABBITMQ_USER"));
         factory.setPassword(System.getenv("RABBITMQ_PASS"));
+        factory.setAutomaticRecoveryEnabled(true);
+        factory.setNetworkRecoveryInterval(5000); // Retry every 5 seconds
+        factory.setRequestedHeartbeat(30); // Heartbeat every 30 seconds
+        factory.setConnectionTimeout(10000); // 10 second connection timeout
         return factory;
     }
 
