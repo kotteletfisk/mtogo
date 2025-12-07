@@ -38,6 +38,12 @@ public class Producer {
         factory.setPort(5672);
         factory.setUsername(System.getenv("RABBITMQ_USER"));
         factory.setPassword(System.getenv("RABBITMQ_PASS"));
+
+        factory.setAutomaticRecoveryEnabled(true);
+        factory.setNetworkRecoveryInterval(5000);
+        factory.setRequestedHeartbeat(60);  // Heartbeat every 60 seconds
+        factory.setConnectionTimeout(10000);
+        factory.setTopologyRecoveryEnabled(true);
         return factory;
     }
 
