@@ -7,6 +7,7 @@ import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -41,20 +42,37 @@ public class Producer {
      * for RabbitMQ to confirm the message.
      *
      * @param routingKey the RabbitMQ routing key used for the message
-     * @param message the message body to publish
+     * @param message    the message body to publish
      * @return true if the message was successfully confirmed by RabbitMQ
-     * @throws IOException if connection fails
-     * @throws TimeoutException if publish confirm exceeds 5000ms
+     * @throws IOException          if connection fails
+     * @throws TimeoutException     if publish confirm exceeds 5000ms
      * @throws InterruptedException if Thread gets interrrupted while waiting
      *
      */
-    public static boolean publishMessage(String routingKey, String message) throws IOException, TimeoutException, InterruptedException {
+    public static boolean publishMessage(String routingKey, String message)
+            throws IOException, TimeoutException, InterruptedException {
 
         try (Connection connection = connectionFactory.newConnection(); Channel channel = connection.createChannel()) {
             channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
             channel.confirmSelect();
 
             channel.basicPublish(EXCHANGE_NAME, routingKey, null, message.getBytes("UTF-8"));
+
+            if (!channel.waitForConfirms(5000)) {
+                throw new TimeoutException("Confirm exceeded 5000ms wait");
+            }
+            return true;
+        }
+    }
+
+    public static boolean publishMessage(String routingKey, String message, AMQP.BasicProperties props)
+            throws IOException, TimeoutException, InterruptedException {
+
+        try (Connection connection = connectionFactory.newConnection(); Channel channel = connection.createChannel()) {
+            channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
+            channel.confirmSelect();
+
+            channel.basicPublish(EXCHANGE_NAME, routingKey, props, message.getBytes("UTF-8"));
 
             if (!channel.waitForConfirms(5000)) {
                 throw new TimeoutException("Confirm exceeded 5000ms wait");
