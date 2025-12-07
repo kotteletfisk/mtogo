@@ -40,6 +40,8 @@ public class CustomerOrderCreationHandler implements IMessageHandler {
 
     @Override
     public void handle(Delivery delivery, Channel channel) {
+        long deliveryTag = delivery.getEnvelope().getDeliveryTag();
+
         try {
             OrderDetailsDTO orderDetailsDTO = objectMapper.readValue(delivery.getBody(),
                     OrderDetailsDTO.class);
@@ -68,8 +70,33 @@ public class CustomerOrderCreationHandler implements IMessageHandler {
             String payload = objectMapper.writeValueAsString(orderDetailsDTO);
             Producer.publishMessage("supplier:order_persisted", payload);
 
+            channel.basicAck(deliveryTag, false);
+            log.debug("Order {} acknowledged", orderDetailsDTO.getOrderId());
+
+        } catch (org.postgresql.util.PSQLException e) {
+
+            if (e.getMessage().contains("duplicate key")) {
+                log.error("DB failure - duplicate order, discarding: {}", e.getMessage());
+                try {
+                    channel.basicNack(deliveryTag, false, false); // Don't requeue
+                } catch (IOException nackError) {
+                    log.error("Failed to NACK duplicate order", nackError);
+                }
+            } else {
+                log.error("DB failure: {}", e.getMessage());
+                try {
+                    channel.basicNack(deliveryTag, false, true); // Requeue other DB errors
+                } catch (IOException nackError) {
+                    log.error("Failed to NACK message", nackError);
+                }
+            }
         } catch (IOException | SQLException e) {
-            log.error(e.getMessage());
+            log.error("Error handling order: {}", e.getMessage());
+            try {
+                channel.basicNack(deliveryTag, false, true); // Requeue for retry
+            } catch (IOException nackError) {
+                log.error("Failed to NACK message", nackError);
+            }
         }
     }
 
