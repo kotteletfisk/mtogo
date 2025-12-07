@@ -8,10 +8,12 @@ import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.rabbitmq.client.CancelCallback;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
+import com.rabbitmq.client.AMQP.Basic.Cancel;
 
 /**
  * Consumes messages from RabbitMQ
@@ -23,27 +25,7 @@ public class Consumer {
     private static final String EXCHANGE_NAME = "order";
     private static StringWriter sw = new StringWriter();
     private static PrintWriter pw = new PrintWriter(sw);
-
-    private static MessageRouter router;
-    static ConnectionFactory connectionFactory = createDefaultFactory();
-
-    private static ConnectionFactory createDefaultFactory() {
-        ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost("rabbitmq");
-        factory.setPort(5672);
-        factory.setUsername(System.getenv("RABBITMQ_USER"));
-        factory.setPassword(System.getenv("RABBITMQ_PASS"));
-        return factory;
-    }
-
-    // Injectable connectionfactory for testing
-    public static void setConnectionFactory(ConnectionFactory factory) {
-        connectionFactory = factory;
-    }
-
-    public static void setMessageRouter(MessageRouter msgRouter) {
-        router = msgRouter;
-    }
+    
 
     /**
      * Consumes messages from RabbitMQ based on the provided binding keys.
@@ -51,13 +33,11 @@ public class Consumer {
      * @param bindingKeys the routing keys to bind the queue to
      * @throws Exception if an error occurs while consuming messages
      */
-    public static void consumeMessages(String[] bindingKeys, MessageRouter msgRouter) throws Exception {
+    public void consumeMessages(String[] bindingKeys, Connection connection, MessageRouter msgRouter) throws Exception {
 
-        router = msgRouter;
         log.debug("Registering binding keys: {}", bindingKeys.toString());
 
         try {
-            Connection connection = getConnectionOrRetry(2000);
             if (connection == null) {
                 throw new IOException("Connection to rabbitmq failed");
             }
@@ -71,7 +51,7 @@ public class Consumer {
                 channel.queueBind(queueName, EXCHANGE_NAME, bindingKey);
             }
 
-            channel.basicConsume(queueName, false, deliverCallback(channel), consumerTag -> {
+            channel.basicConsume(queueName, false, deliverCallback(channel, msgRouter), consumerTag -> {
             });
         } catch (IOException e) {
             log.error("Error consuming messages:\n" + e.getMessage());
@@ -81,13 +61,36 @@ public class Consumer {
 
     }
 
+    // Opens a channel for a single exclusive response and deletes it after response
+    public String consumeExclusiveResponse(Connection connection, DeliverCallback deliverCallback, CancelCallback cancelCallback)
+            throws InterruptedException, IOException {
+
+        if (connection == null) {
+            throw new IOException("Connection to rabbitmq failed");
+        }
+        Channel channel = connection.createChannel();
+        String replyQueue = channel.queueDeclare("", false, true, true, null).getQueue();
+
+        channel.basicConsume(replyQueue, true, (consumerTag, delivery) -> {
+
+            deliverCallback.handle(consumerTag, delivery);
+            try {
+                channel.close();
+            } catch (TimeoutException e) {
+                log.error(e.getMessage());
+            }
+
+        }, cancelCallback);
+        return replyQueue;
+    }
+
     /**
      * Creates a DeliverCallback to handle incoming messages. The callbacks
      * functionality can vary on keyword
      *
      * @return the DeliverCallback function
      */
-    private static DeliverCallback deliverCallback(Channel channel) {
+    private DeliverCallback deliverCallback(Channel channel, MessageRouter router) {
         return (consumerTag, delivery) -> {
             String routingKey = delivery.getEnvelope().getRoutingKey();
             log.info("Consumer received message with key: {}", routingKey);
@@ -98,19 +101,5 @@ public class Consumer {
                 log.error(e.getMessage());
             }
         };
-    }
-
-    // messagequeue might not be ready for connection accept on deploy, so we retry n times or crash
-    private static Connection getConnectionOrRetry(int millis) throws InterruptedException {
-        for (int i = 0; i < 10; i++) {
-            try {
-                Connection connection = connectionFactory.newConnection();
-                return connection;
-            } catch (IOException | TimeoutException e) {
-                log.warn("Retrying rabbitmq connection");
-                Thread.sleep(millis);
-            }
-        }
-        return null;
     }
 }

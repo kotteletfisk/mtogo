@@ -11,13 +11,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.javalin.http.Context;
-import mtogo.supplier.DTO.OrderDTO;
 import mtogo.supplier.exceptions.APIException;
-import mtogo.supplier.util.OrderRequester;
+import mtogo.supplier.handlers.OrderRPCHandler;
+import tools.jackson.databind.ObjectMapper;
 
 public class OrderController {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
+    private OrderRPCHandler orderRPCHandler = new OrderRPCHandler(new ObjectMapper());
 
     public void getOrders(Context ctx) throws APIException {
         int supplierId;
@@ -30,20 +31,17 @@ public class OrderController {
         log.debug("received order request for supplierId: {}", supplierId);
 
         // TODO: Should be validating jwt token and getting ID from there
-        ctx.future(() -> CompletableFuture.supplyAsync(() -> {
+        ctx.future(() -> {
             try {
-                return OrderRequester.getInstance()
-                        .requestOrderBlocking(supplierId)
-                        .get();
-            } catch (TimeoutException e) {
-                throw new CompletionException(new APIException(504, "Timed out waiting for response: " + e.getMessage()));
-            } catch (IOException | InterruptedException | ExecutionException e) {
+                return orderRPCHandler.requestOrderBlocking(supplierId)
+                        .thenApply(result -> {
+                            ctx.status(200).json(result);
+                            return result;
+                        });
+            } catch (IOException | InterruptedException | TimeoutException | ExecutionException e) {
+                log.error(e.getMessage());
                 throw new CompletionException(new APIException(500, e.getMessage()));
             }
-        }).thenApply(result -> {
-            ctx.status(200);
-            ctx.json(result);
-            return result;
-        }));
+        });
     }
 }

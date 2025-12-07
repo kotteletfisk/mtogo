@@ -13,7 +13,8 @@
     "vscode": {
       "extensions": [
         "vscjava.vscode-java-pack",
-        "vscjava.vscode-maven"
+        "vscjava.vscode-maven",
+        "svelte.svelte-vscode"
       ]
     }
   },

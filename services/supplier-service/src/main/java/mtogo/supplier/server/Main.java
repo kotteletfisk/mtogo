@@ -1,15 +1,7 @@
 package mtogo.supplier.server;
 
-import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import mtogo.supplier.handlers.IMessageHandler;
-import mtogo.supplier.handlers.SupplierOrderResponseHandler;
-import mtogo.supplier.messaging.Consumer;
-import mtogo.supplier.messaging.MessageRouter;
-import tools.jackson.databind.ObjectMapper;
 
 public class Main {
 
@@ -20,17 +12,6 @@ public class Main {
             JavalinBuilder.startServer(7070);
             LegacyDBAdapter.getAdapter().startListener(1984);
 
-            // TODO: add consumer start with handler
-            Map<String, IMessageHandler> map = Map.of(
-                    "supplier:order_response", new SupplierOrderResponseHandler(new ObjectMapper())
-                    // "auth:login", new AuthLoginHandler(authReceiver, mapper)
-            );
-
-            MessageRouter router = new MessageRouter(map);
-
-            String[] bindingKeys = map.keySet().toArray(new String[map.size()]);
-
-            Consumer.consumeMessages(bindingKeys, router);
             log.info("Supplier service started");
             log.debug("Debug logging enabled");
 
