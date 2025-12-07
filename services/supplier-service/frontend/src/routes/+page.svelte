@@ -6,8 +6,6 @@
   import type { APIException } from "$lib/types";
 
   // Yes this is comment
-
-let errmsg: string | null = $state(null);
 const testOrders = [
   {
     orderId: "a1f0b2f9-8321-4c7e-95b7-11bd8a0e7e11",
@@ -80,6 +78,8 @@ const testOrders = [
 
   let activeOrder: Order | null = $state(null);
   let orders: Order[] = $state([]);
+  let errmsg: string | null = $state(null);
+  let supplierId: number | null;
 
   function setActiveOrder(order: Order) {
     activeOrder = order;
@@ -90,7 +90,13 @@ const testOrders = [
   }
 
 
-  async function fetchOrders(supplierId: number): Promise<void> {
+  async function fetchOrders(supplierId: number | null): Promise<void> {
+
+    if (supplierId == null) {
+      errmsg = "Supplier id invalid";
+      return;
+    }
+
     console.log("fetching orders for " + supplierId);
     const response = await fetch(`/api/orders?supplierId=${supplierId}`, {
       method: "GET",
@@ -103,15 +109,15 @@ const testOrders = [
       errmsg = `${response.status}: ${response.statusText}`;
     }
 
-    //const data = (await response.json()) as Order[];
+    const data = (await response.json()) as Order[];
 
-    setOrders(testOrders);
+    setOrders(data);
   }
 </script>
 
 <div class="page">
   <h1>Orders</h1>
-  <p class="subtitle">View placed orders and inspect individual orderlines</p>
+  <p class="subtitle">View placed orders and individual orderlines</p>
 
   <div class="section grid">
     <Orderlist {orders} {setActiveOrder} />
@@ -119,9 +125,13 @@ const testOrders = [
   </div>
 
   <div class="actions">
-    <button class="btn btn-primary" onclick={() => fetchOrders(1)}>
+    <button class="btn btn-primary" onclick={() => fetchOrders(supplierId)}>
       Get Orders
     </button>
+  </div>
+
+  <div class="actions">
+    <input bind:value={supplierId} type="number" min="1" step="1" placeholder="supplierId">
   </div>
 
   {#if errmsg}
