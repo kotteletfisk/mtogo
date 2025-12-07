@@ -1,6 +1,9 @@
 package mtogo.sql.messaging;
 
 import java.io.IOException;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
@@ -22,18 +25,58 @@ public class Producer {
     private static final String EXCHANGE_NAME = "order";
     static ConnectionFactory connectionFactory = createDefaultFactory();
 
+    // Connection pooling
+    private static Connection connection;
+    private static BlockingQueue<Channel> channelPool;
+    private static final int POOL_SIZE = 10;
+    private static volatile boolean initialized = false;
+    private static final Object initLock = new Object();
+
     private static ConnectionFactory createDefaultFactory() {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("rabbitmq");
         factory.setPort(5672);
         factory.setUsername(System.getenv("RABBITMQ_USER"));
         factory.setPassword(System.getenv("RABBITMQ_PASS"));
+
+        factory.setAutomaticRecoveryEnabled(true);
+        factory.setNetworkRecoveryInterval(5000);
+        factory.setRequestedHeartbeat(60);  // Heartbeat every 60 seconds
+        factory.setConnectionTimeout(10000);
+        factory.setTopologyRecoveryEnabled(true);
         return factory;
     }
 
     // Used to overwrite connectionfactory (For testing)
     public static void setConnectionFactory(ConnectionFactory factory) {
         connectionFactory = factory;
+    }
+
+    // Lazy initialization - only runs when first message is published
+    private static void ensureInitialized() {
+        if (!initialized) {
+            synchronized (initLock) {
+                if (!initialized) {
+                    try {
+                        connection = connectionFactory.newConnection();
+                        channelPool = new ArrayBlockingQueue<>(POOL_SIZE);
+
+                        for (int i = 0; i < POOL_SIZE; i++) {
+                            Channel channel = connection.createChannel();
+                            channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
+                            channel.confirmSelect();
+                            channelPool.offer(channel);
+                        }
+
+                        initialized = true;
+                        log.info("Producer initialized with {} channels", POOL_SIZE);
+                    } catch (Exception e) {
+                        log.error("Failed to initialize Producer", e);
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -48,10 +91,23 @@ public class Producer {
      *
      */
     public static boolean publishMessage(String routingKey, String message){
+        ensureInitialized(); // Initialize on first use
 
-        try (Connection connection = connectionFactory.newConnection(); Channel channel = connection.createChannel()) {
-            channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
-            channel.confirmSelect();
+        Channel channel = null;
+        try {
+            // Get channel from pool
+            channel = channelPool.poll(5, TimeUnit.SECONDS);
+            if (channel == null) {
+                log.error("No channels available in pool");
+                return false;
+            }
+
+            // Recreate channel if closed
+            if (!channel.isOpen()) {
+                channel = connection.createChannel();
+                channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
+                channel.confirmSelect();
+            }
 
             channel.basicPublish(EXCHANGE_NAME, routingKey, null, message.getBytes("UTF-8"));
             // Maybe log the message that is being sent?
@@ -60,10 +116,16 @@ public class Producer {
                 throw new IOException("Confirm wait time exceeded 5000ms");
             }
             return true;
+
         } catch (IOException | TimeoutException | InterruptedException e) {
             log.error(e.getMessage());
-        } 
-        return false;
+            return false;
+        } finally {
+            // Return channel to pool
+            if (channel != null && channel.isOpen()) {
+                channelPool.offer(channel);
+            }
+        }
     }
 
     public static boolean publishObject(String routingKey, Object value) {
@@ -84,7 +146,7 @@ public class Producer {
 
         } catch (IOException | IllegalArgumentException e) {
             log.error("Error publishing object: " + e.getMessage());
-        } 
+        }
         return false;
     }
 }

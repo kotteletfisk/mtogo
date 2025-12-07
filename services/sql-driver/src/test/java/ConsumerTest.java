@@ -1,4 +1,3 @@
-
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
@@ -11,16 +10,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.*;
+
 import org.mockito.Mock;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockConstruction;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -61,12 +56,21 @@ class ConsumerTest {
     @Test
     void consumeMessages_declaresExchange_bindsKeys_andStartsConsuming() throws Exception {
         String[] bindingKeys = {"customer:order_creation", "something.else"};
-        String queueName = "test-queue";
+        String queueName = "sql-driver-queue";
 
         when(factory.newConnection()).thenReturn(connection);
         when(connection.createChannel()).thenReturn(channel);
-        when(channel.queueDeclare()).thenReturn(declareOk);
-        when(declareOk.getQueue()).thenReturn(queueName);
+
+        doNothing().when(connection).addShutdownListener(any());
+        doNothing().when(channel).addShutdownListener(any());
+
+        when(channel.queueDeclare(
+                eq("sql-driver-queue"),
+                eq(true),
+                eq(false),
+                eq(false),
+                isNull()
+        )).thenReturn(declareOk);
 
         // Inject mocked factory into Consumer
         Consumer.setConnectionFactory(factory);
@@ -76,8 +80,15 @@ class ConsumerTest {
         Consumer.consumeMessages(bindingKeys, router);
 
         verify(channel).exchangeDeclare("order", "topic", true);
-        verify(channel).queueDeclare();
-        verify(declareOk).getQueue();
+
+        //Verify the new queueDeclare signature
+        verify(channel).queueDeclare(
+                eq("sql-driver-queue"),
+                eq(true),
+                eq(false),
+                eq(false),
+                isNull()
+        );
 
         for (String bindingKey : bindingKeys) {
             verify(channel).queueBind(queueName, "order", bindingKey);
@@ -89,8 +100,9 @@ class ConsumerTest {
                 any(DeliverCallback.class),
                 any(CancelCallback.class)
         );
+        verify(connection).addShutdownListener(any());
+        verify(channel).addShutdownListener(any());
 
-        verifyNoMoreInteractions(channel);
     }
 
     // Helper: build a real OrderDetailsDTO with a non-null orderLines list.
@@ -132,6 +144,7 @@ class ConsumerTest {
         );
         Delivery delivery = mock(Delivery.class);
         when(delivery.getBody()).thenReturn(body);
+        when(delivery.getEnvelope()).thenReturn(envelope);
 
         // Mock SQLConnector
         try (MockedConstruction<SQLConnector> sqlMock = mockConstruction(SQLConnector.class,
@@ -152,6 +165,8 @@ class ConsumerTest {
             assertFalse(sqlMock.constructed().isEmpty(), "SQLConnector was never constructed");
             SQLConnector connector = sqlMock.constructed().get(0);
             verify(connector).createOrder(any(), anyList(), any(Connection.class));
+            verify(channel).basicAck(1L, false);
+
 
             // Assert: Producer.publishMessage was called
             producerMock.verify(()
@@ -175,6 +190,7 @@ class ConsumerTest {
         );
         Delivery delivery = mock(Delivery.class);
         when(delivery.getBody()).thenReturn(body);
+        when(delivery.getEnvelope()).thenReturn(envelope);
 
         try (MockedConstruction<SQLConnector> sqlMock = mockConstruction(SQLConnector.class,
                 (mock, context) -> {
@@ -196,6 +212,8 @@ class ConsumerTest {
             // Assert: SQLConnector.createOrder was called
             SQLConnector connector = sqlMock.constructed().get(0);
             verify(connector).createOrder(any(), anyList(), any(Connection.class));
+            verify(channel).basicNack(eq(1L), eq(false), anyBoolean());
+
 
             // Assert: Producer.publishMessage was NOT called
             producerMock.verifyNoInteractions();
