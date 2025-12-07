@@ -24,8 +24,9 @@ public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) {
-        try {
+        log.info("=== Starting SQL Driver ===");
 
+        try {
             SQLConnector connector = new SQLConnector();
             ObjectMapper mapper = new ObjectMapper();
             AuthReceiver authReceiver = new AuthReceiver();
@@ -39,14 +40,24 @@ public class Main {
 
             MessageRouter router = new MessageRouter(map);
 
-            String[] bindingKeys = map.keySet().toArray(new String[map.size()]);
+            String[] bindingKeys = map.keySet().toArray(new String[0]);
 
-            // String[] bindingKeys = {"customer:order_creation", "supplier:order_creation", "customer:menu_request", "auth:login"};
+            log.info("Starting consumer with binding keys: {}", String.join(", ", bindingKeys));
             Consumer.consumeMessages(bindingKeys, router);
-            log.info("SQL-driver started, listening for order events...");
+
+            log.info("SQL-driver started successfully, listening for messages...");
             log.debug("Debug logging is enabled");
+
+            log.info("Application running. Press Ctrl+C to stop.");
+            Thread.currentThread().join();
+
+        } catch (InterruptedException e) {
+            log.info("Application interrupted, shutting down...");
+            Thread.currentThread().interrupt();
         } catch (Exception e) {
-            log.error(e.getMessage());
+            log.error("FATAL: Failed to start SQL Driver: {}", e.getMessage(), e);
+            e.printStackTrace();
+            System.exit(1);
         }
     }
 }
