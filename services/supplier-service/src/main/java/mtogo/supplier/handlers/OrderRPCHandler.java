@@ -101,11 +101,6 @@ public class OrderRPCHandler implements IMessageHandler {
         }
         else {
             log.warn("No requests found with correlation id: {}", responseCorrelationId);
-            try {
-                channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, false);
-            } catch (IOException ex) {
-                log.error(ex.getMessage());
-            }
         }
     }
 }
