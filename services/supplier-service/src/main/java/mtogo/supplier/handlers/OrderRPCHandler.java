@@ -91,6 +91,11 @@ public class OrderRPCHandler implements IMessageHandler {
                             .constructCollectionType(List.class, OrderDTO.class));
 
             future.complete(orders);
+            try {
+                channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
+            } catch (IOException ex) {
+                log.error(ex.getMessage());
+            }
 
             log.info("Completed future for correlation ID {}", responseCorrelationId);
         }
