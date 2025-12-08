@@ -38,8 +38,8 @@ public class ConnectionManager {
 
         for (int i = 0; i < 10; i++) {
             try {
-                Connection connection = connectionFactory.newConnection("default-connection");
-                return connection;
+                Connection conn = connectionFactory.newConnection("default-connection");
+                return conn;
             } catch (IOException | TimeoutException e) {
                 log.warn("Retrying rabbitmq connection");
                 Thread.sleep(2000);
