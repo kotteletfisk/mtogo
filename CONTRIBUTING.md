@@ -31,7 +31,7 @@ Implemented user login and registration functionality using JWT for secure authe
 fixes #42
 ```
 
-#### Pull Requests
+## Pull Requests
 
 Branch protection is enabled on the main branch to enfore integration by pull requests. This is to make sure that all relevant test cycles are run successfully before merging.
 
