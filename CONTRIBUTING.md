@@ -1,6 +1,6 @@
 # How to Contribute
 
-This is a guideline for developers working on the MTOGO project
+This is a guideline for developers working on the MTOGO project. The project is developed with a CI approach, meaning contributers should aim to integrate their changes into the trunk branch (main) as often as possible.
 
 ## Branching rules
 
@@ -30,6 +30,17 @@ Implemented user login and registration functionality using JWT for secure authe
 
 fixes #42
 ```
+
+#### Pull Requests
+
+Branch protection is enabled on the main branch to enfore integration by pull requests. This is to make sure that all relevant test cycles are run successfully before merging.
+
+1. Commit your changes
+3. Merge main remote into your local branch
+2. Push to remote branch
+3. Open PR on main
+4. After successful test run add describing commit message in line with template
+5. Merge PR and delete branch
 
 ## Code style rules
 
