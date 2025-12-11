@@ -33,6 +33,24 @@ The docker swarm stack configuration for the system
 
 [sql](sql) contains DDL SQL scripts for common truth source for the layout of SQL databases, as well as script for inserting test data.
 
+
+### Deployment
+
+The project is continously deployed.
+
+It runs on a CI [pipeline](.github/workflows/ci.yml).
+
+Nightly workflow is the CD part of the pipeline and can be found [here](.github/workflows/nightly.yml). It runs nightly as a cron job.
+
+
+The application is hosted on 2 servers:
+- Test server
+- Prod server
+
+The CI/CD Pipeline uses Github actions and local runners, hosted on the servers, to perform actions, this includes building of images and testing.
+
+For information on how to deploy the stack locally, check out the contributing.md found below.
+
 ### Contribution
 
 [CONTRIBUTING.md](CONTRIBUTING.md) 
