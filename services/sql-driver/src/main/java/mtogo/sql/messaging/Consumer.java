@@ -15,7 +15,6 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
 import com.rabbitmq.client.Recoverable;
 import com.rabbitmq.client.RecoveryListener;
-import com.rabbitmq.client.ShutdownSignalException;
 
 public class Consumer {
 
@@ -64,68 +63,64 @@ public class Consumer {
         router = msgRouter;
         log.debug("Registering binding keys: {}", bindingKeys.toString());
 
-        try {
-            Connection connection = connectionFactory.newConnection();
-            log.info("RabbitMQ connection established");
+        Connection connection = getConnectionOrRetry(2000);
 
-            // Connection shutdown listener
-            connection.addShutdownListener(cause -> {
-                if (cause.isInitiatedByApplication()) {
-                    log.info("Connection closed by application");
-                } else {
-                    log.error("CONNECTION LOST! Reason: {}", cause.getMessage());
-                }
-            });
-
-            // Recovery listener
-            if (connection instanceof Recoverable) {
-                ((Recoverable) connection).addRecoveryListener(new RecoveryListener() {
-                    @Override
-                    public void handleRecovery(Recoverable recoverable) {
-                        log.info("Connection RECOVERED!");
-                    }
-
-                    @Override
-                    public void handleRecoveryStarted(Recoverable recoverable) {
-                        log.warn("Connection recovery STARTED...");
-                    }
-                });
-            }
-
-            Channel channel = connection.createChannel();
-            log.info("Channel created");
-
-            // Channel shutdown listener
-            channel.addShutdownListener(cause -> {
-                if (cause.isInitiatedByApplication()) {
-                    log.info("Channel closed by application");
-                } else {
-                    log.error("CHANNEL LOST! Reason: {}", cause.getMessage());
-                    log.error("Hard close: {}, Cause: {}", cause.isHardError(), cause.getReason());
-                }
-            });
-
-            channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
-            channel.queueDeclare(QUEUE_NAME, true, false, false, null);
-
-            for (String bindingKey : bindingKeys) {
-                channel.queueBind(QUEUE_NAME, EXCHANGE_NAME, bindingKey);
-                log.info("Bound queue '{}' to routing key '{}'", QUEUE_NAME, bindingKey);
-            }
-
-            channel.basicConsume(QUEUE_NAME, false, deliverCallback(channel), consumerTag -> {
-                log.error("CONSUMER CANCELLED! Tag: {}", consumerTag);
-            });
-
-            log.info("Consumer listening on queue: {}", QUEUE_NAME);
-            log.info("Heartbeat: 60s, Recovery: enabled, Monitoring: ACTIVE");
-
-        } catch (IOException | TimeoutException e) {
-            log.error("Error consuming message:\n" + e.getMessage());
-            e.printStackTrace(pw);
-            log.error("Stacktrace:\n" + sw.toString());
-            throw e;
+        if (connection == null) {
+            throw new IOException("Connection to rabbitmq failed");
         }
+        log.info("RabbitMQ connection established");
+
+        // Connection shutdown listener
+        connection.addShutdownListener(cause -> {
+            if (cause.isInitiatedByApplication()) {
+                log.info("Connection closed by application");
+            } else {
+                log.error("CONNECTION LOST! Reason: {}", cause.getMessage());
+            }
+        });
+
+        // Recovery listener
+        if (connection instanceof Recoverable) {
+            ((Recoverable) connection).addRecoveryListener(new RecoveryListener() {
+                @Override
+                public void handleRecovery(Recoverable recoverable) {
+                    log.info("Connection RECOVERED!");
+                }
+
+                @Override
+                public void handleRecoveryStarted(Recoverable recoverable) {
+                    log.warn("Connection recovery STARTED...");
+                }
+            });
+        }
+
+        Channel channel = connection.createChannel();
+        log.info("Channel created");
+
+        // Channel shutdown listener
+        channel.addShutdownListener(cause -> {
+            if (cause.isInitiatedByApplication()) {
+                log.info("Channel closed by application");
+            } else {
+                log.error("CHANNEL LOST! Reason: {}", cause.getMessage());
+                log.error("Hard close: {}, Cause: {}", cause.isHardError(), cause.getReason());
+            }
+        });
+
+        channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
+        channel.queueDeclare(QUEUE_NAME, true, false, false, null);
+
+        for (String bindingKey : bindingKeys) {
+            channel.queueBind(QUEUE_NAME, EXCHANGE_NAME, bindingKey);
+            log.info("Bound queue '{}' to routing key '{}'", QUEUE_NAME, bindingKey);
+        }
+
+        channel.basicConsume(QUEUE_NAME, false, deliverCallback(channel), consumerTag -> {
+            log.error("CONSUMER CANCELLED! Tag: {}", consumerTag);
+        });
+
+        log.info("Consumer listening on queue: {}", QUEUE_NAME);
+        log.info("Heartbeat: 60s, Recovery: enabled, Monitoring: ACTIVE");
     }
 
     private static DeliverCallback deliverCallback(Channel channel) {
@@ -139,5 +134,20 @@ public class Consumer {
                 log.error(e.getMessage());
             }
         };
+    }
+
+    // messagequeue might not be ready for connection accept on deploy, so we retry
+    // n times or crash
+    private static Connection getConnectionOrRetry(int millis) throws InterruptedException {
+        for (int i = 0; i < 10; i++) {
+            try {
+                Connection connection = connectionFactory.newConnection();
+                return connection;
+            } catch (IOException | TimeoutException e) {
+                log.warn("Retrying rabbitmq connection");
+                Thread.sleep(millis);
+            }
+        }
+        return null;
     }
 }
