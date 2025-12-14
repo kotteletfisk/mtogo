@@ -13,8 +13,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import mtogo.redis.DTO.OrderDTO;
-import mtogo.redis.DTO.OrderDetailsDTO;
-import mtogo.redis.DTO.OrderLineDTO;
 import mtogo.redis.DTO.SupplierDTO;
 import mtogo.redis.exceptions.RedisException;
 import redis.clients.jedis.UnifiedJedis;
@@ -70,6 +68,7 @@ public class RedisConnector {
 
     public void createOrder(OrderDTO order) throws JsonProcessingException, RedisException {
 
+        ensureIndexForOrders();
         String json = mapper.writeValueAsString(order);
         log.debug("Mapped Json: {}", json);
         String res = jedis.jsonSet("order:" + order.getOrderId(), Path2.ROOT_PATH, json);
