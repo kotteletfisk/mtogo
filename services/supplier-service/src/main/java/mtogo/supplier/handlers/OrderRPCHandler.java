@@ -32,7 +32,7 @@ public class OrderRPCHandler implements IMessageHandler {
 
     public OrderRPCHandler(ObjectMapper objectMapper) throws IOException, InterruptedException {
         this.objectMapper = objectMapper;
-    }   
+    }
 
     public String getReplyQueue() {
         return this.replyQueue;
@@ -94,13 +94,22 @@ public class OrderRPCHandler implements IMessageHandler {
             try {
                 channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
             } catch (IOException ex) {
+                try {
+                    channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, false);
+                } catch (IOException ex1) {
+                    log.error("Failed to Nack: {}", ex1.getMessage());
+                }
                 log.error(ex.getMessage());
             }
 
             log.info("Completed future for correlation ID {}", responseCorrelationId);
-        }
-        else {
+        } else {
             log.warn("No requests found with correlation id: {}", responseCorrelationId);
+            try {
+                channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, false);
+            } catch (IOException ex) {
+                log.error("Failed to Nack: {}", ex.getMessage());
+            }
         }
     }
 }
