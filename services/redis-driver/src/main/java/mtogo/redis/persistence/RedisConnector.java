@@ -164,6 +164,7 @@ public class RedisConnector {
 
     public List<OrderDTO> getOrdersBySupplier(int supplierId) {
 
+        ensureIndexForOrders();
         log.info("Getting orders for supplier: {}", supplierId);
         Query q = new Query().addFilter(new Query.NumericFilter("supplierId", supplierId, supplierId));
         SearchResult sr = jedis.ftSearch("orders-idx", q);

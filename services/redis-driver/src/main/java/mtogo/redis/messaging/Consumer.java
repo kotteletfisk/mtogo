@@ -1,18 +1,5 @@
 package mtogo.redis.messaging;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.DeliverCallback;
-import mtogo.redis.DTO.OrderDTO;
-import mtogo.redis.DTO.OrderDetailsDTO;
-import mtogo.redis.DTO.OrderLineDTO;
-import mtogo.redis.DTO.SupplierDTO;
-import mtogo.redis.persistence.RedisConnector;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -23,6 +10,20 @@ import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.DeliverCallback;
+
+import mtogo.redis.DTO.OrderDTO;
+import mtogo.redis.DTO.OrderDetailsDTO;
+import mtogo.redis.DTO.OrderLineDTO;
+import mtogo.redis.DTO.SupplierDTO;
+import mtogo.redis.persistence.RedisConnector;
 
 /**
  * Consumes messages from RabbitMQ
@@ -246,14 +247,14 @@ public class Consumer {
                         if (published) {
                             channel.basicAck(deliveryTag, false);
                         } else {
-                            log.error("Failed to publish menu response");
+                            log.error("Failed to publish order response");
                             channel.basicNack(deliveryTag, false, true); // Requeue for retry
                         }
 
                     } catch (Exception e) {
                         log.error("Error handling supplier:order_request", e);
                         try {
-                            channel.basicNack(deliveryTag, false, true); // Requeue for retry
+                            channel.basicNack(deliveryTag, false, false); // Requeue for retry
                         } catch (IOException nackError) {
                             log.error("Failed to NACK message", nackError);
                         }
