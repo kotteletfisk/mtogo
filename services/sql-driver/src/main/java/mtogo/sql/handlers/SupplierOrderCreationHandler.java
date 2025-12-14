@@ -30,6 +30,7 @@ public class SupplierOrderCreationHandler implements IMessageHandler {
     @Override
     public void handle(Delivery delivery, Channel channel) {
         log.info("Handling legacy order message");
+        long tag = delivery.getEnvelope().getDeliveryTag();
         try {
             LegacyOrderDetailsDTO legacyOrderDetailsDTO = objectMapper.readValue(delivery.getBody(),
                     LegacyOrderDetailsDTO.class);
@@ -40,9 +41,16 @@ public class SupplierOrderCreationHandler implements IMessageHandler {
                 if (Producer.publishObject("customer:order_creation", enriched)) {
                     log.debug("Published:\n" + enriched.toString());
                 }
+
+                channel.basicAck(tag, false);
             }
         } catch (SQLException | IOException e) {
             log.error(e.getMessage());
+            try {
+                channel.basicNack(tag, false, false);
+            } catch (IOException io) {
+                log.error("Failed to NACK message", io);
+            }
         }
     }
 }
