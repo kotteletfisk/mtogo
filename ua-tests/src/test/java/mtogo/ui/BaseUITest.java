@@ -14,11 +14,17 @@ public abstract class BaseUITest {
 
     protected static WebDriver driver;
     protected static String baseUrl;
+    protected static RedisTestDataSetup redisSetup;
+
 
     @BeforeAll
     static void setupDriver() {
         baseUrl = System.getProperty("base.url",
                 System.getenv().getOrDefault("BASE_URL", "http://localhost:7071/cs-order.html"));
+
+        System.out.println("\n>>> Setting up Redis...");
+        redisSetup = new RedisTestDataSetup();
+        redisSetup.setupTestData();
 
         ChromeOptions options = new ChromeOptions();
         options.setAcceptInsecureCerts(true);
