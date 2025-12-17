@@ -22,7 +22,7 @@ public class RedisTestDataSetup {
 
     public RedisTestDataSetup() {
         this(
-                "172.16.0.11", 6379
+                "redis-active-db", 6379
         );
     }
 
