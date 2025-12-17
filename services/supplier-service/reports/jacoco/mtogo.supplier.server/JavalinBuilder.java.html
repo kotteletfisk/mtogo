@@ -5,44 +5,46 @@ import static io.javalin.apibuilder.ApiBuilder.get;
 import static io.javalin.apibuilder.ApiBuilder.path;
 import io.javalin.http.staticfiles.Location;
 import io.javalin.validation.ValidationException;
+import mtogo.supplier.controller.OrderController;
 import mtogo.supplier.exceptions.APIException;
 import mtogo.supplier.exceptions.ExceptionHandler;
 import mtogo.supplier.server.security.AppRole;
 import mtogo.supplier.server.security.Middleware;
 
-<span class="nc" id="L13">public class JavalinBuilder {</span>
+<span class="nc" id="L14">public class JavalinBuilder {</span>
 
-    public static void startServer(int port) {
-<span class="nc" id="L16">        Javalin.create(config -&gt; {</span>
-<span class="nc" id="L17">            config.staticFiles.add(staticFiles -&gt; {</span>
-<span class="nc" id="L18">                staticFiles.hostedPath = &quot;/&quot;;</span>
-<span class="nc" id="L19">                staticFiles.directory = &quot;public&quot;;</span>
-<span class="nc" id="L20">                staticFiles.precompress = true;</span>
-<span class="nc" id="L21">                staticFiles.location = Location.CLASSPATH;</span>
-<span class="nc" id="L22">            });</span>
+    public static void startServer(int port, OrderController orderController) {
+<span class="nc" id="L17">        Javalin.create(config -&gt; {</span>
+<span class="nc" id="L18">            config.staticFiles.add(staticFiles -&gt; {</span>
+<span class="nc" id="L19">                staticFiles.hostedPath = &quot;/&quot;;</span>
+<span class="nc" id="L20">                staticFiles.directory = &quot;public&quot;;</span>
+<span class="nc" id="L21">                staticFiles.precompress = true;</span>
+<span class="nc" id="L22">                staticFiles.location = Location.CLASSPATH;</span>
+<span class="nc" id="L23">            });</span>
 
-<span class="nc" id="L24">            config.router.apiBuilder(() -&gt; {</span>
+<span class="nc" id="L25">            config.router.apiBuilder(() -&gt; {</span>
 
-<span class="nc" id="L26">                path(&quot;/api&quot;, () -&gt; {</span>
-<span class="nc" id="L27">                    get(&quot;/health&quot;, (ctx) -&gt; ctx.status(200));</span>
-<span class="nc" id="L28">                    get(&quot;/&quot;, (ctx) -&gt; ctx.status(418)); // Visit me in the browser ;)</span>
-<span class="nc" id="L29">                    get(&quot;/access-test&quot;,  (ctx) -&gt; ctx.status(200), AppRole.MANAGER);</span>
-<span class="nc" id="L30">                });</span>
-<span class="nc" id="L31">            });</span>
+<span class="nc" id="L27">                path(&quot;/api&quot;, () -&gt; {</span>
+<span class="nc" id="L28">                    get(&quot;/health&quot;, (ctx) -&gt; ctx.status(200));</span>
+<span class="nc" id="L29">                    get(&quot;/&quot;, (ctx) -&gt; ctx.status(418)); // Visit me in the browser ;)</span>
+<span class="nc" id="L30">                    get(&quot;/access-test&quot;,  (ctx) -&gt; ctx.status(200), AppRole.MANAGER);</span>
+<span class="nc" id="L31">                    get(&quot;/orders&quot;, orderController::getOrders);</span>
+<span class="nc" id="L32">                });</span>
+<span class="nc" id="L33">            });</span>
             //Insert other configuration here if needed.
-<span class="nc" id="L33">        })</span>
-<span class="nc" id="L34">                .exception(APIException.class, (ExceptionHandler::apiExceptionHandler))</span>
-<span class="nc" id="L35">                .exception(ValidationException.class, (ExceptionHandler::validationExceptionHandler))</span>
+<span class="nc" id="L35">        })</span>
+<span class="nc" id="L36">                .exception(APIException.class, (ExceptionHandler::apiExceptionHandler))</span>
+<span class="nc" id="L37">                .exception(ValidationException.class, (ExceptionHandler::validationExceptionHandler))</span>
 
-<span class="nc" id="L37">        .error(404, ctx -&gt; {</span>
-<span class="nc bnc" id="L38" title="All 2 branches missed.">            if (!ctx.path().startsWith(&quot;/api&quot;)) {</span>
-<span class="nc" id="L39">                ctx.contentType(&quot;text/html&quot;);</span>
-<span class="nc" id="L40">                ctx.result(JavalinBuilder.class</span>
-<span class="nc" id="L41">                        .getResourceAsStream(&quot;/public/200.html&quot;));</span>
+<span class="nc" id="L39">        .error(404, ctx -&gt; {</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">            if (!ctx.path().startsWith(&quot;/api&quot;)) {</span>
+<span class="nc" id="L41">                ctx.contentType(&quot;text/html&quot;);</span>
+<span class="nc" id="L42">                ctx.result(JavalinBuilder.class</span>
+<span class="nc" id="L43">                        .getResourceAsStream(&quot;/public/200.html&quot;));</span>
             }
-<span class="nc" id="L43">        })</span>
-<span class="nc" id="L44">                .beforeMatched(&quot;/api/*&quot;, ctx -&gt; Middleware.registerAuth(ctx))</span>
-<span class="nc" id="L45">        .start(port);</span>
-<span class="nc" id="L46">    }</span>
+<span class="nc" id="L45">        })</span>
+<span class="nc" id="L46">                .beforeMatched(&quot;/api/*&quot;, ctx -&gt; Middleware.registerAuth(ctx))</span>
+<span class="nc" id="L47">        .start(port);</span>
+<span class="nc" id="L48">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

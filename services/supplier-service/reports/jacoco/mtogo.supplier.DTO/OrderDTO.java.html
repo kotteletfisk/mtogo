@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrderDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">supplier-service</a> &gt; <a href="index.source.html" class="el_package">mtogo.supplier.DTO</a> &gt; <span class="el_source">OrderDTO.java</span></div><h1>OrderDTO.java</h1><pre class="source lang-java linenums">package mtogo.supplier.DTO;
+
+import java.sql.Timestamp;
+import java.util.List;
+import java.util.UUID;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
+@Getter @Setter @NoArgsConstructor @ToString
+public class OrderDTO {
+    private UUID orderId;
+    private int customerId;
+    private int supplierId;
+    @JsonFormat(pattern=&quot;yyyy-MM-dd HH:mm:ss.SSS&quot;)
+    private Timestamp orderCreated;
+    @JsonFormat(pattern=&quot;yyyy-MM-dd HH:mm:ss.SSS&quot;)
+    private Timestamp orderUpdated;
+    private List&lt;OrderLineDTO&gt; orderlineDTOs;
+<span class="nc" id="L24">    public enum orderStatus{</span>
+<span class="nc" id="L25">        created,</span>
+<span class="nc" id="L26">        rejected,</span>
+<span class="nc" id="L27">        accepted,</span>
+<span class="nc" id="L28">        waiting,</span>
+<span class="nc" id="L29">        delivering,</span>
+<span class="nc" id="L30">        delivered</span>
+    }
+    private orderStatus orderStatus;
+
+<span class="nc" id="L34">    public OrderDTO(UUID orderId, int customerId, int supplierId, List&lt;OrderLineDTO&gt; orderlineDTOs) {</span>
+<span class="nc" id="L35">        this.orderId = orderId;</span>
+<span class="nc" id="L36">        this.customerId = customerId;</span>
+<span class="nc" id="L37">        this.orderCreated = new Timestamp(System.currentTimeMillis());</span>
+<span class="nc" id="L38">        this.orderUpdated = new Timestamp(System.currentTimeMillis());</span>
+<span class="nc" id="L39">        this.orderStatus = orderStatus.created;</span>
+<span class="nc" id="L40">        this.supplierId = supplierId;</span>
+<span class="nc" id="L41">        this.orderlineDTOs = orderlineDTOs;</span>
+<span class="nc" id="L42">    }    </span>
+<span class="nc" id="L43">    public OrderDTO(UUID orderId, int customerId, int supplierId, orderStatus orderStatus, List&lt;OrderLineDTO&gt; orderlineDTOs) {</span>
+<span class="nc" id="L44">        this.orderId = orderId;</span>
+<span class="nc" id="L45">        this.customerId = customerId;</span>
+<span class="nc" id="L46">        this.orderCreated = new Timestamp(System.currentTimeMillis());</span>
+<span class="nc" id="L47">        this.orderUpdated = new Timestamp(System.currentTimeMillis());</span>
+<span class="nc" id="L48">        this.orderStatus = orderStatus;</span>
+<span class="nc" id="L49">        this.supplierId = supplierId;</span>
+<span class="nc" id="L50">        this.orderlineDTOs = orderlineDTOs;</span>
+<span class="nc" id="L51">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

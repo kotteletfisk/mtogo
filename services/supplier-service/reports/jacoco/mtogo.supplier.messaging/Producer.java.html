@@ -7,82 +7,100 @@ import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
 import tools.jackson.databind.ObjectMapper;
 
-<span class="nc" id="L16">public class Producer {</span>
+<span class="nc" id="L17">public class Producer {</span>
 
     // Routing Key
     private static final String EXCHANGE_NAME = &quot;order&quot;;
-<span class="fc" id="L20">    static ConnectionFactory connectionFactory = createDefaultFactory();</span>
-<span class="fc" id="L21">    private static ObjectMapper objectMapper = new ObjectMapper();</span>
+<span class="fc" id="L21">    static ConnectionFactory connectionFactory = createDefaultFactory();</span>
+<span class="fc" id="L22">    private static ObjectMapper objectMapper = new ObjectMapper();</span>
 
-<span class="fc" id="L23">    private static final Logger log = LoggerFactory.getLogger(Producer.class);</span>
+<span class="fc" id="L24">    private static final Logger log = LoggerFactory.getLogger(Producer.class);</span>
 
     private static ConnectionFactory createDefaultFactory() {
-<span class="fc" id="L26">        ConnectionFactory factory = new ConnectionFactory();</span>
-<span class="fc" id="L27">        factory.setHost(&quot;rabbitmq&quot;);</span>
-<span class="fc" id="L28">        factory.setPort(5672);</span>
-<span class="fc" id="L29">        factory.setUsername(System.getenv(&quot;RABBITMQ_USER&quot;));</span>
-<span class="fc" id="L30">        factory.setPassword(System.getenv(&quot;RABBITMQ_PASS&quot;));</span>
-<span class="fc" id="L31">        return factory;</span>
+<span class="fc" id="L27">        ConnectionFactory factory = new ConnectionFactory();</span>
+<span class="fc" id="L28">        factory.setHost(&quot;rabbitmq&quot;);</span>
+<span class="fc" id="L29">        factory.setPort(5672);</span>
+<span class="fc" id="L30">        factory.setUsername(System.getenv(&quot;RABBITMQ_USER&quot;));</span>
+<span class="fc" id="L31">        factory.setPassword(System.getenv(&quot;RABBITMQ_PASS&quot;));</span>
+<span class="fc" id="L32">        return factory;</span>
     }
 
     // Used to overwrite connectionfactory (For testing)
     public static void setConnectionFactory(ConnectionFactory factory) {
-<span class="fc" id="L36">        connectionFactory = factory;</span>
-<span class="fc" id="L37">    }</span>
+<span class="fc" id="L37">        connectionFactory = factory;</span>
+<span class="fc" id="L38">    }</span>
 
     /**
      * publishes a message to RabbitMQ using the specified routing key and waits
      * for RabbitMQ to confirm the message.
      *
      * @param routingKey the RabbitMQ routing key used for the message
-     * @param message the message body to publish
+     * @param message    the message body to publish
      * @return true if the message was successfully confirmed by RabbitMQ
-     * @throws IOException if connection fails
-     * @throws TimeoutException if publish confirm exceeds 5000ms
+     * @throws IOException          if connection fails
+     * @throws TimeoutException     if publish confirm exceeds 5000ms
      * @throws InterruptedException if Thread gets interrrupted while waiting
      *
      */
-    public static boolean publishMessage(String routingKey, String message) throws IOException, TimeoutException, InterruptedException {
+    public static boolean publishMessage(String routingKey, String message)
+            throws IOException, TimeoutException, InterruptedException {
 
-<span class="fc" id="L53">        try (Connection connection = connectionFactory.newConnection(); Channel channel = connection.createChannel()) {</span>
-<span class="fc" id="L54">            channel.exchangeDeclare(EXCHANGE_NAME, &quot;topic&quot;, true);</span>
-<span class="fc" id="L55">            channel.confirmSelect();</span>
+<span class="fc" id="L55">        try (Connection connection = connectionFactory.newConnection(); Channel channel = connection.createChannel()) {</span>
+<span class="fc" id="L56">            channel.exchangeDeclare(EXCHANGE_NAME, &quot;topic&quot;, true);</span>
+<span class="fc" id="L57">            channel.confirmSelect();</span>
 
-<span class="fc" id="L57">            channel.basicPublish(EXCHANGE_NAME, routingKey, null, message.getBytes(&quot;UTF-8&quot;));</span>
+<span class="fc" id="L59">            channel.basicPublish(EXCHANGE_NAME, routingKey, null, message.getBytes(&quot;UTF-8&quot;));</span>
 
-<span class="pc bpc" id="L59" title="1 of 2 branches missed.">            if (!channel.waitForConfirms(5000)) {</span>
-<span class="nc" id="L60">                throw new TimeoutException(&quot;Confirm exceeded 5000ms wait&quot;);</span>
+<span class="pc bpc" id="L61" title="1 of 2 branches missed.">            if (!channel.waitForConfirms(5000)) {</span>
+<span class="nc" id="L62">                throw new TimeoutException(&quot;Confirm exceeded 5000ms wait&quot;);</span>
             }
-<span class="fc" id="L62">            return true;</span>
+<span class="fc" id="L64">            return true;</span>
+        }
+    }
+
+    public static boolean publishMessage(String routingKey, String message, AMQP.BasicProperties props)
+            throws IOException, TimeoutException, InterruptedException {
+
+<span class="nc" id="L71">        try (Connection connection = connectionFactory.newConnection(); Channel channel = connection.createChannel()) {</span>
+<span class="nc" id="L72">            channel.exchangeDeclare(EXCHANGE_NAME, &quot;topic&quot;, true);</span>
+<span class="nc" id="L73">            channel.confirmSelect();</span>
+
+<span class="nc" id="L75">            channel.basicPublish(EXCHANGE_NAME, routingKey, props, message.getBytes(&quot;UTF-8&quot;));</span>
+
+<span class="nc bnc" id="L77" title="All 2 branches missed.">            if (!channel.waitForConfirms(5000)) {</span>
+<span class="nc" id="L78">                throw new TimeoutException(&quot;Confirm exceeded 5000ms wait&quot;);</span>
+            }
+<span class="nc" id="L80">            return true;</span>
         }
     }
 
     public static boolean publishObject(String routingKey, Object value) {
 
         try {
-<span class="pc bpc" id="L69" title="1 of 2 branches missed.">            if (value == null) {</span>
-<span class="nc" id="L70">                throw new IllegalArgumentException(&quot;Object was null!&quot;);</span>
+<span class="pc bpc" id="L87" title="1 of 2 branches missed.">            if (value == null) {</span>
+<span class="nc" id="L88">                throw new IllegalArgumentException(&quot;Object was null!&quot;);</span>
             }
 
-<span class="fc" id="L73">            String valStr = objectMapper.writeValueAsString(value);</span>
-<span class="fc" id="L74">            log.debug(&quot;DTO mapped to string:\n&quot; + valStr);</span>
+<span class="fc" id="L91">            String valStr = objectMapper.writeValueAsString(value);</span>
+<span class="fc" id="L92">            log.debug(&quot;DTO mapped to string:\n&quot; + valStr);</span>
 
-<span class="pc bpc" id="L76" title="1 of 2 branches missed.">            if (publishMessage(routingKey, valStr)) {</span>
-<span class="fc" id="L77">                log.info(&quot;Object published to MQ&quot;);</span>
-<span class="fc" id="L78">                log.debug(&quot;Payload: \n&quot; + valStr);</span>
-<span class="fc" id="L79">                return true;</span>
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">            if (publishMessage(routingKey, valStr)) {</span>
+<span class="fc" id="L95">                log.info(&quot;Object published to MQ&quot;);</span>
+<span class="fc" id="L96">                log.debug(&quot;Payload: \n&quot; + valStr);</span>
+<span class="fc" id="L97">                return true;</span>
             }
 
-<span class="nc" id="L82">        } catch (IOException | InterruptedException | TimeoutException | IllegalArgumentException e) {</span>
-<span class="nc" id="L83">            log.error(&quot;Error publishing object: &quot; + e.getMessage());</span>
-<span class="nc" id="L84">        }</span>
-<span class="nc" id="L85">        return false;</span>
+<span class="nc" id="L100">        } catch (IOException | InterruptedException | TimeoutException | IllegalArgumentException e) {</span>
+<span class="nc" id="L101">            log.error(&quot;Error publishing object: &quot; + e.getMessage());</span>
+<span class="nc" id="L102">        }</span>
+<span class="nc" id="L103">        return false;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

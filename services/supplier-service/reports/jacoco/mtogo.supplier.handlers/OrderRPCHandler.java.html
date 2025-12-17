@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrderRPCHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">supplier-service</a> &gt; <a href="index.source.html" class="el_package">mtogo.supplier.handlers</a> &gt; <span class="el_source">OrderRPCHandler.java</span></div><h1>OrderRPCHandler.java</h1><pre class="source lang-java linenums">package mtogo.supplier.handlers;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Delivery;
+
+import mtogo.supplier.DTO.OrderDTO;
+import mtogo.supplier.messaging.Producer;
+import tools.jackson.databind.ObjectMapper;
+
+public class OrderRPCHandler implements IMessageHandler {
+
+<span class="nc" id="L26">    private final Logger log = LoggerFactory.getLogger(this.getClass());</span>
+
+<span class="nc" id="L28">    private final String replyQueue = &quot;supplier:order_response&quot;;</span>
+
+    private final ObjectMapper objectMapper;
+<span class="nc" id="L31">    private final Map&lt;String, CompletableFuture&lt;List&lt;OrderDTO&gt;&gt;&gt; pendingRequests = new ConcurrentHashMap&lt;&gt;();</span>
+
+<span class="nc" id="L33">    public OrderRPCHandler(ObjectMapper objectMapper) throws IOException, InterruptedException {</span>
+<span class="nc" id="L34">        this.objectMapper = objectMapper;</span>
+<span class="nc" id="L35">    }</span>
+
+    public String getReplyQueue() {
+<span class="nc" id="L38">        return this.replyQueue;</span>
+    }
+
+    public CompletableFuture&lt;List&lt;OrderDTO&gt;&gt; requestOrders(int supplierId)
+            throws IOException, InterruptedException, TimeoutException, ExecutionException {
+
+<span class="nc" id="L44">        String correlationId = UUID.randomUUID().toString();</span>
+<span class="nc" id="L45">        CompletableFuture&lt;List&lt;OrderDTO&gt;&gt; future = new CompletableFuture&lt;&gt;();</span>
+
+<span class="nc" id="L47">        pendingRequests.put(correlationId, future);</span>
+
+<span class="nc" id="L49">        log.info(&quot;Creating order request for supplier: {}&quot;, supplierId);</span>
+<span class="nc" id="L50">        log.debug(&quot;Correlation ID: {}&quot;, correlationId);</span>
+
+<span class="nc" id="L52">        AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()</span>
+<span class="nc" id="L53">                .correlationId(correlationId)</span>
+<span class="nc" id="L54">                .replyTo(replyQueue)</span>
+<span class="nc" id="L55">                .build();</span>
+
+        try {
+            // Send request with correlation ID
+<span class="nc" id="L59">            String payload = &quot;supplierId:&quot; + supplierId;</span>
+<span class="nc" id="L60">            Producer.publishMessage(&quot;supplier:order_request&quot;, payload, props);</span>
+<span class="nc" id="L61">            log.debug(&quot;publishing payload: {}&quot;, payload);</span>
+
+<span class="nc" id="L63">            return future.orTimeout(5, TimeUnit.SECONDS);</span>
+
+<span class="nc" id="L65">        } catch (TimeoutException e) {</span>
+<span class="nc" id="L66">            log.error(e.getMessage());</span>
+<span class="nc" id="L67">            throw new TimeoutException(&quot;Publishing request timed out for supplier: &quot; + supplierId);</span>
+        }
+    }
+
+    @Override
+    public void handle(Delivery delivery, Channel channel) {
+
+<span class="nc" id="L74">        log.info(&quot;Handling order response&quot;);</span>
+<span class="nc" id="L75">        String responseCorrelationId = delivery.getProperties().getCorrelationId();</span>
+<span class="nc" id="L76">        log.debug(&quot;Received correlation ID: {}&quot;, responseCorrelationId);</span>
+
+<span class="nc" id="L78">        CompletableFuture&lt;List&lt;OrderDTO&gt;&gt; future = pendingRequests.remove(responseCorrelationId);</span>
+
+<span class="nc bnc" id="L80" title="All 2 branches missed.">        if (future != null) {</span>
+
+<span class="nc" id="L82">            String body = new String(</span>
+<span class="nc" id="L83">                    delivery.getBody(),</span>
+                    java.nio.charset.StandardCharsets.UTF_8);
+
+<span class="nc" id="L86">            log.debug(&quot;Received message body: {}&quot;, body);</span>
+
+<span class="nc" id="L88">            List&lt;OrderDTO&gt; orders = objectMapper.readValue(</span>
+                    body,
+<span class="nc" id="L90">                    objectMapper.getTypeFactory()</span>
+<span class="nc" id="L91">                            .constructCollectionType(List.class, OrderDTO.class));</span>
+
+<span class="nc" id="L93">            future.complete(orders);</span>
+            try {
+<span class="nc" id="L95">                channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);</span>
+<span class="nc" id="L96">            } catch (IOException ex) {</span>
+                try {
+<span class="nc" id="L98">                    channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, false);</span>
+<span class="nc" id="L99">                } catch (IOException ex1) {</span>
+<span class="nc" id="L100">                    log.error(&quot;Failed to Nack: {}&quot;, ex1.getMessage());</span>
+<span class="nc" id="L101">                }</span>
+<span class="nc" id="L102">                log.error(ex.getMessage());</span>
+<span class="nc" id="L103">            }</span>
+
+<span class="nc" id="L105">            log.info(&quot;Completed future for correlation ID {}&quot;, responseCorrelationId);</span>
+<span class="nc" id="L106">        } else {</span>
+<span class="nc" id="L107">            log.warn(&quot;No requests found with correlation id: {}&quot;, responseCorrelationId);</span>
+            try {
+<span class="nc" id="L109">                channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, false);</span>
+<span class="nc" id="L110">            } catch (IOException ex) {</span>
+<span class="nc" id="L111">                log.error(&quot;Failed to Nack: {}&quot;, ex.getMessage());</span>
+<span class="nc" id="L112">            }</span>
+        }
+<span class="nc" id="L114">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
