@@ -22,7 +22,7 @@ public class RedisTestDataSetup {
 
     public RedisTestDataSetup() {
         this(
-                "redis-active-db", 6379
+                "localhost", 6379
         );
     }
 
