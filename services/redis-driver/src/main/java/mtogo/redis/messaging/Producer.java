@@ -6,6 +6,7 @@ import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -14,6 +15,7 @@ import com.rabbitmq.client.ConnectionFactory;
 public class Producer {
 
     private static final Logger log = LoggerFactory.getLogger(Producer.class);
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     // Routing Key
     private static final String EXCHANGE_NAME = "order";
@@ -34,19 +36,17 @@ public class Producer {
     }
 
     /**
-     * publishes a message to RabbitMQ using the specified routing key and waits for
-     * RabbitMQ to confirm the message.
+     * publishes a message to RabbitMQ using the specified routing key and waits
+     * for RabbitMQ to confirm the message.
      *
      * @param routingKey the RabbitMQ routing key used for the message
-     * @param message    the message body to publish
+     * @param message the message body to publish
      * @return true if the message was successfully confirmed by RabbitMQ
      *
      */
-
     public static boolean publishMessage(String routingKey, String message) {
 
-        try (Connection connection = connectionFactory.newConnection();
-            Channel channel = connection.createChannel()) {
+        try (Connection connection = connectionFactory.newConnection(); Channel channel = connection.createChannel()) {
             channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
             channel.confirmSelect();
 
@@ -62,12 +62,11 @@ public class Producer {
             log.error(e.getMessage());
         }
         return false;
-    }    
-    
+    }
+
     public static boolean publishMessage(String routingKey, String message, AMQP.BasicProperties props) {
 
-        try (Connection connection = connectionFactory.newConnection();
-            Channel channel = connection.createChannel()) {
+        try (Connection connection = connectionFactory.newConnection(); Channel channel = connection.createChannel()) {
             channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
             channel.confirmSelect();
 
@@ -81,6 +80,28 @@ public class Producer {
             return true;
         } catch (IOException | TimeoutException | InterruptedException e) {
             log.error(e.getMessage());
+        }
+        return false;
+    }
+
+    public static boolean publishObject(String routingKey, Object value) {
+
+        try {
+            if (value == null) {
+                throw new IllegalArgumentException("Object was null!");
+            }
+
+            String valStr = objectMapper.writeValueAsString(value);
+            log.debug("DTO mapped to string:\n" + valStr);
+
+            if (publishMessage(routingKey, valStr)) {
+                log.info("Object published to MQ");
+                log.debug("Payload: \n" + valStr);
+                return true;
+            }
+
+        } catch (IOException | IllegalArgumentException e) {
+            log.error("Error publishing object: " + e.getMessage());
         }
         return false;
     }
