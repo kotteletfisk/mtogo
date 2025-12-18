@@ -44,7 +44,7 @@
                     <useModulePath>false</useModulePath>
                 </configuration>
             </plugin>
-                        <plugin>
+            <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.14</version>
@@ -76,6 +76,7 @@
                 <configuration>
                     <configLocation>google_checks.xml</configLocation>
                     <outputDirectory>${project.basedir}/reports/checkstyle/</outputDirectory>
+                    <failsOnError>true</failsOnError>
                 </configuration>
                 <executions>
                     <execution>

@@ -77,6 +77,7 @@
                 <configuration>
                     <configLocation>google_checks.xml</configLocation>
                     <outputDirectory>${project.basedir}/reports/checkstyle/</outputDirectory>
+                    <failsOnError>true</failsOnError>
                 </configuration>
                 <executions>
                     <execution>

@@ -1,19 +1,25 @@
 package mtogo.customer.messaging;
 
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-import mtogo.customer.exceptions.APIException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import java.io.IOException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+
+import mtogo.customer.exceptions.APIException;
+
 public class Producer {
+
     private static final Logger log = LoggerFactory.getLogger(Producer.class);
     private static final String EXCHANGE_NAME = "order";
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     // Make these mutable for testing
     private static ConnectionFactory connectionFactory;
@@ -24,7 +30,6 @@ public class Producer {
     private static final Object initLock = new Object();
 
     // Remove static initializer - use lazy initialization instead
-
     /**
      * Lazy initialization - only runs when first needed
      */
@@ -37,8 +42,7 @@ public class Producer {
     }
 
     /**
-     * Initialize or reinitialize the producer.
-     * Package-private for testing.
+     * Initialize or reinitialize the producer. Package-private for testing.
      */
     static void initializeProducer(ConnectionFactory factory, int poolSize) {
         synchronized (initLock) {
@@ -54,7 +58,7 @@ public class Producer {
                     // Production: create real factory
                     connectionFactory = new ConnectionFactory();
                     String host = System.getenv().getOrDefault("RABBITMQ_HOST", "rabbitmq");
-                    String user =  System.getenv().getOrDefault("RABBITMQ_USER", "guest");
+                    String user = System.getenv().getOrDefault("RABBITMQ_USER", "guest");
                     String pass = System.getenv().getOrDefault("RABBITMQ_PASS", "guest");
 
                     connectionFactory.setHost(host);
@@ -116,6 +120,7 @@ public class Producer {
         }
     }
 
+    // APIExceptions ???
     public static boolean publishMessage(String routingKey, String message) throws APIException {
         ensureInitialized(); // Lazy init on first use
 
@@ -167,6 +172,28 @@ public class Producer {
                 channelPool.offer(channel);
             }
         }
+    }
+
+    public static boolean publishObject(String routingKey, Object value) throws APIException {
+
+        try {
+            if (value == null) {
+                throw new IllegalArgumentException("Object was null!");
+            }
+
+            String valStr = objectMapper.writeValueAsString(value);
+            log.debug("DTO mapped to string:\n" + valStr);
+
+            if (publishMessage(routingKey, valStr)) {
+                log.info("Object published to MQ");
+                log.debug("Payload: \n" + valStr);
+                return true;
+            }
+
+        } catch (IOException | IllegalArgumentException e) {
+            log.error("Error publishing object: " + e.getMessage());
+        }
+        return false;
     }
 
     /**
