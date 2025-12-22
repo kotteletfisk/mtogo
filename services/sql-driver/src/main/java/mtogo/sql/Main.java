@@ -16,7 +16,9 @@ import mtogo.sql.handlers.SupplierOrderCreationHandler;
 import mtogo.sql.messaging.AuthReceiver;
 import mtogo.sql.messaging.Consumer;
 import mtogo.sql.messaging.MessageRouter;
+import mtogo.sql.persistence.PostgresAuthRepository;
 import mtogo.sql.persistence.SQLConnector;
+import mtogo.sql.ports.out.AuthRepository;
 import mtogo.sql.ports.out.ModelRepository;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
@@ -30,14 +32,16 @@ public class Main {
 
         try {
             ObjectMapper mapper = new ObjectMapper();
-            AuthReceiver authReceiver = new AuthReceiver();
+            SQLConnector sqlConnector = new SQLConnector();
 
-            ModelRepository repo = new PostgresModelRepository(new SQLConnector());
+            ModelRepository modelRepo = new PostgresModelRepository(sqlConnector);
+            AuthRepository authRepo = new PostgresAuthRepository(sqlConnector);
 
-            Map<String, IMessageHandler> map = Map.of(
-                    "customer:order_creation", new CustomerOrderCreationHandler(mapper, repo),
-                    "supplier:order_creation", new SupplierOrderCreationHandler(mapper, repo),
-                    "customer:menu_request", new CustomerMenuRequestHandler(mapper, repo),
+            AuthReceiver authReceiver = new AuthReceiver(authRepo);
+
+            Map<String, IMessageHandler> map = Map.of("customer:order_creation", new CustomerOrderCreationHandler(mapper, modelRepo),
+                    "supplier:order_creation", new SupplierOrderCreationHandler(mapper, modelRepo),
+                    "customer:menu_request", new CustomerMenuRequestHandler(mapper, modelRepo),
                     "auth:login", new AuthLoginHandler(authReceiver, mapper)
             );
 

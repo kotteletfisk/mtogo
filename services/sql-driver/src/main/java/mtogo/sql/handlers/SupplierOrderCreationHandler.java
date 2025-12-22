@@ -1,8 +1,6 @@
 package mtogo.sql.handlers;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.SQLException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,17 +12,17 @@ import com.rabbitmq.client.Delivery;
 import mtogo.sql.DTO.LegacyOrderDetailsDTO;
 import mtogo.sql.DTO.OrderDetailsDTO;
 import mtogo.sql.messaging.Producer;
-import mtogo.sql.persistence.SQLConnector;
+import mtogo.sql.ports.out.ModelRepository;
 
 public class SupplierOrderCreationHandler implements IMessageHandler {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
     private final ObjectMapper objectMapper;
-    private final SQLConnector sqlConnector;
+    private final ModelRepository repo;
 
-    public SupplierOrderCreationHandler(SQLConnector sqlConnector, ObjectMapper mapper) {
-        this.sqlConnector = sqlConnector;
+    public SupplierOrderCreationHandler(ObjectMapper mapper, ModelRepository repo) {
         this.objectMapper = mapper;
+        this.repo = repo;
     }
 
     @Override
@@ -36,15 +34,15 @@ public class SupplierOrderCreationHandler implements IMessageHandler {
                     LegacyOrderDetailsDTO.class);
             log.debug("Received:\n" + legacyOrderDetailsDTO.toString());
 
-            try (Connection conn = sqlConnector.getConnection()) {
-                OrderDetailsDTO enriched = sqlConnector.customerEnrichLegacyOrder(legacyOrderDetailsDTO, conn);
-                if (Producer.publishObject("customer:order_creation", enriched)) {
-                    log.debug("Published:\n" + enriched.toString());
-                }
+            OrderDetailsDTO enriched = repo.customerEnrichLegacyOrder(legacyOrderDetailsDTO);
 
-                channel.basicAck(tag, false);
+            if (Producer.publishObject("customer:order_creation", enriched)) {
+                log.debug("Published:\n" + enriched.toString());
             }
-        } catch (SQLException | IOException e) {
+
+            channel.basicAck(tag, false);
+
+        } catch (IOException e) {
             log.error(e.getMessage());
             try {
                 channel.basicNack(tag, false, false);

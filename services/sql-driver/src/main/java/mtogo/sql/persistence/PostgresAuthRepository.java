@@ -1,23 +1,27 @@
 package mtogo.sql.persistence;
 
-import mtogo.sql.DTO.AuthDTO;
-
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import mtogo.sql.DTO.AuthDTO;
+import mtogo.sql.ports.out.AuthRepository;
 
-public class AuthQueries {
 
-    private final Connection conn;
+public class PostgresAuthRepository implements AuthRepository {
 
-    public AuthQueries(Connection conn) {
-        this.conn = conn;
+    private final SQLConnector connector;
+
+    public PostgresAuthRepository(SQLConnector connector) {
+        this.connector = connector;
     }
 
+    @Override
     public AuthDTO fetchAuthPerEmail(String email) {
+
         try {
+            var conn = connector.getConnection();
+
             var userStmt = conn.prepareStatement("""
                         SELECT user_id, email, password_hash
                         FROM auth_user
@@ -41,8 +45,11 @@ public class AuthQueries {
         }
     }
 
+    @Override
     public List<String> fetchRolesForAuth(long id) {
         try {
+            var conn = connector.getConnection();
+
             var rolesStmt = conn.prepareStatement("""
                         SELECT role_name FROM auth_user_role WHERE user_id = ?
                     """);
@@ -58,9 +65,12 @@ public class AuthQueries {
             return null;
         }
     }
-
+    
+    @Override
     public String fetchActorIdForAuth(String cred, String service) {
         try {
+            var conn = connector.getConnection();
+            
             switch (service.toLowerCase()) {
                 case "customer": {
                     var stmt = conn.prepareStatement("""

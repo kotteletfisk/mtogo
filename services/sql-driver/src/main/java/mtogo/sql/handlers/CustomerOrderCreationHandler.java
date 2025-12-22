@@ -5,7 +5,6 @@
 package mtogo.sql.handlers;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,7 +19,7 @@ import mtogo.sql.DTO.OrderDTO;
 import mtogo.sql.DTO.OrderDetailsDTO;
 import mtogo.sql.DTO.OrderLineDTO;
 import mtogo.sql.messaging.Producer;
-import mtogo.sql.persistence.SQLConnector;
+import mtogo.sql.ports.out.ModelRepository;
 
 /**
  *
@@ -29,12 +28,12 @@ import mtogo.sql.persistence.SQLConnector;
 public class CustomerOrderCreationHandler implements IMessageHandler {
     private static final Logger log = LoggerFactory.getLogger(CustomerOrderCreationHandler.class);
 
-    private final SQLConnector sqlConnector;
     private final ObjectMapper objectMapper;
+    private final ModelRepository repo;
 
-    public CustomerOrderCreationHandler(SQLConnector sqlConnector, ObjectMapper objectMapper) {
-        this.sqlConnector = sqlConnector;
+    public CustomerOrderCreationHandler(ObjectMapper objectMapper, ModelRepository repo) {
         this.objectMapper = objectMapper;
+        this.repo = repo;
     }
 
 
@@ -45,6 +44,8 @@ public class CustomerOrderCreationHandler implements IMessageHandler {
         try {
             OrderDetailsDTO orderDetailsDTO = objectMapper.readValue(delivery.getBody(),
                     OrderDetailsDTO.class);
+
+            // TODO: use case
 
             OrderDTO order = new OrderDTO(orderDetailsDTO);
 
@@ -63,9 +64,11 @@ public class CustomerOrderCreationHandler implements IMessageHandler {
             String bodyStr = new String(delivery.getBody(), java.nio.charset.StandardCharsets.UTF_8);
             log.info("Raw message body: " + bodyStr);
 
-            try (java.sql.Connection conn = sqlConnector.getConnection()) {
+/*             try (java.sql.Connection conn = sqlConnector.getConnection()) {
                 sqlConnector.createOrder(order, orderLines, conn);
-            }
+            } */
+
+           repo.createOrder(order, orderLines);
 
             String payload = objectMapper.writeValueAsString(orderDetailsDTO);
             Producer.publishMessage("supplier:order_persisted", payload);
@@ -73,24 +76,7 @@ public class CustomerOrderCreationHandler implements IMessageHandler {
             channel.basicAck(deliveryTag, false);
             log.debug("Order {} acknowledged", orderDetailsDTO.getOrderId());
 
-        } catch (org.postgresql.util.PSQLException e) {
-
-            if (e.getMessage().contains("duplicate key")) {
-                log.error("DB failure - duplicate order, discarding: {}", e.getMessage());
-                try {
-                    channel.basicNack(deliveryTag, false, false); // Don't requeue
-                } catch (IOException nackError) {
-                    log.error("Failed to NACK duplicate order", nackError);
-                }
-            } else {
-                log.error("DB failure: {}", e.getMessage());
-                try {
-                    channel.basicNack(deliveryTag, false, true); // Requeue other DB errors
-                } catch (IOException nackError) {
-                    log.error("Failed to NACK message", nackError);
-                }
-            }
-        } catch (IOException | SQLException e) {
+        }catch (IOException e) {
             log.error("Error handling order: {}", e.getMessage());
             try {
                 channel.basicNack(deliveryTag, false, true); // Requeue for retry
@@ -98,6 +84,7 @@ public class CustomerOrderCreationHandler implements IMessageHandler {
                 log.error("Failed to NACK message", nackError);
             }
         }
+        
     }
 
 }
