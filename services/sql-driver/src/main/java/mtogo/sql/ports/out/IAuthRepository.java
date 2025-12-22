@@ -12,7 +12,7 @@ import mtogo.sql.DTO.AuthDTO;
  *
  * @author kotteletfisk
  */
-public interface AuthRepository {
+public interface IAuthRepository {
 
     public AuthDTO fetchAuthPerEmail(String email);
 

@@ -11,30 +11,30 @@ import com.rabbitmq.client.Delivery;
 
 import mtogo.sql.DTO.LegacyOrderDetailsDTO;
 import mtogo.sql.DTO.OrderDetailsDTO;
+import mtogo.sql.core.SupplierOrderCreationService;
 import mtogo.sql.messaging.Producer;
-import mtogo.sql.ports.out.ModelRepository;
 
 public class SupplierOrderCreationHandler implements IMessageHandler {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
     private final ObjectMapper objectMapper;
-    private final ModelRepository repo;
+    private final SupplierOrderCreationService service;
 
-    public SupplierOrderCreationHandler(ObjectMapper mapper, ModelRepository repo) {
+    public SupplierOrderCreationHandler(ObjectMapper mapper, SupplierOrderCreationService service) {
         this.objectMapper = mapper;
-        this.repo = repo;
+        this.service = service;
     }
 
     @Override
     public void handle(Delivery delivery, Channel channel) {
         log.info("Handling legacy order message");
         long tag = delivery.getEnvelope().getDeliveryTag();
+
         try {
             LegacyOrderDetailsDTO legacyOrderDetailsDTO = objectMapper.readValue(delivery.getBody(),
                     LegacyOrderDetailsDTO.class);
-            log.debug("Received:\n" + legacyOrderDetailsDTO.toString());
 
-            OrderDetailsDTO enriched = repo.customerEnrichLegacyOrder(legacyOrderDetailsDTO);
+            OrderDetailsDTO enriched = service.call(legacyOrderDetailsDTO);
 
             if (Producer.publishObject("customer:order_creation", enriched)) {
                 log.debug("Published:\n" + enriched.toString());
@@ -42,7 +42,7 @@ public class SupplierOrderCreationHandler implements IMessageHandler {
 
             channel.basicAck(tag, false);
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error(e.getMessage());
             try {
                 channel.basicNack(tag, false, false);

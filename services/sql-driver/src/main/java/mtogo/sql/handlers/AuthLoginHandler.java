@@ -15,7 +15,8 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Delivery;
 
-import mtogo.sql.messaging.AuthReceiver;
+import mtogo.sql.core.AuthReceiverService;
+
 
 /**
  *
@@ -26,9 +27,9 @@ public class AuthLoginHandler implements IMessageHandler {
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     private final ObjectMapper objectMapper;
-    private final AuthReceiver ar;
+    private final AuthReceiverService ar;
 
-    public AuthLoginHandler(AuthReceiver ar, ObjectMapper objectMapper) {
+    public AuthLoginHandler(ObjectMapper objectMapper, AuthReceiverService ar) {
         this.ar = ar;
         this.objectMapper = objectMapper;
     }
@@ -46,7 +47,10 @@ public class AuthLoginHandler implements IMessageHandler {
             if ("find_user_by_email".equals(action)) {
                 String email = reqJson.get("email").asText();
                 String service = reqJson.get("service").asText();
+
+
                 String resp = ar.handleAuthLookup(email, service);
+
                 var props = new AMQP.BasicProperties.Builder()
                         .correlationId(delivery.getProperties().getCorrelationId())
                         .contentType("application/json")

@@ -16,11 +16,11 @@ import mtogo.sql.DTO.menuItemDTO;
  *
  * @author kotteletfisk
  */
-public interface ModelRepository {
+public interface IModelRepository {
 
-    public OrderDTO createOrder(OrderDTO orderDTO, List<OrderLineDTO> orderLineDTOS);
+    public OrderDTO createOrder(OrderDTO orderDTO, List<OrderLineDTO> orderLineDTOS) throws Exception;
 
-    public OrderDetailsDTO customerEnrichLegacyOrder(LegacyOrderDetailsDTO dto);
+    public OrderDetailsDTO customerEnrichLegacyOrder(LegacyOrderDetailsDTO dto) throws Exception;
 
-    public List<menuItemDTO> getMenuItemsBySupplierId(int supplierId);
+    public List<menuItemDTO> getMenuItemsBySupplierId(int supplierId) throws Exception;
 }

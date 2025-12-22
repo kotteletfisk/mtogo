@@ -1,14 +1,15 @@
-package mtogo.sql.persistence;
+package mtogo.sql.adapter.out;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
 import mtogo.sql.DTO.AuthDTO;
-import mtogo.sql.ports.out.AuthRepository;
+import mtogo.sql.persistence.SQLConnector;
+import mtogo.sql.ports.out.IAuthRepository;
 
 
-public class PostgresAuthRepository implements AuthRepository {
+public class PostgresAuthRepository implements IAuthRepository {
 
     private final SQLConnector connector;
 

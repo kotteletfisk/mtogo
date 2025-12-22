@@ -10,19 +10,19 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Delivery;
 
 import mtogo.sql.DTO.menuItemDTO;
+import mtogo.sql.core.CustomerMenuRequestService;
 import mtogo.sql.messaging.Producer;
-import mtogo.sql.ports.out.ModelRepository;
 
 public class CustomerMenuRequestHandler implements IMessageHandler {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     private final ObjectMapper objectMapper;
-    private final ModelRepository repo;
+    private final CustomerMenuRequestService service;
 
-    public CustomerMenuRequestHandler(ObjectMapper objectMapper, ModelRepository repo) {
+    public CustomerMenuRequestHandler(ObjectMapper objectMapper, CustomerMenuRequestService service) {
         this.objectMapper = objectMapper;
-        this.repo = repo;
+        this.service = service;
     }
 
     @Override
@@ -49,12 +49,7 @@ public class CustomerMenuRequestHandler implements IMessageHandler {
 
             log.info("Supplier ID: {}, Correlation: {}", supplierId, correlationId);
 
-            List<menuItemDTO> items = repo.getMenuItemsBySupplierId(supplierId);
-
-            if (items == null) {
-                items = java.util.Collections.emptyList();
-            }
-            log.debug("Found {} items for Supplier ID: {}", items.size(), supplierId);
+            List<menuItemDTO> items = service.call(supplierId);
 
             String itemsJson = objectMapper.writeValueAsString(items);
             // Format: "correlationId::[json]"

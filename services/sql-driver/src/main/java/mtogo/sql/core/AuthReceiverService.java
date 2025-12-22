@@ -1,4 +1,4 @@
-package mtogo.sql.messaging;
+package mtogo.sql.core;
 
 import java.util.List;
 import java.util.Map;
@@ -10,14 +10,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import mtogo.sql.DTO.AuthDTO;
-import mtogo.sql.ports.out.AuthRepository;
+import mtogo.sql.ports.out.IAuthRepository;
 
-public class AuthReceiver {
+public class AuthReceiverService {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
-    private final AuthRepository repo;
+    private final IAuthRepository repo;
 
-    public AuthReceiver(AuthRepository repo) {
+    public AuthReceiverService(IAuthRepository repo) {
         this.repo = repo;
     }
 
