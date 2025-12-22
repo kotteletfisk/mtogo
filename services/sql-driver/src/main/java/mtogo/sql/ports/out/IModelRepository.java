@@ -23,4 +23,6 @@ public interface IModelRepository {
     public OrderDetailsDTO customerEnrichLegacyOrder(LegacyOrderDetailsDTO dto) throws Exception;
 
     public List<menuItemDTO> getMenuItemsBySupplierId(int supplierId) throws Exception;
+
+    public boolean healthCheck() throws Exception;
 }

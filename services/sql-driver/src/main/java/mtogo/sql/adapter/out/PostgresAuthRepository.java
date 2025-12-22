@@ -1,15 +1,21 @@
 package mtogo.sql.adapter.out;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.postgresql.util.PSQLException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import mtogo.sql.DTO.AuthDTO;
 import mtogo.sql.persistence.SQLConnector;
 import mtogo.sql.ports.out.IAuthRepository;
 
-
 public class PostgresAuthRepository implements IAuthRepository {
+
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     private final SQLConnector connector;
 
@@ -66,12 +72,12 @@ public class PostgresAuthRepository implements IAuthRepository {
             return null;
         }
     }
-    
+
     @Override
     public String fetchActorIdForAuth(String cred, String service) {
         try {
             var conn = connector.getConnection();
-            
+
             switch (service.toLowerCase()) {
                 case "customer": {
                     var stmt = conn.prepareStatement("""
@@ -119,5 +125,22 @@ public class PostgresAuthRepository implements IAuthRepository {
         } catch (SQLException e) {
             return String.valueOf(-1);
         }
+    }
+
+    @Override
+    public boolean healthCheck() throws Exception {
+
+        for (int i = 0; i < 10; i++) {
+            try {
+                Connection conn = connector.getConnection();
+                if (conn.isValid(2)) {
+                    return true;
+                }
+            } catch (PSQLException e) {
+                log.warn("Retrying JDBC connection");
+                Thread.sleep(2000);
+            }
+        }
+        throw new SQLException("JDBC Connection Failed");
     }
 }

@@ -19,4 +19,6 @@ public interface IAuthRepository {
     public List<String> fetchRolesForAuth(long id);
 
     public String fetchActorIdForAuth(String cred, String service);
+
+    public boolean healthCheck() throws Exception;
 }

@@ -60,7 +60,6 @@ public class Consumer {
     }
 
     public static void consumeMessages(String[] bindingKeys, MessageRouter msgRouter) throws Exception {
-        router = msgRouter;
         log.debug("Registering binding keys: {}", bindingKeys.toString());
 
         Connection connection = getConnectionOrRetry(2000);

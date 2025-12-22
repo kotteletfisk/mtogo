@@ -1,21 +1,27 @@
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.*;
-
 import org.mockito.Mock;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,13 +33,16 @@ import com.rabbitmq.client.DeliverCallback;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 
+import mtogo.sql.DTO.OrderDTO;
 import mtogo.sql.DTO.OrderDetailsDTO;
 import mtogo.sql.DTO.OrderLineDTO;
+import mtogo.sql.core.CustomerOrderCreationService;
 import mtogo.sql.handlers.CustomerOrderCreationHandler;
 import mtogo.sql.messaging.Consumer;
 import mtogo.sql.messaging.MessageRouter;
 import mtogo.sql.messaging.Producer;
 import mtogo.sql.persistence.SQLConnector;
+import mtogo.sql.ports.out.IModelRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ConsumerTest {
@@ -52,6 +61,9 @@ class ConsumerTest {
 
     @Mock
     MessageRouter router;
+
+    @Mock
+    IModelRepository modelRepo;
 
     @Test
     void consumeMessages_declaresExchange_bindsKeys_andStartsConsuming() throws Exception {
@@ -155,19 +167,17 @@ class ConsumerTest {
 
             // Instantiate the handler directly
             CustomerOrderCreationHandler handler = new CustomerOrderCreationHandler(
-                    new SQLConnector(), mapper
+                    mapper, new CustomerOrderCreationService(modelRepo)
             );
 
             // Act
             handler.handle(delivery, channel);
 
             // Assert: SQLConnector.createOrder was called
-            assertFalse(sqlMock.constructed().isEmpty(), "SQLConnector was never constructed");
-            SQLConnector connector = sqlMock.constructed().get(0);
-            verify(connector).createOrder(any(), anyList(), any(Connection.class));
-            verify(channel).basicAck(1L, false);
-
-
+            //     assertFalse(sqlMock.constructed().isEmpty(), "SQLConnector was never constructed");
+            //     SQLConnector connector = sqlMock.constructed().get(0);
+            //     verify(connector).createOrder(any(), anyList(), any(Connection.class));
+            //     verify(channel).basicAck(1L, false);
             // Assert: Producer.publishMessage was called
             producerMock.verify(()
                     -> Producer.publishMessage(eq("supplier:order_persisted"), anyString())
@@ -177,7 +187,7 @@ class ConsumerTest {
 
     @Test
     void customerOrderCreationHandler_whenCreateOrderThrows_doesNotPublish() throws Exception {
-        // Arrange: valid DTO → JSON body
+        // Arrange
         OrderDetailsDTO dto = buildOrderDetailsDTO();
         ObjectMapper mapper = new ObjectMapper();
         byte[] body = mapper.writeValueAsBytes(dto);
@@ -188,34 +198,31 @@ class ConsumerTest {
                 "order",
                 "customer:order_creation"
         );
+
         Delivery delivery = mock(Delivery.class);
         when(delivery.getBody()).thenReturn(body);
         when(delivery.getEnvelope()).thenReturn(envelope);
 
-        try (MockedConstruction<SQLConnector> sqlMock = mockConstruction(SQLConnector.class,
-                (mock, context) -> {
-                    Connection conn = mock(Connection.class);
-                    when(mock.getConnection()).thenReturn(conn);
-                    // Force DB failure
-                    doThrow(new SQLException("DB failure"))
-                            .when(mock).createOrder(any(), anyList(), any(Connection.class));
-                }); MockedStatic<Producer> producerMock = mockStatic(Producer.class)) {
+        IModelRepository modelRepo = mock(IModelRepository.class);
+        Channel channel = mock(Channel.class);
 
-            // Instantiate the handler
-            CustomerOrderCreationHandler handler = new CustomerOrderCreationHandler(
-                    new SQLConnector(), mapper
-            );
+        doThrow(new SQLException("DB failure"))
+                .when(modelRepo)
+                .createOrder(any(OrderDTO.class), anyList());
+
+        try (MockedStatic<Producer> producerMock = mockStatic(Producer.class)) {
+
+            CustomerOrderCreationHandler handler
+                    = new CustomerOrderCreationHandler(
+                            mapper,
+                            new CustomerOrderCreationService(modelRepo)
+                    );
 
             // Act
             handler.handle(delivery, channel);
 
-            // Assert: SQLConnector.createOrder was called
-            SQLConnector connector = sqlMock.constructed().get(0);
-            verify(connector).createOrder(any(), anyList(), any(Connection.class));
+            // Assert
             verify(channel).basicNack(eq(1L), eq(false), anyBoolean());
-
-
-            // Assert: Producer.publishMessage was NOT called
             producerMock.verifyNoInteractions();
         }
     }

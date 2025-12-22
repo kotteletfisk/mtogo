@@ -8,6 +8,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 
+import org.postgresql.util.PSQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,4 +65,20 @@ public class PostgresModelRepository implements IModelRepository {
         }
     }
 
+    @Override
+    public boolean healthCheck() throws Exception {
+
+        for (int i = 0; i < 10; i++) {
+            try {
+                Connection conn = sqlConnector.getConnection();
+                if (conn.isValid(2)) {
+                    return true;
+                }
+            } catch (PSQLException e) {
+                log.warn("Retrying JDBC connection");
+                Thread.sleep(2000);
+            }
+        }
+        throw new SQLException("JDBC Connection Failed");
+    }
 }

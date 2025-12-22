@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.List;
 
+import org.postgresql.util.PSQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,8 +94,7 @@ public class SQLConnector {
             // TODO: nullable for compatiblity
             if (orderDTO.getSupplierId() != null) {
                 orderStmt.setInt(6, orderDTO.getSupplierId());
-            }
-            else {
+            } else {
                 orderStmt.setNull(6, 0);
             }
 
@@ -198,7 +198,7 @@ public class SQLConnector {
                 log.info("No match customer match found. Creating anonymously");
                 createAnonUser(connection);
             }
-            
+
             int index = 1;
             for (var line : legacyDTO.getOrderLineDTOS()) {
                 line.setOrderLineId(index++);
@@ -241,5 +241,27 @@ public class SQLConnector {
             throw new SQLException(e);
         }
 
+    }
+
+    public boolean checkConnection(Connection connection) throws SQLException {
+
+        for (int i = 0; i < 10; i++) {
+            try {
+
+                if (connection.isValid(2)) {
+                    return true;
+                }
+
+            } catch (PSQLException e) {
+                log.warn(e.getLocalizedMessage());
+                log.warn("Retrying PostgreSQL connection");
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException ex) {
+                    log.error(ex.getLocalizedMessage());
+                }
+            }
+        }
+        throw new SQLException("Connection to PosgtreSQL failed!");
     }
 }
