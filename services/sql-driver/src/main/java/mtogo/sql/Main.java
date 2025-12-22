@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import mtogo.sql.adapter.out.PostgresModelRepository;
 import mtogo.sql.handlers.AuthLoginHandler;
 import mtogo.sql.handlers.CustomerMenuRequestHandler;
 import mtogo.sql.handlers.CustomerOrderCreationHandler;
@@ -16,6 +17,7 @@ import mtogo.sql.messaging.AuthReceiver;
 import mtogo.sql.messaging.Consumer;
 import mtogo.sql.messaging.MessageRouter;
 import mtogo.sql.persistence.SQLConnector;
+import mtogo.sql.ports.out.ModelRepository;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
@@ -27,14 +29,15 @@ public class Main {
         log.info("=== Starting SQL Driver ===");
 
         try {
-            SQLConnector connector = new SQLConnector();
             ObjectMapper mapper = new ObjectMapper();
             AuthReceiver authReceiver = new AuthReceiver();
 
+            ModelRepository repo = new PostgresModelRepository(new SQLConnector());
+
             Map<String, IMessageHandler> map = Map.of(
-                    "customer:order_creation", new CustomerOrderCreationHandler(connector, mapper),
-                    "supplier:order_creation", new SupplierOrderCreationHandler(connector, mapper),
-                    "customer:menu_request", new CustomerMenuRequestHandler(connector, mapper),
+                    "customer:order_creation", new CustomerOrderCreationHandler(mapper, repo),
+                    "supplier:order_creation", new SupplierOrderCreationHandler(mapper, repo),
+                    "customer:menu_request", new CustomerMenuRequestHandler(mapper, repo),
                     "auth:login", new AuthLoginHandler(authReceiver, mapper)
             );
 
@@ -48,7 +51,6 @@ public class Main {
             log.info("SQL-driver started successfully, listening for messages...");
             log.debug("Debug logging is enabled");
 
-            log.info("Application running. Press Ctrl+C to stop.");
             Thread.currentThread().join();
 
         } catch (InterruptedException e) {
