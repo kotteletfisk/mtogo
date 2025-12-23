@@ -12,19 +12,20 @@ import com.rabbitmq.client.Delivery;
 import mtogo.sql.DTO.LegacyOrderDetailsDTO;
 import mtogo.sql.DTO.OrderDetailsDTO;
 import mtogo.sql.core.SupplierOrderCreationService;
-import mtogo.sql.ports.out.IMessageProducer;
+import mtogo.sql.event.CustomerOrderCreationEvent;
+import mtogo.sql.ports.out.IOrderCreationEventProducer;
 
 public class SupplierOrderCreationHandler implements IMessageHandler {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
     private final ObjectMapper objectMapper;
     private final SupplierOrderCreationService service;
-    private final IMessageProducer publisher;
+    private final IOrderCreationEventProducer producer;
 
-    public SupplierOrderCreationHandler(ObjectMapper mapper, SupplierOrderCreationService service, IMessageProducer publisher) {
+    public SupplierOrderCreationHandler(ObjectMapper mapper, SupplierOrderCreationService service, IOrderCreationEventProducer producer) {
         this.objectMapper = mapper;
         this.service = service;
-        this.publisher = publisher;
+        this.producer = producer;
     }
 
     @Override
@@ -38,7 +39,7 @@ public class SupplierOrderCreationHandler implements IMessageHandler {
 
             OrderDetailsDTO enriched = service.call(legacyOrderDetailsDTO);
 
-            if (publisher.publishObject("customer:order_creation", enriched)) {
+            if (producer.orderCreation(new CustomerOrderCreationEvent(enriched))) {
                 log.debug("Published:\n" + enriched.toString());
             }
 

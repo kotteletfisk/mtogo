@@ -17,14 +17,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 
-import mtogo.sql.messaging.ConnectionManager;
-import mtogo.sql.ports.out.IMessageProducer;
-
 /**
  *
  * @author kotteletfisk
  */
-public class RabbitMQMessageProducer implements IMessageProducer {
+public class RabbitMQEventProducer {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -32,18 +29,18 @@ public class RabbitMQMessageProducer implements IMessageProducer {
     private final String EXCHANGE_NAME = "order";
 
     // Connection pooling
-    private Connection connection;
+    private final Connection connection;
     private BlockingQueue<Channel> channelPool;
     private final int POOL_SIZE = 10;
     private static final Object initLock = new Object();
     private final ObjectMapper mapper;
 
-    public RabbitMQMessageProducer(ObjectMapper mapper) throws IOException, TimeoutException, InterruptedException {
+    public RabbitMQEventProducer(ObjectMapper mapper, Connection connection) throws IOException, TimeoutException, InterruptedException {
         this.mapper = mapper;
+        this.connection = connection;
         fillChannelPool();
     }
 
-    @Override
     public boolean publishMessage(String routingKey, String message) {
 
         try {
@@ -94,8 +91,7 @@ public class RabbitMQMessageProducer implements IMessageProducer {
         }
     }
 
-    @Override
-    public boolean publishObject(String routingKey, Object value) {
+    public boolean publishObject(String routingKey, Object value) throws IOException {
         try {
             if (value == null) {
                 throw new IllegalArgumentException("Object was null!");
@@ -115,6 +111,7 @@ public class RabbitMQMessageProducer implements IMessageProducer {
 
         } catch (IOException | IllegalArgumentException e) {
             log.error("Error publishing object: " + e.getMessage());
+            throw e;
         }
         return false;
     }
@@ -122,8 +119,6 @@ public class RabbitMQMessageProducer implements IMessageProducer {
     private void fillChannelPool() throws TimeoutException, InterruptedException, IOException {
         synchronized (initLock) {
             try {
-
-                this.connection = ConnectionManager.getConnectionManager().getConnection();
 
                 if (channelPool == null) {
                     channelPool = new ArrayBlockingQueue<>(POOL_SIZE);

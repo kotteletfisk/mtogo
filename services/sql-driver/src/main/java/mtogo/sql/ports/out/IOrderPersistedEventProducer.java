@@ -5,13 +5,15 @@
 
 package mtogo.sql.ports.out;
 
+import java.io.IOException;
+
+import mtogo.sql.event.OrderPersistedEvent;
+
 /**
  *
  * @author kotteletfisk
  */
-public interface IMessageProducer {
+public interface IOrderPersistedEventProducer {
 
-        public boolean publishMessage(String routingKey, String message);
-
-        public boolean publishObject(String routingKey, Object value);
+    public boolean orderPersisted(OrderPersistedEvent event) throws IOException;
 }

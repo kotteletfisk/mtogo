@@ -29,4 +29,8 @@ public class MessageRouter {
 
         return handler;
     }
+
+    public String[] getBindingKeys() {
+        return handlers.keySet().toArray(new String[0]);
+    }
 }

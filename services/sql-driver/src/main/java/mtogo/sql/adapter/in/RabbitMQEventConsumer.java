@@ -7,38 +7,22 @@ package mtogo.sql.adapter.in;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DeliverCallback;
 
-import mtogo.sql.adapter.out.RabbitMQMessageProducer;
-import mtogo.sql.core.AuthReceiverService;
-import mtogo.sql.core.CustomerMenuRequestService;
-import mtogo.sql.core.CustomerOrderCreationService;
-import mtogo.sql.core.SupplierOrderCreationService;
-import mtogo.sql.handlers.AuthLoginHandler;
-import mtogo.sql.handlers.CustomerMenuRequestHandler;
-import mtogo.sql.handlers.CustomerOrderCreationHandler;
-import mtogo.sql.handlers.IMessageHandler;
-import mtogo.sql.handlers.SupplierOrderCreationHandler;
-import mtogo.sql.messaging.ConnectionManager;
 import mtogo.sql.messaging.MessageRouter;
-import mtogo.sql.ports.in.IMessageConsumer;
-import mtogo.sql.ports.out.IAuthRepository;
-import mtogo.sql.ports.out.IMessageProducer;
-import mtogo.sql.ports.out.IModelRepository;
+import mtogo.sql.ports.in.IEventConsumer;
 
 /**
  *
  * @author kotteletfisk
  */
-public class RabbitMQMessageConsumer implements IMessageConsumer {
+public class RabbitMQEventConsumer implements IEventConsumer {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -46,37 +30,18 @@ public class RabbitMQMessageConsumer implements IMessageConsumer {
     private final StringWriter sw = new StringWriter();
     private final PrintWriter pw = new PrintWriter(sw);
 
-    private final IAuthRepository authRepo;
-    private final IModelRepository modelRepo;
-    private final ObjectMapper mapper;
+    private final MessageRouter router;
+    private final Connection connection;
 
-    public RabbitMQMessageConsumer(IAuthRepository authRepo, IModelRepository modelRepo, ObjectMapper mapper) {
-        this.authRepo = authRepo;
-        this.modelRepo = modelRepo;
-        this.mapper = mapper;
+    public RabbitMQEventConsumer(MessageRouter router, Connection connection) {
+        this.router = router;
+        this.connection = connection;
     }
 
     @Override
     public void start() throws Exception {
 
-        Connection connection = ConnectionManager.getConnectionManager().getConnection();
-
-        IMessageProducer producer = new RabbitMQMessageProducer(mapper);
-
-        Map<String, IMessageHandler> map = Map.of(
-                "customer:order_creation", new CustomerOrderCreationHandler(mapper,
-                        new CustomerOrderCreationService(modelRepo),
-                        producer),
-                "supplier:order_creation", new SupplierOrderCreationHandler(mapper,
-                        new SupplierOrderCreationService(modelRepo),
-                        producer),
-                "customer:menu_request", new CustomerMenuRequestHandler(mapper, new CustomerMenuRequestService(modelRepo)),
-                "auth:login", new AuthLoginHandler(mapper, new AuthReceiverService(authRepo))
-        );
-
-        MessageRouter router = new MessageRouter(map);
-
-        String[] bindingKeys = map.keySet().toArray(new String[0]);
+        String[] bindingKeys = router.getBindingKeys();
 
         log.info("Starting consumer with binding keys: {}", String.join(", ", bindingKeys));
 
