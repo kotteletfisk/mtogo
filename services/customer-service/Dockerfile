@@ -9,7 +9,7 @@ FROM eclipse-temurin:21-jre-jammy
 
 WORKDIR /app
 
-COPY --from=build /app/target/*.jar app.jar
+COPY --from=build /app/target/customer-service.jar app.jar
 
 EXPOSE 7070
 EXPOSE 5672

@@ -1,8 +1,6 @@
-package mtogo.sql.handlers;
+package mtogo.sql.adapter.handlers;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.SQLException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,38 +11,41 @@ import com.rabbitmq.client.Delivery;
 
 import mtogo.sql.DTO.LegacyOrderDetailsDTO;
 import mtogo.sql.DTO.OrderDetailsDTO;
-import mtogo.sql.messaging.Producer;
-import mtogo.sql.persistence.SQLConnector;
+import mtogo.sql.core.SupplierOrderCreationService;
+import mtogo.sql.event.CustomerOrderCreationEvent;
+import mtogo.sql.ports.out.IOrderCreationEventProducer;
 
 public class SupplierOrderCreationHandler implements IMessageHandler {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
     private final ObjectMapper objectMapper;
-    private final SQLConnector sqlConnector;
+    private final SupplierOrderCreationService service;
+    private final IOrderCreationEventProducer producer;
 
-    public SupplierOrderCreationHandler(SQLConnector sqlConnector, ObjectMapper mapper) {
-        this.sqlConnector = sqlConnector;
+    public SupplierOrderCreationHandler(ObjectMapper mapper, SupplierOrderCreationService service, IOrderCreationEventProducer producer) {
         this.objectMapper = mapper;
+        this.service = service;
+        this.producer = producer;
     }
 
     @Override
     public void handle(Delivery delivery, Channel channel) {
         log.info("Handling legacy order message");
         long tag = delivery.getEnvelope().getDeliveryTag();
+
         try {
             LegacyOrderDetailsDTO legacyOrderDetailsDTO = objectMapper.readValue(delivery.getBody(),
                     LegacyOrderDetailsDTO.class);
-            log.debug("Received:\n" + legacyOrderDetailsDTO.toString());
 
-            try (Connection conn = sqlConnector.getConnection()) {
-                OrderDetailsDTO enriched = sqlConnector.customerEnrichLegacyOrder(legacyOrderDetailsDTO, conn);
-                if (Producer.publishObject("customer:order_creation", enriched)) {
-                    log.debug("Published:\n" + enriched.toString());
-                }
+            OrderDetailsDTO enriched = service.call(legacyOrderDetailsDTO);
 
-                channel.basicAck(tag, false);
+            if (producer.orderCreation(new CustomerOrderCreationEvent(enriched))) {
+                log.debug("Published:\n" + enriched.toString());
             }
-        } catch (SQLException | IOException e) {
+
+            channel.basicAck(tag, false);
+
+        } catch (Exception e) {
             log.error(e.getMessage());
             try {
                 channel.basicNack(tag, false, false);

@@ -1,23 +1,34 @@
-package mtogo.sql.persistence;
-
-import mtogo.sql.DTO.AuthDTO;
+package mtogo.sql.adapter.out;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.postgresql.util.PSQLException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class AuthQueries {
+import mtogo.sql.DTO.AuthDTO;
+import mtogo.sql.persistence.SQLConnector;
+import mtogo.sql.ports.out.IAuthRepository;
 
-    private final Connection conn;
+public class PostgresAuthRepository implements IAuthRepository {
 
-    public AuthQueries(Connection conn) {
-        this.conn = conn;
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
+
+    private final SQLConnector connector;
+
+    public PostgresAuthRepository(SQLConnector connector) {
+        this.connector = connector;
     }
 
+    @Override
     public AuthDTO fetchAuthPerEmail(String email) {
+
         try {
+            var conn = connector.getConnection();
+
             var userStmt = conn.prepareStatement("""
                         SELECT user_id, email, password_hash
                         FROM auth_user
@@ -41,8 +52,11 @@ public class AuthQueries {
         }
     }
 
+    @Override
     public List<String> fetchRolesForAuth(long id) {
         try {
+            var conn = connector.getConnection();
+
             var rolesStmt = conn.prepareStatement("""
                         SELECT role_name FROM auth_user_role WHERE user_id = ?
                     """);
@@ -59,8 +73,11 @@ public class AuthQueries {
         }
     }
 
+    @Override
     public String fetchActorIdForAuth(String cred, String service) {
         try {
+            var conn = connector.getConnection();
+
             switch (service.toLowerCase()) {
                 case "customer": {
                     var stmt = conn.prepareStatement("""
@@ -108,5 +125,22 @@ public class AuthQueries {
         } catch (SQLException e) {
             return String.valueOf(-1);
         }
+    }
+
+    @Override
+    public boolean healthCheck() throws Exception {
+
+        for (int i = 0; i < 10; i++) {
+            try {
+                Connection conn = connector.getConnection();
+                if (conn.isValid(2)) {
+                    return true;
+                }
+            } catch (PSQLException e) {
+                log.warn("Retrying JDBC connection");
+                Thread.sleep(2000);
+            }
+        }
+        throw new SQLException("JDBC Connection Failed");
     }
 }

@@ -1,28 +1,28 @@
-package mtogo.sql.handlers;
+package mtogo.sql.adapter.handlers;
 
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Delivery;
 
 import mtogo.sql.DTO.menuItemDTO;
-import mtogo.sql.messaging.Producer;
-import mtogo.sql.persistence.SQLConnector;
+import mtogo.sql.core.CustomerMenuRequestService;
+import mtogo.sql.ports.out.IRpcResponder;
+import mtogo.sql.ports.out.IRpcResponderFactory;
 
 public class CustomerMenuRequestHandler implements IMessageHandler {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-    private final SQLConnector sqlConnector;
-    private final ObjectMapper objectMapper;
+    private final CustomerMenuRequestService service;
+    private final IRpcResponderFactory factory;
 
-    public CustomerMenuRequestHandler(SQLConnector sqlConnector, ObjectMapper objectMapper) {
-        this.sqlConnector = sqlConnector;
-        this.objectMapper = objectMapper;
+    public CustomerMenuRequestHandler(CustomerMenuRequestService service, IRpcResponderFactory factory) {
+        this.service = service;
+        this.factory = factory;
     }
 
     @Override
@@ -34,7 +34,7 @@ public class CustomerMenuRequestHandler implements IMessageHandler {
                     delivery.getBody(),
                     java.nio.charset.StandardCharsets.UTF_8
             );
-            log.info(" [x] Received payload: {}", body);
+            log.info("Received payload: {}", body);
 
             // Parse "correlationId:supplierId"
             int separatorIndex = body.indexOf(":");
@@ -44,37 +44,23 @@ public class CustomerMenuRequestHandler implements IMessageHandler {
                 return;
             }
 
-            String correlationId = body.substring(0, separatorIndex);
+            // String correlationId = body.substring(0, separatorIndex);
             int supplierId = Integer.parseInt(body.substring(separatorIndex + 1).trim());
 
-            log.info(" [x] Supplier ID: {}, Correlation: {}", supplierId, correlationId);
+            log.info("Supplier ID: {}, Correlation: {}", supplierId, delivery.getProperties().getCorrelationId());
 
-            List<menuItemDTO> items;
+            List<menuItemDTO> items = service.call(supplierId);
 
-            try (java.sql.Connection conn = sqlConnector.getConnection()) {
-                log.info(" [x] Fetching menu items from DB for supplier {}", supplierId);
-                items = sqlConnector.getMenuItemsBySupplierId(supplierId, conn);
-                log.info(" [x] Found {} menu items for supplier {}",
-                        (items == null ? 0 : items.size()), supplierId);
-            }
-
-            if (items == null) {
-                items = java.util.Collections.emptyList();
-            }
-
-            String itemsJson = objectMapper.writeValueAsString(items);
+            /*             String itemsJson = objectMapper.writeValueAsString(items);
             // Format: "correlationId::[json]"
             String payload = correlationId + "::" + itemsJson;
-            log.info(" [x] Sending menu response, length={} bytes", payload.length());
+            log.info("Sending menu response, length={} bytes", payload.length()); */
 
-            boolean published = Producer.publishMessage("customer:menu_response", payload);
+            IRpcResponder responder = factory.create(delivery);
+            responder.reply(items);
 
-            if (published) {
-                channel.basicAck(deliveryTag, false);
-            } else {
-                log.error("Failed to publish menu response");
-                channel.basicNack(deliveryTag, false, true); // Requeue for retry
-            }
+            /*             boolean published = Producer.publishMessage("customer:menu_response", payload); */
+            channel.basicAck(deliveryTag, false);
 
         } catch (NumberFormatException e) {
             log.error("Invalid supplierId format in request", e);

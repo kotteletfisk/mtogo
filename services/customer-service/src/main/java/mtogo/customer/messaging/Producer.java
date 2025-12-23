@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -144,6 +145,59 @@ public class Producer {
 
             // Publish message
             channel.basicPublish(EXCHANGE_NAME, routingKey, null, message.getBytes("UTF-8"));
+
+            // Wait for confirmation
+            if (!channel.waitForConfirms(5000)) {
+                log.error("RabbitMQ did not confirm message for routing key: {}", routingKey);
+                throw new APIException(500, "Message delivery not confirmed");
+            }
+
+            log.debug("Published message to {}", routingKey);
+            return true;
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Interrupted while waiting for channel: {}", e.getMessage());
+            throw new APIException(503, "Request interrupted");
+
+        } catch (APIException e) {
+            throw e; // Re-throw API exceptions
+
+        } catch (Exception e) {
+            log.error("Failed to publish message to {}: {}", routingKey, e.getMessage(), e);
+            throw new APIException(500, "Failed to publish message");
+
+        } finally {
+            // Return channel to pool (DON'T close it!)
+            if (channel != null && channel.isOpen()) {
+                channelPool.offer(channel);
+            }
+        }
+    }    
+    
+    public static boolean publishMessage(String routingKey, String message, AMQP.BasicProperties props) throws APIException {
+        ensureInitialized(); // Lazy init on first use
+
+        Channel channel = null;
+        try {
+            // Acquire channel from pool (blocks if none available)
+            channel = channelPool.poll(5, TimeUnit.SECONDS);
+
+            if (channel == null) {
+                log.error("Channel pool exhausted - no channels available after 5s");
+                throw new APIException(503, "Service temporarily unavailable - too many requests");
+            }
+
+            // Check if channel is still open
+            if (!channel.isOpen()) {
+                log.warn("Channel was closed, creating new one");
+                channel = connection.createChannel();
+                channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
+                channel.confirmSelect();
+            }
+
+            // Publish message
+            channel.basicPublish(EXCHANGE_NAME, routingKey, props, message.getBytes("UTF-8"));
 
             // Wait for confirmation
             if (!channel.waitForConfirms(5000)) {

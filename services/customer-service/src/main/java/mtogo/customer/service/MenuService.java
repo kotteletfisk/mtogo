@@ -1,12 +1,17 @@
 package mtogo.customer.service;
 
-import mtogo.customer.DTO.menuItemDTO;
-import mtogo.customer.messaging.Producer;
-
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import com.rabbitmq.client.AMQP;
+
+import mtogo.customer.DTO.menuItemDTO;
+import mtogo.customer.messaging.Producer;
 
 public class MenuService {
 
@@ -33,7 +38,15 @@ public class MenuService {
         try {
             // Send request with correlation ID
             String payload = correlationId + ":" + supplierId;
-            Producer.publishMessage("customer:menu_request", payload);
+            String replyQueue = "customer:menu_response";
+
+            AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()
+                .correlationId(correlationId)
+                .replyTo(replyQueue)
+                .build();
+
+
+            Producer.publishMessage("customer:menu_request", payload, props);
 
             List<menuItemDTO> items = future.get(2, TimeUnit.SECONDS);
             return items;

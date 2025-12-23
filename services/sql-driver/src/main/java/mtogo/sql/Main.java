@@ -6,16 +6,31 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.Connection;
 
-import mtogo.sql.handlers.AuthLoginHandler;
-import mtogo.sql.handlers.CustomerMenuRequestHandler;
-import mtogo.sql.handlers.CustomerOrderCreationHandler;
-import mtogo.sql.handlers.IMessageHandler;
-import mtogo.sql.handlers.SupplierOrderCreationHandler;
-import mtogo.sql.messaging.AuthReceiver;
-import mtogo.sql.messaging.Consumer;
-import mtogo.sql.messaging.MessageRouter;
+import mtogo.sql.adapter.handlers.AuthLoginHandler;
+import mtogo.sql.adapter.handlers.CustomerMenuRequestHandler;
+import mtogo.sql.adapter.handlers.CustomerOrderCreationHandler;
+import mtogo.sql.adapter.handlers.IMessageHandler;
+import mtogo.sql.adapter.handlers.SupplierOrderCreationHandler;
+import mtogo.sql.adapter.in.RabbitMQEventConsumer;
+import mtogo.sql.adapter.messaging.ConnectionManager;
+import mtogo.sql.adapter.messaging.MessageRouter;
+import mtogo.sql.adapter.out.PostgresAuthRepository;
+import mtogo.sql.adapter.out.PostgresModelRepository;
+import mtogo.sql.adapter.out.RabbitMQEventProducer;
+import mtogo.sql.adapter.out.RabbitMQOrderCreationEventProducer;
+import mtogo.sql.adapter.out.RabbitMQOrderPersistedEventProducer;
+import mtogo.sql.adapter.out.RabbitMQRpcResponderFactory;
+import mtogo.sql.core.AuthReceiverService;
+import mtogo.sql.core.CustomerMenuRequestService;
+import mtogo.sql.core.CustomerOrderCreationService;
+import mtogo.sql.core.SupplierOrderCreationService;
 import mtogo.sql.persistence.SQLConnector;
+import mtogo.sql.ports.in.IEventConsumer;
+import mtogo.sql.ports.out.IAuthRepository;
+import mtogo.sql.ports.out.IModelRepository;
+import mtogo.sql.ports.out.IRpcResponderFactory;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
@@ -27,28 +42,51 @@ public class Main {
         log.info("=== Starting SQL Driver ===");
 
         try {
-            SQLConnector connector = new SQLConnector();
             ObjectMapper mapper = new ObjectMapper();
-            AuthReceiver authReceiver = new AuthReceiver();
+            SQLConnector sqlConnector = new SQLConnector();
+
+            IModelRepository modelRepo = new PostgresModelRepository(sqlConnector);
+            IAuthRepository authRepo = new PostgresAuthRepository(sqlConnector);
+
+            // Check repo connection and panic on error
+            modelRepo.healthCheck();
+            authRepo.healthCheck();
+
+            // Get connection to event broker and panic on error
+            Connection mqConnection = ConnectionManager.getConnectionManager().getConnection();
+            
+            // General Event publisher
+            RabbitMQEventProducer eventProducer = new RabbitMQEventProducer(mapper, mqConnection);
+
+            // Rpc request handler
+            IRpcResponderFactory rpcFactory = new RabbitMQRpcResponderFactory(mapper, mqConnection);
 
             Map<String, IMessageHandler> map = Map.of(
-                    "customer:order_creation", new CustomerOrderCreationHandler(connector, mapper),
-                    "supplier:order_creation", new SupplierOrderCreationHandler(connector, mapper),
-                    "customer:menu_request", new CustomerMenuRequestHandler(connector, mapper),
-                    "auth:login", new AuthLoginHandler(authReceiver, mapper)
-            );
+                    "customer:order_creation",
+                    new CustomerOrderCreationHandler(mapper,
+                            new CustomerOrderCreationService(modelRepo),
+                            new RabbitMQOrderPersistedEventProducer(eventProducer)),
+                    "supplier:order_creation",
+                    new SupplierOrderCreationHandler(mapper,
+                            new SupplierOrderCreationService(modelRepo),
+                            new RabbitMQOrderCreationEventProducer(eventProducer)),
+                    "customer:menu_request",
+                    new CustomerMenuRequestHandler(
+                            new CustomerMenuRequestService(modelRepo),
+                            rpcFactory),
+                    "auth:login",
+                    new AuthLoginHandler(mapper,
+                            new AuthReceiverService(authRepo),
+                            rpcFactory));
 
-            MessageRouter router = new MessageRouter(map);
+            IEventConsumer consumer = new RabbitMQEventConsumer(new MessageRouter(map), mqConnection);
 
-            String[] bindingKeys = map.keySet().toArray(new String[0]);
-
-            log.info("Starting consumer with binding keys: {}", String.join(", ", bindingKeys));
-            Consumer.consumeMessages(bindingKeys, router);
+            // Start event consumer and panic on error
+            consumer.start();
 
             log.info("SQL-driver started successfully, listening for messages...");
             log.debug("Debug logging is enabled");
 
-            log.info("Application running. Press Ctrl+C to stop.");
             Thread.currentThread().join();
 
         } catch (InterruptedException e) {

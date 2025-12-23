@@ -2,11 +2,11 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package mtogo.sql.messaging;
+package mtogo.sql.adapter.messaging;
 
 import java.util.Map;
 
-import mtogo.sql.handlers.IMessageHandler;
+import mtogo.sql.adapter.handlers.IMessageHandler;
 
 /**
  *
@@ -28,5 +28,9 @@ public class MessageRouter {
         }
 
         return handler;
+    }
+
+    public String[] getBindingKeys() {
+        return handlers.keySet().toArray(new String[0]);
     }
 }

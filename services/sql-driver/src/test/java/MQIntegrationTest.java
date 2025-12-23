@@ -11,14 +11,14 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.rabbitmq.RabbitMQContainer;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.GetResponse;
 
 import mtogo.sql.DTO.OrderDTO;
-import mtogo.sql.messaging.Producer;
-
+import mtogo.sql.adapter.out.RabbitMQEventProducer;
 /**
  *
  * @author kotteletfisk
@@ -55,7 +55,7 @@ class MQIntegrationTest {
     }
 
     @Test
-    void publishObjectTest() {
+    void publishObjectTest() throws IOException, TimeoutException, InterruptedException {
 
         UUID id = UUID.randomUUID();
         OrderDTO dto = new OrderDTO(id, 1);
@@ -64,10 +64,10 @@ class MQIntegrationTest {
         factory.setHost(rabbit.getHost());
         factory.setPort(rabbit.getAmqpPort());
 
-        Producer.setConnectionFactory(factory);
+        RabbitMQEventProducer producer = new RabbitMQEventProducer(new ObjectMapper(), factory.newConnection());
 
         try {
-            assertTrue(Producer.publishObject("test:create_order", dto));
+            assertTrue(producer.publishObject("test:create_order", dto));
         } catch (Exception e) {
             fail(e.getMessage());
         }

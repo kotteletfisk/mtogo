@@ -2,16 +2,17 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Interface.java to edit this template
  */
+package mtogo.sql.ports.out;
 
-package mtogo.sql.handlers;
+import java.io.IOException;
 
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Delivery;
+import mtogo.sql.event.CustomerOrderCreationEvent;
 
 /**
  *
  * @author kotteletfisk
  */
-public interface IMessageHandler {
-    public void handle(Delivery delivery, Channel channel);
+public interface IOrderCreationEventProducer {
+
+    public boolean orderCreation(CustomerOrderCreationEvent event) throws IOException;
 }
