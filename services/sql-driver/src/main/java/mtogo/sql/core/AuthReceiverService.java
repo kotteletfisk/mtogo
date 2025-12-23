@@ -6,9 +6,6 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import mtogo.sql.DTO.AuthDTO;
 import mtogo.sql.ports.out.IAuthRepository;
 
@@ -21,7 +18,7 @@ public class AuthReceiverService {
         this.repo = repo;
     }
 
-    public String handleAuthLookup(String email, String service) {
+    public Map<String, Object> handleAuthLookup(String email, String service) {
 
         AuthDTO auth = repo.fetchAuthPerEmail(email);
 
@@ -37,7 +34,6 @@ public class AuthReceiverService {
                 log.info("Service requester not recognized");
                 actorId = "none";
             }
-            ObjectMapper mapper = new ObjectMapper();
             Map<String, Object> resp = Map.of(
                     "status", "ok",
                     "user", Map.of(
@@ -47,14 +43,8 @@ public class AuthReceiverService {
                             "actor_id", actorId
                     )
             );
-
-            try {
-                return mapper.writeValueAsString(resp);
-            } catch (JsonProcessingException ex) {
-                log.error(ex.getMessage());
-            }
+            return resp;
         }
-
-        return "{\"status\":\"not_found\"}";
+        return Map.of("status", "not_found");
     }
 }

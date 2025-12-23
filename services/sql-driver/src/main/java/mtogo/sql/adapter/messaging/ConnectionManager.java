@@ -1,4 +1,4 @@
-package mtogo.sql.messaging;
+package mtogo.sql.adapter.messaging;
 
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
@@ -55,6 +55,12 @@ public class ConnectionManager {
         factory.setUsername(System.getenv("RABBITMQ_USER"));
         factory.setPassword(System.getenv("RABBITMQ_PASS"));
         factory.setAutomaticRecoveryEnabled(true);
+        factory.setNetworkRecoveryInterval(5000);
+        factory.setTopologyRecoveryEnabled(true);
+
+        // Heartbeat
+        factory.setRequestedHeartbeat(60);
+
         return factory;
     }
 }

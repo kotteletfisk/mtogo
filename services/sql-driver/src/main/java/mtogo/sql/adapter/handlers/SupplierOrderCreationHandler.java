@@ -1,4 +1,4 @@
-package mtogo.sql.handlers;
+package mtogo.sql.adapter.handlers;
 
 import java.io.IOException;
 

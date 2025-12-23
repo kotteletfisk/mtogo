@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package mtogo.sql.handlers;
+package mtogo.sql.adapter.handlers;
 
 import java.io.IOException;
 
@@ -46,14 +46,10 @@ public class CustomerOrderCreationHandler implements IMessageHandler {
 
             service.call(orderDetailsDTO);
 
-            /* tring payload = objectMapper.writeValueAsString(orderDetailsDTO); */
-            
-            /* publisher.publishMessage("supplier:order_persisted", payload); */
             producer.orderPersisted(new OrderPersistedEvent(orderDetailsDTO));
 
             channel.basicAck(deliveryTag, false);
             log.debug("Order {} acknowledged", orderDetailsDTO.getOrderId());
-
         }
         catch (Exception e) {
             log.error("Error handling order: {}", e.getMessage());

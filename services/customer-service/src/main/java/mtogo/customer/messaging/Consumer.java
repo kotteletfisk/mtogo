@@ -108,19 +108,20 @@ public class Consumer {
                         );
 
                         // Expected format: "correlationId::[{...json array...}]"
-                        int separatorIndex = body.indexOf("::");
+/*                         int separatorIndex = body.indexOf("::");
                         if (separatorIndex == -1) {
                             log.error("Invalid menu response format - missing '::' separator");
                             channel.basicNack(deliveryTag, false, false); // Don't requeue malformed messages
                             return;
-                        }
+                        } */
 
-                        String correlationId = body.substring(0, separatorIndex);
-                        String jsonArray = body.substring(separatorIndex + 2);
+                        // String correlationId = body.substring(0, separatorIndex);
+                        // String jsonArray = body.substring(separatorIndex + 2);
+                        String correlationId = delivery.getProperties().getCorrelationId();
 
                         List<menuItemDTO> menuItems =
                                 objectMapper.readValue(
-                                        jsonArray,
+                                        body,
                                         objectMapper.getTypeFactory()
                                                 .constructCollectionType(List.class, menuItemDTO.class)
                                 );

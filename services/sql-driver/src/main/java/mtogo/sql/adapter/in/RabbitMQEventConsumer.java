@@ -15,7 +15,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DeliverCallback;
 
-import mtogo.sql.messaging.MessageRouter;
+import mtogo.sql.adapter.messaging.MessageRouter;
 import mtogo.sql.ports.in.IEventConsumer;
 
 /**

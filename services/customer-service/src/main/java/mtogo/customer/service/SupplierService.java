@@ -5,6 +5,8 @@ import mtogo.customer.messaging.Producer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.rabbitmq.client.AMQP;
+
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -15,16 +17,21 @@ public class SupplierService {
     private static final Logger log = LoggerFactory.getLogger(SupplierService.class);
 
     // Map of correlationId -> CompletableFuture
-    private final Map<String, CompletableFuture<List<SupplierDTO>>> pendingRequests =
-            new ConcurrentHashMap<>();
+    private final Map<String, CompletableFuture<List<SupplierDTO>>> pendingRequests = new ConcurrentHashMap<>();
 
     private static final SupplierService INSTANCE = new SupplierService();
-    public static SupplierService getInstance() { return INSTANCE; }
 
-    private SupplierService() {}
+    public static SupplierService getInstance() {
+        return INSTANCE;
+    }
+
+    private SupplierService() {
+    }
 
     /**
-     * Requests suppliers for a given zipcode by blocking until a response is received.
+     * Requests suppliers for a given zipcode by blocking until a response is
+     * received.
+     * 
      * @param zipCode the zipcode to search for suppliers
      * @return a list of SupplierDTO representing active suppliers
      * @throws Exception if a timeout occurs or an error happens during the request
@@ -38,7 +45,14 @@ public class SupplierService {
         try {
             // Send request with correlation ID
             String payload = correlationId + ":" + zipCode;
-            Producer.publishMessage("customer:supplier_request", payload);
+            String replyQueue = "customer:supplier_response";
+
+            AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()
+                    .correlationId(correlationId)
+                    .replyTo(replyQueue)
+                    .build();
+
+            Producer.publishMessage("customer:supplier_request", payload, props);
 
             log.debug("Sent supplier request for zipcode {} with correlation {}",
                     zipCode, correlationId);
@@ -65,8 +79,10 @@ public class SupplierService {
 
     /**
      * Completes the supplier request by resolving the appropriate future.
+     * 
      * @param correlationId the ID correlating this response to a request
-     * @param suppliers the list of SupplierDTO received in response to the request
+     * @param suppliers     the list of SupplierDTO received in response to the
+     *                      request
      */
     public void completeSupplierRequest(String correlationId, List<SupplierDTO> suppliers) {
         CompletableFuture<List<SupplierDTO>> future = pendingRequests.get(correlationId);

@@ -1,26 +1,19 @@
 
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import org.mockito.Mock;
-import org.mockito.MockedConstruction;
-import org.mockito.MockedStatic;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockConstruction;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -36,13 +29,15 @@ import com.rabbitmq.client.Envelope;
 import mtogo.sql.DTO.OrderDTO;
 import mtogo.sql.DTO.OrderDetailsDTO;
 import mtogo.sql.DTO.OrderLineDTO;
+import mtogo.sql.adapter.handlers.CustomerOrderCreationHandler;
+import mtogo.sql.adapter.handlers.IMessageHandler;
+import mtogo.sql.adapter.in.RabbitMQEventConsumer;
+import mtogo.sql.adapter.messaging.MessageRouter;
 import mtogo.sql.core.CustomerOrderCreationService;
-import mtogo.sql.handlers.CustomerOrderCreationHandler;
-import mtogo.sql.messaging.Consumer;
-import mtogo.sql.messaging.MessageRouter;
-import mtogo.sql.messaging.Producer;
-import mtogo.sql.persistence.SQLConnector;
+import mtogo.sql.event.OrderPersistedEvent;
+import mtogo.sql.ports.in.IEventConsumer;
 import mtogo.sql.ports.out.IModelRepository;
+import mtogo.sql.ports.out.IOrderPersistedEventProducer;
 
 @ExtendWith(MockitoExtension.class)
 class ConsumerTest {
@@ -67,54 +62,52 @@ class ConsumerTest {
 
     @Test
     void consumeMessages_declaresExchange_bindsKeys_andStartsConsuming() throws Exception {
-        String[] bindingKeys = {"customer:order_creation", "something.else"};
-        String queueName = "sql-driver-queue";
+        // Arrange
+        String[] bindingKeys = {
+            "customer:order_creation",
+            "something.else"
+        };
 
-        when(factory.newConnection()).thenReturn(connection);
+        String generatedQueueName = "amq.gen-123";
+
         when(connection.createChannel()).thenReturn(channel);
+        when(channel.queueDeclare())
+                .thenReturn(declareOk);
+        when(declareOk.getQueue()).thenReturn(generatedQueueName);
 
-        doNothing().when(connection).addShutdownListener(any());
-        doNothing().when(channel).addShutdownListener(any());
+        IMessageHandler handler = mock(IMessageHandler.class);
 
-        when(channel.queueDeclare(
-                eq("sql-driver-queue"),
-                eq(true),
-                eq(false),
-                eq(false),
-                isNull()
-        )).thenReturn(declareOk);
-
-        // Inject mocked factory into Consumer
-        Consumer.setConnectionFactory(factory);
-        Consumer.setMessageRouter(router);
-
-        // Start consumer
-        Consumer.consumeMessages(bindingKeys, router);
-
-        verify(channel).exchangeDeclare("order", "topic", true);
-
-        //Verify the new queueDeclare signature
-        verify(channel).queueDeclare(
-                eq("sql-driver-queue"),
-                eq(true),
-                eq(false),
-                eq(false),
-                isNull()
+        Map<String, IMessageHandler> handlers = Map.of(
+                "customer:order_creation", handler,
+                "something.else", handler
         );
 
+        MessageRouter router = new MessageRouter(handlers);
+
+        IEventConsumer consumer
+                = new RabbitMQEventConsumer(router, connection);
+
+        // Act
+        consumer.start();
+
+        // Assert
+        verify(channel).exchangeDeclare("order", "topic", true);
+        verify(channel).queueDeclare();
+
         for (String bindingKey : bindingKeys) {
-            verify(channel).queueBind(queueName, "order", bindingKey);
+            verify(channel).queueBind(
+                    generatedQueueName,
+                    "order",
+                    bindingKey
+            );
         }
 
         verify(channel).basicConsume(
-                eq(queueName),
+                eq(generatedQueueName),
                 eq(false),
                 any(DeliverCallback.class),
                 any(CancelCallback.class)
         );
-        verify(connection).addShutdownListener(any());
-        verify(channel).addShutdownListener(any());
-
     }
 
     // Helper: build a real OrderDetailsDTO with a non-null orderLines list.
@@ -154,35 +147,45 @@ class ConsumerTest {
                 "order",
                 "customer:order_creation"
         );
+
         Delivery delivery = mock(Delivery.class);
         when(delivery.getBody()).thenReturn(body);
         when(delivery.getEnvelope()).thenReturn(envelope);
 
-        // Mock SQLConnector
-        try (MockedConstruction<SQLConnector> sqlMock = mockConstruction(SQLConnector.class,
-                (mock, context) -> {
-                    Connection conn = mock(Connection.class);
-                    when(mock.getConnection()).thenReturn(conn);
-                }); MockedStatic<Producer> producerMock = mockStatic(Producer.class)) {
+        Channel channel = mock(Channel.class);
 
-            // Instantiate the handler directly
-            CustomerOrderCreationHandler handler = new CustomerOrderCreationHandler(
-                    mapper, new CustomerOrderCreationService(modelRepo)
-            );
+        // Mock ports
+        IModelRepository modelRepo = mock(IModelRepository.class);
+        IOrderPersistedEventProducer producer
+                = mock(IOrderPersistedEventProducer.class);
 
-            // Act
-            handler.handle(delivery, channel);
+        CustomerOrderCreationService service
+                = new CustomerOrderCreationService(modelRepo);
 
-            // Assert: SQLConnector.createOrder was called
-            //     assertFalse(sqlMock.constructed().isEmpty(), "SQLConnector was never constructed");
-            //     SQLConnector connector = sqlMock.constructed().get(0);
-            //     verify(connector).createOrder(any(), anyList(), any(Connection.class));
-            //     verify(channel).basicAck(1L, false);
-            // Assert: Producer.publishMessage was called
-            producerMock.verify(()
-                    -> Producer.publishMessage(eq("supplier:order_persisted"), anyString())
-            );
-        }
+        // Handler under test
+        CustomerOrderCreationHandler handler
+                = new CustomerOrderCreationHandler(
+                        mapper,
+                        service,
+                        producer
+                );
+
+        // Act
+        handler.handle(delivery, channel);
+
+        // Assert – persistence was triggered
+        verify(modelRepo).createOrder(
+                any(OrderDTO.class),
+                anyList()
+        );
+
+        // Assert – domain event was published
+        verify(producer).orderPersisted(
+                any(OrderPersistedEvent.class)
+        );
+
+        // Assert – message acknowledged
+        verify(channel).basicAck(1L, false);
     }
 
     @Test
@@ -203,27 +206,34 @@ class ConsumerTest {
         when(delivery.getBody()).thenReturn(body);
         when(delivery.getEnvelope()).thenReturn(envelope);
 
-        IModelRepository modelRepo = mock(IModelRepository.class);
         Channel channel = mock(Channel.class);
 
+        IModelRepository modelRepo = mock(IModelRepository.class);
+        IOrderPersistedEventProducer producer
+                = mock(IOrderPersistedEventProducer.class);
+
+        // Simulate persistence failure
         doThrow(new SQLException("DB failure"))
                 .when(modelRepo)
                 .createOrder(any(OrderDTO.class), anyList());
 
-        try (MockedStatic<Producer> producerMock = mockStatic(Producer.class)) {
+        CustomerOrderCreationService service
+                = new CustomerOrderCreationService(modelRepo);
 
-            CustomerOrderCreationHandler handler
-                    = new CustomerOrderCreationHandler(
-                            mapper,
-                            new CustomerOrderCreationService(modelRepo)
-                    );
+        CustomerOrderCreationHandler handler
+                = new CustomerOrderCreationHandler(
+                        mapper,
+                        service,
+                        producer
+                );
 
-            // Act
-            handler.handle(delivery, channel);
+        // Act
+        handler.handle(delivery, channel);
 
-            // Assert
-            verify(channel).basicNack(eq(1L), eq(false), anyBoolean());
-            producerMock.verifyNoInteractions();
-        }
+        // Assert – message is rejected
+        verify(channel).basicNack(1L, false, false);
+
+        // Assert – no event is published
+        verifyNoInteractions(producer);
     }
 }
