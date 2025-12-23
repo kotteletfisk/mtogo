@@ -7,6 +7,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.rabbitmq.client.AMQP;
+
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -32,7 +34,8 @@ class MenuServiceTest {
             producerMock
                     .when(() -> Producer.publishMessage(
                             eq("customer:menu_request"),
-                            payloadCaptor.capture()
+                            payloadCaptor.capture(),
+                            any(AMQP.BasicProperties.class)
                     ))
                     .thenReturn(true);
 
