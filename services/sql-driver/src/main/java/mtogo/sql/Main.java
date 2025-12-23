@@ -8,9 +8,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import mtogo.sql.adapter.in.RabbitMQMessageConsumer;
 import mtogo.sql.adapter.out.PostgresAuthRepository;
 import mtogo.sql.adapter.out.PostgresModelRepository;
+import mtogo.sql.adapter.out.RabbitMQMessageProducer;
 import mtogo.sql.persistence.SQLConnector;
 import mtogo.sql.ports.in.IMessageConsumer;
 import mtogo.sql.ports.out.IAuthRepository;
+import mtogo.sql.ports.out.IMessageProducer;
 import mtogo.sql.ports.out.IModelRepository;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
@@ -34,6 +36,7 @@ public class Main {
 
 
             IMessageConsumer consumer = new RabbitMQMessageConsumer(authRepo, modelRepo, mapper);
+            IMessageProducer producer = new RabbitMQMessageProducer(mapper);
 
             consumer.start();
 

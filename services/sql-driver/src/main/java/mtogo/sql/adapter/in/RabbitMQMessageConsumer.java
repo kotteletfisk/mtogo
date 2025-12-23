@@ -17,6 +17,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DeliverCallback;
 
+import mtogo.sql.adapter.out.RabbitMQMessageProducer;
 import mtogo.sql.core.AuthReceiverService;
 import mtogo.sql.core.CustomerMenuRequestService;
 import mtogo.sql.core.CustomerOrderCreationService;
@@ -30,6 +31,7 @@ import mtogo.sql.messaging.ConnectionManager;
 import mtogo.sql.messaging.MessageRouter;
 import mtogo.sql.ports.in.IMessageConsumer;
 import mtogo.sql.ports.out.IAuthRepository;
+import mtogo.sql.ports.out.IMessageProducer;
 import mtogo.sql.ports.out.IModelRepository;
 
 /**
@@ -59,9 +61,15 @@ public class RabbitMQMessageConsumer implements IMessageConsumer {
 
         Connection connection = ConnectionManager.getConnectionManager().getConnection();
 
+        IMessageProducer producer = new RabbitMQMessageProducer(mapper);
+
         Map<String, IMessageHandler> map = Map.of(
-                "customer:order_creation", new CustomerOrderCreationHandler(mapper, new CustomerOrderCreationService(modelRepo)),
-                "supplier:order_creation", new SupplierOrderCreationHandler(mapper, new SupplierOrderCreationService(modelRepo)),
+                "customer:order_creation", new CustomerOrderCreationHandler(mapper,
+                        new CustomerOrderCreationService(modelRepo),
+                        producer),
+                "supplier:order_creation", new SupplierOrderCreationHandler(mapper,
+                        new SupplierOrderCreationService(modelRepo),
+                        producer),
                 "customer:menu_request", new CustomerMenuRequestHandler(mapper, new CustomerMenuRequestService(modelRepo)),
                 "auth:login", new AuthLoginHandler(mapper, new AuthReceiverService(authRepo))
         );

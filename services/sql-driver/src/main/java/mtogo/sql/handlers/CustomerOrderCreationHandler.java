@@ -15,7 +15,7 @@ import com.rabbitmq.client.Delivery;
 
 import mtogo.sql.DTO.OrderDetailsDTO;
 import mtogo.sql.core.CustomerOrderCreationService;
-import mtogo.sql.messaging.Producer;
+import mtogo.sql.ports.out.IMessageProducer;
 
 /**
  *
@@ -26,10 +26,12 @@ public class CustomerOrderCreationHandler implements IMessageHandler {
 
     private final ObjectMapper objectMapper;
     private final CustomerOrderCreationService service;
+    private final IMessageProducer publisher;
 
-    public CustomerOrderCreationHandler(ObjectMapper objectMapper, CustomerOrderCreationService service) {
+    public CustomerOrderCreationHandler(ObjectMapper objectMapper, CustomerOrderCreationService service, IMessageProducer publisher) {
         this.objectMapper = objectMapper;
         this.service = service;
+        this.publisher = publisher;
     }
 
 
@@ -44,7 +46,8 @@ public class CustomerOrderCreationHandler implements IMessageHandler {
             service.call(orderDetailsDTO);
 
             String payload = objectMapper.writeValueAsString(orderDetailsDTO);
-            Producer.publishMessage("supplier:order_persisted", payload);
+            
+            publisher.publishMessage("supplier:order_persisted", payload);
 
             channel.basicAck(deliveryTag, false);
             log.debug("Order {} acknowledged", orderDetailsDTO.getOrderId());
