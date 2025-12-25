@@ -152,6 +152,8 @@ services:
 
   redis-active-db:
     image: redis:8.2.3-alpine
+    ports:
+      - "6380:6379"
     deploy:
       replicas: 1
     networks:

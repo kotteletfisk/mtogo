@@ -24,8 +24,8 @@ public class RedisTestDataSetup {
 
     public RedisTestDataSetup() {
         this(
-                System.getenv().getOrDefault("REDIS_HOST", "redis-active-db"),
-                Integer.parseInt(System.getenv().getOrDefault("REDIS_PORT", "6379"))
+                System.getenv().getOrDefault("REDIS_HOST", "localhost"),
+                Integer.parseInt(System.getenv().getOrDefault("REDIS_PORT", "6380"))
         );
     }
 
