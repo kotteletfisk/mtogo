@@ -1,8 +1,10 @@
 package mtogo.ui;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.UnifiedJedis;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,7 +24,8 @@ public class RedisTestDataSetup {
 
     public RedisTestDataSetup() {
         this(
-                "localhost", 6379
+                System.getenv().getOrDefault("REDIS_HOST", "redis-active-db"),
+                Integer.parseInt(System.getenv().getOrDefault("REDIS_PORT", "6379"))
         );
     }
 
