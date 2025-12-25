@@ -62,23 +62,23 @@ jobs:
 
 
 
-#      - name: Run UI Acceptance Tests
-#        run: |
-#          cd ua-tests
-#          mvn clean test
-#        env:
-#          BASE_URL: http://172.16.0.11:7071
-#          POSTGRES_DB: mtogo
-#          POSTGRES_USER: mtogo-user
-#          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      - name: Run UI Acceptance Tests
+        run: |
+          cd ua-tests
+          mvn clean test
+        env:
+          BASE_URL: http://172.16.0.11:7071
+          POSTGRES_DB: mtogo
+          POSTGRES_USER: mtogo-user
+          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
 
-#      - name: Upload Test Reports
-#        if: failure()
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: ui-test-reports-${{ github.run_number }}
-#          path: ua-tests/target/surefire-reports/
-#          retention-days: 7
+      - name: Upload Test Reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-reports-${{ github.run_number }}
+          path: ua-tests/target/surefire-reports/
+          retention-days: 7
 
       - name: Check Test Results
         id: testcheck
