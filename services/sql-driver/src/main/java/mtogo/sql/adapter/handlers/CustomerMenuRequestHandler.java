@@ -8,8 +8,8 @@ import org.slf4j.LoggerFactory;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Delivery;
 
-import mtogo.sql.DTO.menuItemDTO;
 import mtogo.sql.core.CustomerMenuRequestService;
+import mtogo.sql.model.DTO.menuItemDTO;
 import mtogo.sql.ports.out.IRpcResponder;
 import mtogo.sql.ports.out.IRpcResponderFactory;
 

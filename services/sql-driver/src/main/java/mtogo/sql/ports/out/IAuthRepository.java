@@ -6,7 +6,7 @@ package mtogo.sql.ports.out;
 
 import java.util.List;
 
-import mtogo.sql.DTO.AuthDTO;
+import mtogo.sql.model.DTO.AuthDTO;
 
 /**
  *

@@ -7,8 +7,8 @@ package mtogo.sql.core;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import mtogo.sql.DTO.LegacyOrderDetailsDTO;
-import mtogo.sql.DTO.OrderDetailsDTO;
+import mtogo.sql.model.DTO.LegacyOrderDetailsDTO;
+import mtogo.sql.model.DTO.OrderDetailsDTO;
 import mtogo.sql.ports.out.IModelRepository;
 
 /**

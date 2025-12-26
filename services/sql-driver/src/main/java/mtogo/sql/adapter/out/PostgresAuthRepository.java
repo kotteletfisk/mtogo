@@ -9,8 +9,8 @@ import org.postgresql.util.PSQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import mtogo.sql.DTO.AuthDTO;
-import mtogo.sql.persistence.SQLConnector;
+import mtogo.sql.adapter.persistence.SQLConnector;
+import mtogo.sql.model.DTO.AuthDTO;
 import mtogo.sql.ports.out.IAuthRepository;
 
 public class PostgresAuthRepository implements IAuthRepository {

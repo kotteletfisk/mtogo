@@ -22,11 +22,11 @@ import mtogo.sql.adapter.out.RabbitMQEventProducer;
 import mtogo.sql.adapter.out.RabbitMQOrderCreationEventProducer;
 import mtogo.sql.adapter.out.RabbitMQOrderPersistedEventProducer;
 import mtogo.sql.adapter.out.RabbitMQRpcResponderFactory;
+import mtogo.sql.adapter.persistence.SQLConnector;
 import mtogo.sql.core.AuthReceiverService;
 import mtogo.sql.core.CustomerMenuRequestService;
 import mtogo.sql.core.CustomerOrderCreationService;
 import mtogo.sql.core.SupplierOrderCreationService;
-import mtogo.sql.persistence.SQLConnector;
 import mtogo.sql.ports.in.IEventConsumer;
 import mtogo.sql.ports.out.IAuthRepository;
 import mtogo.sql.ports.out.IModelRepository;
@@ -58,7 +58,7 @@ public class Main {
             // General Event publisher
             RabbitMQEventProducer eventProducer = new RabbitMQEventProducer(mapper, mqConnection);
 
-            // Rpc request handler
+            // Rpc request handler factory
             IRpcResponderFactory rpcFactory = new RabbitMQRpcResponderFactory(mapper, mqConnection);
 
             Map<String, IMessageHandler> map = Map.of(

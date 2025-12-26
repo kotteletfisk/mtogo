@@ -6,7 +6,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import mtogo.sql.DTO.AuthDTO;
+import mtogo.sql.model.DTO.AuthDTO;
 import mtogo.sql.ports.out.IAuthRepository;
 
 public class AuthReceiverService {

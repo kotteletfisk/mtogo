@@ -17,8 +17,8 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.GetResponse;
 
-import mtogo.sql.DTO.OrderDTO;
 import mtogo.sql.adapter.out.RabbitMQEventProducer;
+import mtogo.sql.model.DTO.OrderDTO;
 /**
  *
  * @author kotteletfisk

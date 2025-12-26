@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrderDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sql-driver</a> &gt; <a href="index.source.html" class="el_package">mtogo.sql.model.DTO</a> &gt; <span class="el_source">OrderDTO.java</span></div><h1>OrderDTO.java</h1><pre class="source lang-java linenums">package mtogo.sql.model.DTO;
+
+
+import java.sql.Timestamp;
+import java.util.UUID;
+
+import lombok.Getter;
+
+@Getter
+public class OrderDTO {
+    private final UUID order_id;
+    private final int customer_id;
+    private final Timestamp order_created;
+    private final Timestamp order_updated;
+    private Integer supplierId; // TODO: fix wrapper for compatiblity
+
+<span class="nc" id="L17">    public enum orderStatus{</span>
+<span class="nc" id="L18">        created,</span>
+<span class="nc" id="L19">        rejected,</span>
+<span class="nc" id="L20">        accepted,</span>
+<span class="nc" id="L21">        waiting,</span>
+<span class="nc" id="L22">        delivering,</span>
+<span class="nc" id="L23">        delivered</span>
+    }
+    private orderStatus orderStatus;
+
+<span class="nc" id="L27">    public OrderDTO(UUID order_id, int customer_id) {</span>
+<span class="nc" id="L28">        this.order_id = order_id;</span>
+<span class="nc" id="L29">        this.customer_id = customer_id;</span>
+<span class="nc" id="L30">        this.order_created = new Timestamp(System.currentTimeMillis());</span>
+<span class="nc" id="L31">        this.order_updated = new Timestamp(System.currentTimeMillis());</span>
+<span class="nc" id="L32">        this.orderStatus = orderStatus.created;</span>
+<span class="nc" id="L33">    }</span>
+    // Used for consumer when order is created
+<span class="nc" id="L35">    public OrderDTO(OrderDetailsDTO orderDetailsDTO) {</span>
+<span class="nc" id="L36">        this.order_id = orderDetailsDTO.getOrderId();</span>
+<span class="nc" id="L37">        this.customer_id = orderDetailsDTO.getCustomerId();</span>
+<span class="nc" id="L38">        this.order_created = new Timestamp(System.currentTimeMillis());</span>
+<span class="nc" id="L39">        this.order_updated = new Timestamp(System.currentTimeMillis());</span>
+<span class="nc" id="L40">        this.orderStatus = orderStatus.created;</span>
+<span class="nc" id="L41">        this.supplierId = orderDetailsDTO.getSupplierId();</span>
+<span class="nc" id="L42">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
