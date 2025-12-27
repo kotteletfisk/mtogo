@@ -77,7 +77,7 @@ public class RabbitMQRpcResponder implements IRpcResponder {
         try (Channel channel = connection.createChannel()) {
 
             channel.basicPublish(
-                    "",
+                    "order",
                     delivery.getProperties().getReplyTo(),
                     props,
                     "{\"status\":\"error\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8));

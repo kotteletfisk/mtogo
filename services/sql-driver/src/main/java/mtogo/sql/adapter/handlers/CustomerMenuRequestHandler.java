@@ -27,13 +27,13 @@ public class CustomerMenuRequestHandler implements IMessageHandler {
 
     @Override
     public void handle(Delivery delivery, Channel channel) {
-        long deliveryTag = delivery.getEnvelope().getDeliveryTag();
 
+        long deliveryTag = delivery.getEnvelope().getDeliveryTag();
+        
         try {
             String body = new String(
                     delivery.getBody(),
-                    java.nio.charset.StandardCharsets.UTF_8
-            );
+                    java.nio.charset.StandardCharsets.UTF_8);
             log.info("Received payload: {}", body);
 
             // Parse "correlationId:supplierId"
@@ -51,15 +51,20 @@ public class CustomerMenuRequestHandler implements IMessageHandler {
 
             List<menuItemDTO> items = service.call(supplierId);
 
-            /*             String itemsJson = objectMapper.writeValueAsString(items);
-            // Format: "correlationId::[json]"
-            String payload = correlationId + "::" + itemsJson;
-            log.info("Sending menu response, length={} bytes", payload.length()); */
+            /*
+             * String itemsJson = objectMapper.writeValueAsString(items);
+             * // Format: "correlationId::[json]"
+             * String payload = correlationId + "::" + itemsJson;
+             * log.info("Sending menu response, length={} bytes", payload.length());
+             */
 
             IRpcResponder responder = factory.create(delivery);
             responder.reply(items);
 
-            /*             boolean published = Producer.publishMessage("customer:menu_response", payload); */
+            /*
+             * boolean published = Producer.publishMessage("customer:menu_response",
+             * payload);
+             */
             channel.basicAck(deliveryTag, false);
 
         } catch (NumberFormatException e) {
@@ -72,7 +77,7 @@ public class CustomerMenuRequestHandler implements IMessageHandler {
         } catch (Exception e) {
             log.error("Error handling customer:menu_request", e);
             try {
-                channel.basicNack(deliveryTag, false, true); // Requeue for retry
+                channel.basicNack(deliveryTag, false, false);
             } catch (Exception nackError) {
                 log.error("Failed to NACK message", nackError);
             }

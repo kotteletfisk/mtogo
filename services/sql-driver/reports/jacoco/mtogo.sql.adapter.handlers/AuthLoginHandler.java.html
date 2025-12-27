@@ -24,54 +24,58 @@ import mtogo.sql.ports.out.IRpcResponderFactory;
  */
 public class AuthLoginHandler implements IMessageHandler {
 
-<span class="nc" id="L27">    private final Logger log = LoggerFactory.getLogger(this.getClass());</span>
+<span class="fc" id="L27">    private final Logger log = LoggerFactory.getLogger(this.getClass());</span>
 
     private final ObjectMapper objectMapper;
     private final AuthReceiverService ar;
     private final IRpcResponderFactory factory;
 
-<span class="nc" id="L33">    public AuthLoginHandler(ObjectMapper objectMapper, AuthReceiverService ar, IRpcResponderFactory factory) {</span>
-<span class="nc" id="L34">        this.ar = ar;</span>
-<span class="nc" id="L35">        this.objectMapper = objectMapper;</span>
-<span class="nc" id="L36">        this.factory = factory;</span>
-<span class="nc" id="L37">    }</span>
+<span class="fc" id="L33">    public AuthLoginHandler(ObjectMapper objectMapper, AuthReceiverService ar, IRpcResponderFactory factory) {</span>
+<span class="fc" id="L34">        this.ar = ar;</span>
+<span class="fc" id="L35">        this.objectMapper = objectMapper;</span>
+<span class="fc" id="L36">        this.factory = factory;</span>
+<span class="fc" id="L37">    }</span>
 
     @Override
     public void handle(Delivery delivery, Channel channel) {
 
-<span class="nc" id="L42">        IRpcResponder responder = factory.create(delivery);</span>
+<span class="fc" id="L42">        IRpcResponder responder = factory.create(delivery);</span>
 
         try {
             
-<span class="nc" id="L46">            log.info(&quot;Handling Auth login&quot;);</span>
-<span class="nc" id="L47">            log.info(&quot;Received correlationId '{}': '{}'&quot;,</span>
-<span class="nc" id="L48">                    delivery.getProperties().getCorrelationId(),</span>
-<span class="nc" id="L49">                    new String(delivery.getBody(), StandardCharsets.UTF_8));</span>
+<span class="fc" id="L46">            log.info(&quot;Handling Auth login&quot;);</span>
+<span class="fc" id="L47">            log.info(&quot;Received correlationId '{}': '{}'&quot;,</span>
+<span class="fc" id="L48">                    delivery.getProperties().getCorrelationId(),</span>
+<span class="fc" id="L49">                    new String(delivery.getBody(), StandardCharsets.UTF_8));</span>
 
-<span class="nc" id="L51">            var body = new String(delivery.getBody(), java.nio.charset.StandardCharsets.UTF_8);</span>
-<span class="nc" id="L52">            var reqJson = objectMapper.readTree(body);</span>
-<span class="nc" id="L53">            String action = reqJson.get(&quot;action&quot;).asText();</span>
+<span class="fc" id="L51">            var body = new String(delivery.getBody(), java.nio.charset.StandardCharsets.UTF_8);</span>
+<span class="fc" id="L52">            var reqJson = objectMapper.readTree(body);</span>
+<span class="fc" id="L53">            String action = reqJson.get(&quot;action&quot;).asText();</span>
 
-<span class="nc bnc" id="L55" title="All 2 branches missed.">            if (&quot;find_user_by_email&quot;.equals(action)) {</span>
-<span class="nc" id="L56">                String email = reqJson.get(&quot;email&quot;).asText();</span>
-<span class="nc" id="L57">                String service = reqJson.get(&quot;service&quot;).asText();</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">            if (&quot;find_user_by_email&quot;.equals(action)) {</span>
+<span class="fc" id="L56">                String email = reqJson.get(&quot;email&quot;).asText();</span>
+<span class="fc" id="L57">                String service = reqJson.get(&quot;service&quot;).asText();</span>
 
-<span class="nc" id="L59">                var resp = ar.handleAuthLookup(email, service);</span>
+<span class="fc" id="L59">                var resp = ar.handleAuthLookup(email, service);</span>
 
-<span class="nc" id="L61">                responder.reply(resp);</span>
+<span class="fc" id="L61">                responder.reply(resp);</span>
 
-<span class="nc" id="L63">                channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);</span>
+<span class="fc" id="L63">                channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);</span>
+<span class="fc" id="L64">            }</span>
+            else {
+<span class="fc" id="L66">                log.error(&quot;Unrecognized action: {}&quot;, action);</span>
+<span class="fc" id="L67">                channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, false);</span>
             }
-<span class="nc" id="L65">        } catch (Exception ex) {</span>
-<span class="nc" id="L66">            log.info(&quot;RPC handler error: {}&quot;, ex.getMessage());</span>
+<span class="fc" id="L69">        } catch (Exception ex) {</span>
+<span class="fc" id="L70">            log.info(&quot;RPC handler error: {}&quot;, ex.getMessage());</span>
             try {
-<span class="nc" id="L68">                responder.replyError();</span>
-<span class="nc" id="L69">                channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, false);</span>
-<span class="nc" id="L70">            } catch (IOException ex1) {</span>
-<span class="nc" id="L71">                log.error(&quot;Error while replyError: {}&quot;, ex1.getLocalizedMessage());</span>
-<span class="nc" id="L72">            }</span>
-<span class="nc" id="L73">        }</span>
-<span class="nc" id="L74">    }</span>
+<span class="fc" id="L72">                responder.replyError();</span>
+<span class="fc" id="L73">                channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, false);</span>
+<span class="pc" id="L74">            } catch (IOException ex1) {</span>
+<span class="nc" id="L75">                log.error(&quot;Error while replyError: {}&quot;, ex1.getLocalizedMessage());</span>
+            }
+        }
+<span class="fc" id="L78">    }</span>
 
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

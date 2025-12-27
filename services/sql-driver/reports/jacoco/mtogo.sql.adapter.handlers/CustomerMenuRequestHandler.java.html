@@ -15,68 +15,73 @@ import mtogo.sql.ports.out.IRpcResponderFactory;
 
 public class CustomerMenuRequestHandler implements IMessageHandler {
 
-<span class="nc" id="L18">    private final Logger log = LoggerFactory.getLogger(this.getClass());</span>
+<span class="fc" id="L18">    private final Logger log = LoggerFactory.getLogger(this.getClass());</span>
 
     private final CustomerMenuRequestService service;
     private final IRpcResponderFactory factory;
 
-<span class="nc" id="L23">    public CustomerMenuRequestHandler(CustomerMenuRequestService service, IRpcResponderFactory factory) {</span>
-<span class="nc" id="L24">        this.service = service;</span>
-<span class="nc" id="L25">        this.factory = factory;</span>
-<span class="nc" id="L26">    }</span>
+<span class="fc" id="L23">    public CustomerMenuRequestHandler(CustomerMenuRequestService service, IRpcResponderFactory factory) {</span>
+<span class="fc" id="L24">        this.service = service;</span>
+<span class="fc" id="L25">        this.factory = factory;</span>
+<span class="fc" id="L26">    }</span>
 
     @Override
     public void handle(Delivery delivery, Channel channel) {
-<span class="nc" id="L30">        long deliveryTag = delivery.getEnvelope().getDeliveryTag();</span>
 
+<span class="fc" id="L31">        long deliveryTag = delivery.getEnvelope().getDeliveryTag();</span>
+        
         try {
-<span class="nc" id="L33">            String body = new String(</span>
-<span class="nc" id="L34">                    delivery.getBody(),</span>
-                    java.nio.charset.StandardCharsets.UTF_8
-            );
-<span class="nc" id="L37">            log.info(&quot;Received payload: {}&quot;, body);</span>
+<span class="fc" id="L34">            String body = new String(</span>
+<span class="fc" id="L35">                    delivery.getBody(),</span>
+<span class="fc" id="L36">                    java.nio.charset.StandardCharsets.UTF_8);</span>
+<span class="fc" id="L37">            log.info(&quot;Received payload: {}&quot;, body);</span>
 
             // Parse &quot;correlationId:supplierId&quot;
-<span class="nc" id="L40">            int separatorIndex = body.indexOf(&quot;:&quot;);</span>
-<span class="nc bnc" id="L41" title="All 2 branches missed.">            if (separatorIndex == -1) {</span>
-<span class="nc" id="L42">                log.error(&quot;Invalid menu request format - missing ':' separator&quot;);</span>
-<span class="nc" id="L43">                channel.basicNack(deliveryTag, false, false);</span>
-<span class="nc" id="L44">                return;</span>
+<span class="fc" id="L40">            int separatorIndex = body.indexOf(&quot;:&quot;);</span>
+<span class="fc bfc" id="L41" title="All 2 branches covered.">            if (separatorIndex == -1) {</span>
+<span class="fc" id="L42">                log.error(&quot;Invalid menu request format - missing ':' separator&quot;);</span>
+<span class="fc" id="L43">                channel.basicNack(deliveryTag, false, false);</span>
+<span class="fc" id="L44">                return;</span>
             }
 
             // String correlationId = body.substring(0, separatorIndex);
-<span class="nc" id="L48">            int supplierId = Integer.parseInt(body.substring(separatorIndex + 1).trim());</span>
+<span class="fc" id="L48">            int supplierId = Integer.parseInt(body.substring(separatorIndex + 1).trim());</span>
 
-<span class="nc" id="L50">            log.info(&quot;Supplier ID: {}, Correlation: {}&quot;, supplierId, delivery.getProperties().getCorrelationId());</span>
+<span class="fc" id="L50">            log.info(&quot;Supplier ID: {}, Correlation: {}&quot;, supplierId, delivery.getProperties().getCorrelationId());</span>
 
-<span class="nc" id="L52">            List&lt;menuItemDTO&gt; items = service.call(supplierId);</span>
+<span class="fc" id="L52">            List&lt;menuItemDTO&gt; items = service.call(supplierId);</span>
 
-            /*             String itemsJson = objectMapper.writeValueAsString(items);
-            // Format: &quot;correlationId::[json]&quot;
-            String payload = correlationId + &quot;::&quot; + itemsJson;
-            log.info(&quot;Sending menu response, length={} bytes&quot;, payload.length()); */
+            /*
+             * String itemsJson = objectMapper.writeValueAsString(items);
+             * // Format: &quot;correlationId::[json]&quot;
+             * String payload = correlationId + &quot;::&quot; + itemsJson;
+             * log.info(&quot;Sending menu response, length={} bytes&quot;, payload.length());
+             */
 
-<span class="nc" id="L59">            IRpcResponder responder = factory.create(delivery);</span>
-<span class="nc" id="L60">            responder.reply(items);</span>
+<span class="fc" id="L61">            IRpcResponder responder = factory.create(delivery);</span>
+<span class="fc" id="L62">            responder.reply(items);</span>
 
-            /*             boolean published = Producer.publishMessage(&quot;customer:menu_response&quot;, payload); */
-<span class="nc" id="L63">            channel.basicAck(deliveryTag, false);</span>
+            /*
+             * boolean published = Producer.publishMessage(&quot;customer:menu_response&quot;,
+             * payload);
+             */
+<span class="fc" id="L68">            channel.basicAck(deliveryTag, false);</span>
 
-<span class="nc" id="L65">        } catch (NumberFormatException e) {</span>
-<span class="nc" id="L66">            log.error(&quot;Invalid supplierId format in request&quot;, e);</span>
+<span class="fc" id="L70">        } catch (NumberFormatException e) {</span>
+<span class="fc" id="L71">            log.error(&quot;Invalid supplierId format in request&quot;, e);</span>
             try {
-<span class="nc" id="L68">                channel.basicNack(deliveryTag, false, false); // Don't requeue bad format</span>
-<span class="nc" id="L69">            } catch (Exception nackError) {</span>
-<span class="nc" id="L70">                log.error(&quot;Failed to NACK message&quot;, nackError);</span>
-<span class="nc" id="L71">            }</span>
-<span class="nc" id="L72">        } catch (Exception e) {</span>
-<span class="nc" id="L73">            log.error(&quot;Error handling customer:menu_request&quot;, e);</span>
+<span class="fc" id="L73">                channel.basicNack(deliveryTag, false, false); // Don't requeue bad format</span>
+<span class="pc" id="L74">            } catch (Exception nackError) {</span>
+<span class="nc" id="L75">                log.error(&quot;Failed to NACK message&quot;, nackError);</span>
+            }
+<span class="nc" id="L77">        } catch (Exception e) {</span>
+<span class="nc" id="L78">            log.error(&quot;Error handling customer:menu_request&quot;, e);</span>
             try {
-<span class="nc" id="L75">                channel.basicNack(deliveryTag, false, true); // Requeue for retry</span>
-<span class="nc" id="L76">            } catch (Exception nackError) {</span>
-<span class="nc" id="L77">                log.error(&quot;Failed to NACK message&quot;, nackError);</span>
-<span class="nc" id="L78">            }</span>
-<span class="nc" id="L79">        }</span>
-<span class="nc" id="L80">    }</span>
+<span class="nc" id="L80">                channel.basicNack(deliveryTag, false, false);</span>
+<span class="nc" id="L81">            } catch (Exception nackError) {</span>
+<span class="nc" id="L82">                log.error(&quot;Failed to NACK message&quot;, nackError);</span>
+            }
+        }
+<span class="fc" id="L85">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

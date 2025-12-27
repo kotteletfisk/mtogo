@@ -62,6 +62,10 @@ public class AuthLoginHandler implements IMessageHandler {
 
                 channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
             }
+            else {
+                log.error("Unrecognized action: {}", action);
+                channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, false);
+            }
         } catch (Exception ex) {
             log.info("RPC handler error: {}", ex.getMessage());
             try {

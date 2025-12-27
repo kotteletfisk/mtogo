@@ -18,13 +18,13 @@ public class RabbitMQOrderCreationEventProducer implements IOrderCreationEventPr
 
     private final RabbitMQEventProducer producer;
 
-<span class="nc" id="L21">    public RabbitMQOrderCreationEventProducer(RabbitMQEventProducer producer) {</span>
-<span class="nc" id="L22">        this.producer = producer;</span>
-<span class="nc" id="L23">    }</span>
+<span class="fc" id="L21">    public RabbitMQOrderCreationEventProducer(RabbitMQEventProducer producer) {</span>
+<span class="fc" id="L22">        this.producer = producer;</span>
+<span class="fc" id="L23">    }</span>
 
     @Override
     public boolean orderCreation(CustomerOrderCreationEvent event) throws IOException {
-<span class="nc" id="L27">       return producer.publishObject(&quot;customer:order_creation&quot;, event.dto());</span>
+<span class="fc" id="L27">       return producer.publishObject(&quot;customer:order_creation&quot;, event.dto());</span>
     }
 
 }

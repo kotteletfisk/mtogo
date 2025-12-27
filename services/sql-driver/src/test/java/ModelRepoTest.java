@@ -3,12 +3,12 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -27,6 +27,7 @@ import mtogo.sql.model.DTO.LegacyOrderDetailsDTO;
 import mtogo.sql.model.DTO.OrderDTO;
 import mtogo.sql.model.DTO.OrderDetailsDTO;
 import mtogo.sql.model.DTO.OrderLineDTO;
+import mtogo.sql.model.DTO.menuItemDTO;
 import mtogo.sql.ports.out.IModelRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -51,12 +52,12 @@ class ModelRepoTest {
     @BeforeEach
     void setUp() throws Exception {
         conn = DriverManager.getConnection(
-                "jdbc:h2:mem:testdb;MODE=PostgreSQL",
+                "jdbc:h2:mem:testdbmodel;MODE=PostgreSQL",
                 "sa",
-                "");  
+                "");
 
         repoConn = DriverManager.getConnection(
-                "jdbc:h2:mem:testdb;MODE=PostgreSQL",
+                "jdbc:h2:mem:testdbmodel;MODE=PostgreSQL",
                 "sa",
                 "");
 
@@ -91,10 +92,28 @@ class ModelRepoTest {
                     """);
 
             st.execute("""
-                        CREATE TABLE menu_item (
-                            item_id INT PRIMARY KEY
-                        );
-                    """);
+                    CREATE TABLE supplier (
+                    supplier_id serial NOT NULL,
+                    supplier_name character varying(50) NOT NULL,
+                    supplier_zip character varying(10) NOT NULL,
+                    supplier_creds character varying(50),
+                    PRIMARY KEY (supplier_id)
+                    );
+
+                                """);
+            st.execute("""
+                    CREATE TABLE IF NOT EXISTS public.menu_item
+                    (
+                        item_id serial NOT NULL,
+                        item_name character varying(50) NOT NULL,
+                        item_price real NOT NULL,
+                        supplier_id serial NOT NULL,
+                        is_active boolean NOT NULL DEFAULT true,
+                        PRIMARY KEY (item_id),
+                        CONSTRAINT fk_supplier_id FOREIGN KEY (supplier_id)
+                            REFERENCES public.supplier (supplier_id)
+                    );
+                                    """);
 
             st.execute("""
                         CREATE TABLE order_line (
@@ -103,47 +122,41 @@ class ModelRepoTest {
                             item_id INT NOT NULL,
                             price_snapshot REAL NOT NULL,
                             amount INT NOT NULL,
-                            CONSTRAINT fk_order_id FOREIGN KEY (order_id)
-                                REFERENCES "orders"(order_id),
                             CONSTRAINT fk_item_id FOREIGN KEY (item_id)
                                 REFERENCES menu_item(item_id)
                         );
 
                     """);
-                        st.execute("""
-                            CREATE TABLE supplier (
-                        supplier_id serial NOT NULL,
-                        supplier_name character varying(50) NOT NULL,
-                        supplier_zip character varying(10) NOT NULL,
-                        supplier_creds character varying(50),
-                        PRIMARY KEY (supplier_id)
-                        );
-
-                                    """);
         }
 
-        // inject test connection
-        when(connector.getConnection()).thenReturn(repoConn);
-
-        repository = new PostgresModelRepository(connector);
+        repository = new PostgresModelRepository(() -> repoConn);
     }
 
     @AfterEach
     void tearDown() throws Exception {
-        if (conn != null && !conn.isClosed()) {
+        if (repoConn != null)
+            repoConn.close();
+        if (conn != null)
             conn.close();
-        }
     }
 
     @Test
     void createOrder_insertsOrderAndLines() throws Exception {
 
-
         try (Statement st = conn.createStatement()) {
             st.execute(
                     "INSERT INTO customer (customer_name, customer_zip, customer_phone) VALUES ('Test Customer', '2450', '22222222');");
-            st.execute("INSERT INTO menu_item (item_id) VALUES (10);");
-            st.execute("INSERT INTO menu_item (item_id) VALUES (11);");
+            st.execute("""
+                    INSERT INTO public.supplier (supplier_id, supplier_name, supplier_zip, supplier_creds)
+                    VALUES
+                        (1, 'Pizza Palace',      '2100', 'pizza@example.com'),
+                        (2, 'Burger Barn',       '2200', 'burger@example.com'),
+                        (3, 'Sushi Spot',        '2300', 'sushi@example.com');
+                     """);
+            st.execute(
+                    "INSERT INTO menu_item (item_id, item_name, item_price, supplier_id) VALUES (10, 'test1', 10.0, 1);");
+            st.execute(
+                    "INSERT INTO menu_item (item_id, item_name, item_price, supplier_id) VALUES (11, 'test2', 15.0, 2);");
         }
 
         UUID orderId = UUID.randomUUID();
@@ -185,7 +198,6 @@ class ModelRepoTest {
 
     @Test
     void createOrder_rollsBackWhenOrderLineInsertFails() throws Exception {
-
 
         try (Statement st = conn.createStatement()) {
             st.execute(
@@ -232,10 +244,17 @@ class ModelRepoTest {
         try (Statement st = conn.createStatement()) {
             st.execute(
                     "INSERT INTO customer (customer_id, customer_name, customer_zip, customer_phone) VALUES (1, 'Test Customer', '2450', '11111111');");
+            st.execute("""
+                    INSERT INTO public.supplier (supplier_id, supplier_name, supplier_zip, supplier_creds)
+                    VALUES
+                        (1, 'Pizza Palace',      '2100', 'pizza@example.com'),
+                        (2, 'Burger Barn',       '2200', 'burger@example.com'),
+                        (3, 'Sushi Spot',        '2300', 'sushi@example.com');
+                     """);
             st.execute(
-                    "INSERT INTO supplier (supplier_id, supplier_name, supplier_zip) VALUES (1, 'Test Supplier', '2450');");
-            st.execute("INSERT INTO menu_item (item_id) VALUES (10);");
-            st.execute("INSERT INTO menu_item (item_id) VALUES (11);");
+                    "INSERT INTO menu_item (item_id, item_name, item_price, supplier_id) VALUES (10, 'test1', 10.0, 1);");
+            st.execute(
+                    "INSERT INTO menu_item (item_id, item_name, item_price, supplier_id) VALUES (11, 'test2', 15.0, 1);");
         }
 
         UUID id = UUID.randomUUID();
@@ -259,10 +278,17 @@ class ModelRepoTest {
         try (Statement st = conn.createStatement()) {
             st.execute(
                     "INSERT INTO customer (customer_id, customer_name, customer_zip, customer_phone) VALUES (1, 'Test Customer', '2450', '11111111');");
+            st.execute("""
+                    INSERT INTO public.supplier (supplier_id, supplier_name, supplier_zip, supplier_creds)
+                    VALUES
+                        (1, 'Pizza Palace',      '2100', 'pizza@example.com'),
+                        (2, 'Burger Barn',       '2200', 'burger@example.com'),
+                        (3, 'Sushi Spot',        '2300', 'sushi@example.com');
+                     """);
             st.execute(
-                    "INSERT INTO supplier (supplier_id, supplier_name, supplier_zip) VALUES (1, 'Test Supplier', '2450');");
-            st.execute("INSERT INTO menu_item (item_id) VALUES (10);");
-            st.execute("INSERT INTO menu_item (item_id) VALUES (11);");
+                    "INSERT INTO menu_item (item_id, item_name, item_price, supplier_id) VALUES (10, 'test1', 10.0, 1);");
+            st.execute(
+                    "INSERT INTO menu_item (item_id, item_name, item_price, supplier_id) VALUES (11, 'test2', 15.0, 1);");
         }
 
         UUID id = UUID.randomUUID();
@@ -279,107 +305,70 @@ class ModelRepoTest {
         // Legacy order set to anonymous customer id 0 on no match
         assertEquals(0, dto.getCustomerId());
     }
-    /*
-     * @Test
-     * void createAnonymousCustomerOnNoMatchedLegacyOrder() throws SQLException {
-     * 
-     * try (Statement st = conn.createStatement()) {
-     * st.
-     * execute("INSERT INTO customer (customer_name, customer_zip, customer_phone) VALUES ('Test Customer', '2450', '22222222');"
-     * );
-     * st.execute("INSERT INTO menu_item (item_id) VALUES (10);");
-     * st.execute("INSERT INTO menu_item (item_id) VALUES (11);");
-     * }
-     * 
-     * UUID id = UUID.randomUUID();
-     * LegacyOrderDetailsDTO legacy = new LegacyOrderDetailsDTO(
-     * id,
-     * "11111111",
-     * List.of(
-     * new OrderLineDTO(id, 10, 1.0f, 1),
-     * new OrderLineDTO(id, 11, 2.0f, 2)
-     * )
-     * );
-     * 
-     * try (PreparedStatement ps =
-     * conn.prepareStatement("SELECT * FROM customer WHERE customer_id = ?")) {
-     * 
-     * ps.setInt(1, 0);
-     * ResultSet rs = ps.executeQuery();
-     * 
-     * // No anonymous user exists with id 0
-     * assertFalse(rs.next());
-     * }
-     * 
-     * // Create legacy order with uknown customer
-     * connector.createLegacyOrder(legacy, conn);
-     * 
-     * try (PreparedStatement ps =
-     * conn.prepareStatement("SELECT * FROM customer WHERE customer_id = ?")) {
-     * 
-     * ps.setInt(1, 0);
-     * ResultSet rs = ps.executeQuery();
-     * 
-     * // Anonymous user exists after non-matched legacy order created
-     * assertTrue(rs.next());
-     * 
-     * assertEquals(0, rs.getInt("customer_id"));
-     * assertEquals("Anonymous", rs.getString("customer_name"));
-     * }
-     * 
-     * try (PreparedStatement ps =
-     * conn.prepareStatement("SELECT * FROM \"orders\" WHERE customer_id = ?")) {
-     * 
-     * ps.setInt(1, 0);
-     * ResultSet rs = ps.executeQuery();
-     * 
-     * // Order created with anonymous customer
-     * assertTrue(rs.next());
-     * }
-     * }
-     * 
-     * @Test
-     * void matchLegacyOrderWithExistingAnonymousCustomer() throws SQLException {
-     * 
-     * try (Statement st = conn.createStatement()) {
-     * st.
-     * execute("INSERT INTO customer (customer_id, customer_name, customer_zip, customer_phone) VALUES (0, 'Anonymous', '0', '0');"
-     * );
-     * st.execute("INSERT INTO menu_item (item_id) VALUES (10);");
-     * st.execute("INSERT INTO menu_item (item_id) VALUES (11);");
-     * }
-     * 
-     * UUID id = UUID.randomUUID();
-     * LegacyOrderDetailsDTO legacy = new LegacyOrderDetailsDTO(
-     * id,
-     * "11111111",
-     * List.of(
-     * new OrderLineDTO(id, 10, 1.0f, 1),
-     * new OrderLineDTO(id, 11, 2.0f, 2)
-     * )
-     * );
-     * 
-     * try (PreparedStatement ps =
-     * conn.prepareStatement("SELECT * FROM customer WHERE customer_id = ?")) {
-     * 
-     * ps.setInt(1, 0);
-     * ResultSet rs = ps.executeQuery();
-     * 
-     * // Anonymous user exists with id 0
-     * assertTrue(rs.next());
-     * }
-     * 
-     * connector.createLegacyOrder(legacy, conn);
-     * 
-     * try (PreparedStatement ps =
-     * conn.prepareStatement("SELECT * FROM \"orders\" WHERE customer_id = ?")) {
-     * 
-     * ps.setInt(1, 0);
-     * ResultSet rs = ps.executeQuery();
-     * 
-     * // Order created with anonymous order
-     * assertTrue(rs.next());
-     * }
-     * }
-     */
+
+    @Test
+    void getMenuItemListByValidSupplierID() throws Exception {
+
+        try (Statement st = conn.createStatement()) {
+            st.execute("""
+                    INSERT INTO public.supplier (supplier_id, supplier_name, supplier_zip, supplier_creds)
+                    VALUES
+                        (1, 'Pizza Palace',      '2100', 'pizza@example.com'),
+                        (2, 'Burger Barn',       '2200', 'burger@example.com'),
+                        (3, 'Sushi Spot',        '2300', 'sushi@example.com');
+                     """);
+            st.execute(
+                    "INSERT INTO menu_item (item_id, item_name, item_price, supplier_id) VALUES (10, 'test1', 10.0, 1);");
+            st.execute(
+                    "INSERT INTO menu_item (item_id, item_name, item_price, supplier_id) VALUES (11, 'test2', 15.0, 1);");
+        }
+
+        List<menuItemDTO> result = repository.getMenuItemsBySupplierId(1);
+
+        assertEquals(result.size(), 2);
+    }
+
+    @Test
+    void getEmptyMenuItemListOnNoSupplierIDMatch() throws Exception {
+
+        try (Statement st = conn.createStatement()) {
+            st.execute("""
+                    INSERT INTO public.supplier (supplier_id, supplier_name, supplier_zip, supplier_creds)
+                    VALUES
+                        (1, 'Pizza Palace',      '2100', 'pizza@example.com'),
+                        (2, 'Burger Barn',       '2200', 'burger@example.com'),
+                        (3, 'Sushi Spot',        '2300', 'sushi@example.com');
+                     """);
+            st.execute(
+                    "INSERT INTO menu_item (item_id, item_name, item_price, supplier_id) VALUES (10, 'test1', 10.0, 1);");
+            st.execute(
+                    "INSERT INTO menu_item (item_id, item_name, item_price, supplier_id) VALUES (11, 'test2', 15.0, 1);");
+        }
+
+        List<menuItemDTO> result = repository.getMenuItemsBySupplierId(4);
+
+        assertEquals(result.size(), 0);
+    }
+
+    @Test
+    void throwMenuItemsOnInvalidConnection() throws SQLException {
+
+        repoConn.close();
+
+        assertThrows(SQLException.class, () -> repository.getMenuItemsBySupplierId(1));
+    }
+
+    @Test
+    void healthCheckValidTest() throws Exception {
+
+        assertTrue(repository.healthCheck());
+    }
+
+    @Test 
+    void throwsOnInvalidHealthcheck() throws SQLException {
+
+        repoConn.close(); // invalid connection
+
+        assertThrows(SQLException.class, repository::healthCheck);
+    }
 }

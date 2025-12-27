@@ -45,8 +45,8 @@ public class Main {
             ObjectMapper mapper = new ObjectMapper();
             SQLConnector sqlConnector = new SQLConnector();
 
-            IModelRepository modelRepo = new PostgresModelRepository(sqlConnector);
-            IAuthRepository authRepo = new PostgresAuthRepository(sqlConnector);
+            IModelRepository modelRepo = new PostgresModelRepository(sqlConnector::getConnection);
+            IAuthRepository authRepo = new PostgresAuthRepository(sqlConnector::getConnection);
 
             // Check repo connection and panic on error
             modelRepo.healthCheck();

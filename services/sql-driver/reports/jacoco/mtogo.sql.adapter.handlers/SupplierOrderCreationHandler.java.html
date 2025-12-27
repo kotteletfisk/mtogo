@@ -17,42 +17,44 @@ import mtogo.sql.ports.out.IOrderCreationEventProducer;
 
 public class SupplierOrderCreationHandler implements IMessageHandler {
 
-<span class="nc" id="L20">    private final Logger log = LoggerFactory.getLogger(this.getClass());</span>
+<span class="fc" id="L20">    private final Logger log = LoggerFactory.getLogger(this.getClass());</span>
     private final ObjectMapper objectMapper;
     private final SupplierOrderCreationService service;
     private final IOrderCreationEventProducer producer;
 
-<span class="nc" id="L25">    public SupplierOrderCreationHandler(ObjectMapper mapper, SupplierOrderCreationService service, IOrderCreationEventProducer producer) {</span>
-<span class="nc" id="L26">        this.objectMapper = mapper;</span>
-<span class="nc" id="L27">        this.service = service;</span>
-<span class="nc" id="L28">        this.producer = producer;</span>
-<span class="nc" id="L29">    }</span>
+<span class="fc" id="L25">    public SupplierOrderCreationHandler(ObjectMapper mapper, SupplierOrderCreationService service, IOrderCreationEventProducer producer) {</span>
+<span class="fc" id="L26">        this.objectMapper = mapper;</span>
+<span class="fc" id="L27">        this.service = service;</span>
+<span class="fc" id="L28">        this.producer = producer;</span>
+<span class="fc" id="L29">    }</span>
 
     @Override
     public void handle(Delivery delivery, Channel channel) {
-<span class="nc" id="L33">        log.info(&quot;Handling legacy order message&quot;);</span>
-<span class="nc" id="L34">        long tag = delivery.getEnvelope().getDeliveryTag();</span>
+<span class="fc" id="L33">        log.info(&quot;Handling legacy order message&quot;);</span>
+<span class="fc" id="L34">        long tag = delivery.getEnvelope().getDeliveryTag();</span>
 
         try {
-<span class="nc" id="L37">            LegacyOrderDetailsDTO legacyOrderDetailsDTO = objectMapper.readValue(delivery.getBody(),</span>
-                    LegacyOrderDetailsDTO.class);
+<span class="fc" id="L37">            LegacyOrderDetailsDTO legacyOrderDetailsDTO = objectMapper.readValue(delivery.getBody(),</span>
+<span class="fc" id="L38">                    LegacyOrderDetailsDTO.class);</span>
 
-<span class="nc" id="L40">            OrderDetailsDTO enriched = service.call(legacyOrderDetailsDTO);</span>
+<span class="fc" id="L40">            OrderDetailsDTO enriched = service.call(legacyOrderDetailsDTO);</span>
 
-<span class="nc bnc" id="L42" title="All 2 branches missed.">            if (producer.orderCreation(new CustomerOrderCreationEvent(enriched))) {</span>
-<span class="nc" id="L43">                log.debug(&quot;Published:\n&quot; + enriched.toString());</span>
+<span class="fc bfc" id="L42" title="All 2 branches covered.">            if (producer.orderCreation(new CustomerOrderCreationEvent(enriched))) {</span>
+<span class="fc" id="L43">                log.debug(&quot;Published:\n&quot; + enriched.toString());</span>
+<span class="fc" id="L44">                channel.basicAck(tag, false);</span>
             }
 
-<span class="nc" id="L46">            channel.basicAck(tag, false);</span>
+<span class="fc" id="L47">            log.error(&quot;Failed to publish enriched order&quot;);</span>
+<span class="fc" id="L48">            channel.basicNack(tag, false, false);</span>
 
-<span class="nc" id="L48">        } catch (Exception e) {</span>
-<span class="nc" id="L49">            log.error(e.getMessage());</span>
+<span class="fc" id="L50">        } catch (Exception e) {</span>
+<span class="fc" id="L51">            log.error(e.getMessage());</span>
             try {
-<span class="nc" id="L51">                channel.basicNack(tag, false, false);</span>
-<span class="nc" id="L52">            } catch (IOException io) {</span>
-<span class="nc" id="L53">                log.error(&quot;Failed to NACK message&quot;, io);</span>
-<span class="nc" id="L54">            }</span>
-<span class="nc" id="L55">        }</span>
-<span class="nc" id="L56">    }</span>
+<span class="fc" id="L53">                channel.basicNack(tag, false, false);</span>
+<span class="pc" id="L54">            } catch (IOException io) {</span>
+<span class="nc" id="L55">                log.error(&quot;Failed to NACK message&quot;, io);</span>
+            }
+        }
+<span class="fc" id="L58">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

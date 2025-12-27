@@ -15,7 +15,7 @@ import org.postgresql.util.PSQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import mtogo.sql.adapter.persistence.SQLConnector;
+import mtogo.sql.adapter.persistence.IPostgresConnectionSupplier;
 import mtogo.sql.model.DTO.LegacyOrderDetailsDTO;
 import mtogo.sql.model.DTO.OrderDTO;
 import mtogo.sql.model.DTO.OrderDetailsDTO;
@@ -31,16 +31,17 @@ public class PostgresModelRepository implements IModelRepository {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-    private final SQLConnector sqlConnector;
+    // private final SQLConnector sqlConnector;
+    private final IPostgresConnectionSupplier connectionSupplier;
 
-    public PostgresModelRepository(SQLConnector sqlConnector) {
-        this.sqlConnector = sqlConnector;
+    public PostgresModelRepository(IPostgresConnectionSupplier connectionSupplier) {
+        this.connectionSupplier = connectionSupplier;
     }
 
     @Override
     public OrderDTO createOrder(OrderDTO orderDTO, List<OrderLineDTO> orderLineDTOS) throws SQLException {
 
-        try (Connection conn = sqlConnector.getConnection()) {
+        try (Connection conn = connectionSupplier.getConnection()) {
 
             boolean originalAutoCommit = conn.getAutoCommit();
             conn.setAutoCommit(false);
@@ -125,7 +126,7 @@ public class PostgresModelRepository implements IModelRepository {
     @Override
     public OrderDetailsDTO customerEnrichLegacyOrder(LegacyOrderDetailsDTO legacyDTO) throws SQLException {
 
-        try (Connection connection = sqlConnector.getConnection()) {
+        try (Connection connection = connectionSupplier.getConnection()) {
             log.info("Creating legacy order");
 
             // Query for existing customer
@@ -172,7 +173,7 @@ public class PostgresModelRepository implements IModelRepository {
     @Override
     public List<menuItemDTO> getMenuItemsBySupplierId(int supplierId) throws SQLException {
 
-        try (Connection connection = sqlConnector.getConnection()) {
+        try (Connection connection = connectionSupplier.getConnection()) {
             String sql = "SELECT item_id, item_name, item_price, supplier_id, is_active "
                     + "FROM menu_item WHERE supplier_id = ?";
 
@@ -206,7 +207,7 @@ public class PostgresModelRepository implements IModelRepository {
 
         for (int i = 0; i < 10; i++) {
             try {
-                Connection connection = sqlConnector.getConnection();
+                Connection connection = connectionSupplier.getConnection();
 
                 if (connection.isValid(2)) {
                     return true;

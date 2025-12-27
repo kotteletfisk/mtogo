@@ -41,9 +41,11 @@ public class SupplierOrderCreationHandler implements IMessageHandler {
 
             if (producer.orderCreation(new CustomerOrderCreationEvent(enriched))) {
                 log.debug("Published:\n" + enriched.toString());
+                channel.basicAck(tag, false);
             }
 
-            channel.basicAck(tag, false);
+            log.error("Failed to publish enriched order");
+            channel.basicNack(tag, false, false);
 
         } catch (Exception e) {
             log.error(e.getMessage());

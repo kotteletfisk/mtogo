@@ -30,64 +30,81 @@ public class RabbitMQEventProducer {
 
     // Connection pooling
     private final Connection connection;
-    private BlockingQueue<Channel> channelPool;
-    private final int POOL_SIZE = 10;
-    private static final Object initLock = new Object();
+    /*
+     * private BlockingQueue<Channel> channelPool;
+     * private final int POOL_SIZE = 10;
+     * private static final Object initLock = new Object();
+     */
     private final ObjectMapper mapper;
 
-    public RabbitMQEventProducer(ObjectMapper mapper, Connection connection) throws IOException, TimeoutException, InterruptedException {
+    public RabbitMQEventProducer(ObjectMapper mapper, Connection connection)
+            throws IOException, TimeoutException, InterruptedException {
         this.mapper = mapper;
         this.connection = connection;
-        fillChannelPool();
+        // fillChannelPool();
     }
 
     public boolean publishMessage(String routingKey, String message) {
 
-        try {
-            fillChannelPool();
-        } catch (IOException | TimeoutException | InterruptedException ex) {
-            log.error("Failed to get producer connection: {}", ex.getLocalizedMessage());
-            return false;
-        }
+        /*
+         * try {
+         * fillChannelPool();
+         * } catch (IOException | TimeoutException | InterruptedException ex) {
+         * log.error("Failed to get producer connection: {}", ex.getLocalizedMessage());
+         * return false;
+         * }
+         */
 
-        Channel channel = null;
+        // Channel channel = null;
         try {
             // Get channel from pool
-            channel = channelPool.poll(5, TimeUnit.SECONDS);
-            if (channel == null) {
-                log.error("No channels available in pool");
-                return false;
-            }
+            /*
+             * channel = channelPool.poll(5, TimeUnit.SECONDS);
+             * if (channel == null) {
+             * log.error("No channels available in pool");
+             * return false;
+             * }
+             */
 
             // Recreate channel if closed
-            if (!channel.isOpen()) {
-                channel = connection.createChannel();
+            /*
+             * if (!channel.isOpen()) {
+             * channel = connection.createChannel();
+             * channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
+             * channel.confirmSelect();
+             * }
+             */
+
+            try (Channel channel = connection.createChannel()) {
+                
                 channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
                 channel.confirmSelect();
-            }
 
-            channel.basicPublish(EXCHANGE_NAME, routingKey, null, message.getBytes("UTF-8"));
-            // Maybe log the message that is being sent?
+                channel.basicPublish(EXCHANGE_NAME, routingKey, null, message.getBytes("UTF-8"));
+                // Maybe log the message that is being sent?
 
-            if (!channel.waitForConfirms(5000)) {
-                throw new IOException("Confirm wait time exceeded 5000ms");
+                if (!channel.waitForConfirms(5000)) {
+                    throw new IOException("Confirm wait time exceeded 5000ms");
+                }
+                return true;
             }
-            return true;
 
         } catch (IOException | TimeoutException | InterruptedException e) {
             log.error(e.getMessage());
             return false;
         } finally {
             // Return channel to pool
-            if (channel != null && channel.isOpen()) {
-                channelPool.offer(channel);
-            } else {
-                try {
-                    fillChannelPool();
-                } catch (TimeoutException | InterruptedException | IOException ex) {
-                   log.error("Error refiling channel pool: {}", ex.getLocalizedMessage());
-                }
-            }
+            /*
+             * if (channel != null && channel.isOpen()) {
+             * channelPool.offer(channel);
+             * } else {
+             * try {
+             * fillChannelPool();
+             * } catch (TimeoutException | InterruptedException | IOException ex) {
+             * log.error("Error refiling channel pool: {}", ex.getLocalizedMessage());
+             * }
+             * }
+             */
         }
     }
 
@@ -116,27 +133,30 @@ public class RabbitMQEventProducer {
         return false;
     }
 
-    private void fillChannelPool() throws TimeoutException, InterruptedException, IOException {
-        synchronized (initLock) {
-            try {
-
-                if (channelPool == null) {
-                    channelPool = new ArrayBlockingQueue<>(POOL_SIZE);
-                }
-
-                while (channelPool.size() < POOL_SIZE) {
-                    Channel channel = this.connection.createChannel();
-                    channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
-                    channel.confirmSelect();
-                    channelPool.offer(channel);
-                }
-
-                log.info("Producer initialized with {} channels", POOL_SIZE);
-            } catch (IOException e) {
-                log.error("Failed to initialize Producer", e);
-                throw e;
-            }
-
-        }
-    }
+    /*
+     * private void fillChannelPool() throws TimeoutException, InterruptedException,
+     * IOException {
+     * synchronized (initLock) {
+     * try {
+     * 
+     * if (channelPool == null) {
+     * channelPool = new ArrayBlockingQueue<>(POOL_SIZE);
+     * }
+     * 
+     * while (channelPool.size() < POOL_SIZE) {
+     * Channel channel = this.connection.createChannel();
+     * channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
+     * channel.confirmSelect();
+     * channelPool.offer(channel);
+     * }
+     * 
+     * log.info("Producer initialized with {} channels", POOL_SIZE);
+     * } catch (IOException e) {
+     * log.error("Failed to initialize Producer", e);
+     * throw e;
+     * }
+     * 
+     * }
+     * }
+     */
 }

@@ -9,107 +9,108 @@ import org.postgresql.util.PSQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import mtogo.sql.adapter.persistence.SQLConnector;
+import mtogo.sql.adapter.persistence.IPostgresConnectionSupplier;
 import mtogo.sql.model.DTO.AuthDTO;
 import mtogo.sql.ports.out.IAuthRepository;
 
 public class PostgresAuthRepository implements IAuthRepository {
 
-<span class="nc" id="L18">    private final Logger log = LoggerFactory.getLogger(this.getClass());</span>
+<span class="fc" id="L18">    private final Logger log = LoggerFactory.getLogger(this.getClass());</span>
 
-    private final SQLConnector connector;
+    // private final SQLConnector connector;
+    private final IPostgresConnectionSupplier connectionSupplier;
 
-<span class="nc" id="L22">    public PostgresAuthRepository(SQLConnector connector) {</span>
-<span class="nc" id="L23">        this.connector = connector;</span>
-<span class="nc" id="L24">    }</span>
+<span class="fc" id="L23">    public PostgresAuthRepository(IPostgresConnectionSupplier connectionSupplier) {</span>
+<span class="fc" id="L24">        this.connectionSupplier = connectionSupplier;</span>
+<span class="fc" id="L25">    }</span>
 
     @Override
     public AuthDTO fetchAuthPerEmail(String email) {
 
         try {
-<span class="nc" id="L30">            var conn = connector.getConnection();</span>
+<span class="fc" id="L31">            var conn = connectionSupplier.getConnection();</span>
 
-<span class="nc" id="L32">            var userStmt = conn.prepareStatement(&quot;&quot;&quot;</span>
+<span class="fc" id="L33">            var userStmt = conn.prepareStatement(&quot;&quot;&quot;</span>
                         SELECT user_id, email, password_hash
                         FROM auth_user
                         WHERE email = ?
                     &quot;&quot;&quot;);
-<span class="nc" id="L37">            userStmt.setString(1, email);</span>
-<span class="nc" id="L38">            var rs = userStmt.executeQuery();</span>
+<span class="fc" id="L38">            userStmt.setString(1, email);</span>
+<span class="fc" id="L39">            var rs = userStmt.executeQuery();</span>
 
-<span class="nc bnc" id="L40" title="All 2 branches missed.">            if (!rs.next()) {</span>
-<span class="nc" id="L41">                return null;</span>
+<span class="fc bfc" id="L41" title="All 2 branches covered.">            if (!rs.next()) {</span>
+<span class="fc" id="L42">                return null;</span>
             }
 
-<span class="nc" id="L44">            AuthDTO authDTO = new AuthDTO();</span>
+<span class="fc" id="L45">            AuthDTO authDTO = new AuthDTO();</span>
 
-<span class="nc" id="L46">            authDTO.id = rs.getLong(&quot;user_id&quot;);</span>
-<span class="nc" id="L47">            authDTO.passwordHash = rs.getString(&quot;password_hash&quot;);</span>
-<span class="nc" id="L48">            authDTO.email = rs.getString(&quot;email&quot;);</span>
-<span class="nc" id="L49">            return authDTO;</span>
-<span class="nc" id="L50">        } catch (SQLException e) {</span>
-<span class="nc" id="L51">            return null;</span>
+<span class="fc" id="L47">            authDTO.id = rs.getLong(&quot;user_id&quot;);</span>
+<span class="fc" id="L48">            authDTO.passwordHash = rs.getString(&quot;password_hash&quot;);</span>
+<span class="fc" id="L49">            authDTO.email = rs.getString(&quot;email&quot;);</span>
+<span class="fc" id="L50">            return authDTO;</span>
+<span class="nc" id="L51">        } catch (SQLException e) {</span>
+<span class="nc" id="L52">            return null;</span>
         }
     }
 
     @Override
     public List&lt;String&gt; fetchRolesForAuth(long id) {
         try {
-<span class="nc" id="L58">            var conn = connector.getConnection();</span>
+<span class="fc" id="L59">            var conn = connectionSupplier.getConnection();</span>
 
-<span class="nc" id="L60">            var rolesStmt = conn.prepareStatement(&quot;&quot;&quot;</span>
+<span class="fc" id="L61">            var rolesStmt = conn.prepareStatement(&quot;&quot;&quot;</span>
                         SELECT role_name FROM auth_user_role WHERE user_id = ?
                     &quot;&quot;&quot;);
-<span class="nc" id="L63">            rolesStmt.setLong(1, id);</span>
-<span class="nc" id="L64">            var rolesRs = rolesStmt.executeQuery();</span>
+<span class="fc" id="L64">            rolesStmt.setLong(1, id);</span>
+<span class="fc" id="L65">            var rolesRs = rolesStmt.executeQuery();</span>
 
-<span class="nc" id="L66">            List&lt;String&gt; roles = new ArrayList&lt;&gt;();</span>
-<span class="nc bnc" id="L67" title="All 2 branches missed.">            while (rolesRs.next()) {</span>
-<span class="nc" id="L68">                roles.add(rolesRs.getString(&quot;role_name&quot;));</span>
+<span class="fc" id="L67">            List&lt;String&gt; roles = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">            while (rolesRs.next()) {</span>
+<span class="fc" id="L69">                roles.add(rolesRs.getString(&quot;role_name&quot;));</span>
             }
-<span class="nc" id="L70">            return roles;</span>
-<span class="nc" id="L71">        } catch (SQLException e) {</span>
-<span class="nc" id="L72">            return null;</span>
+<span class="fc" id="L71">            return roles;</span>
+<span class="nc" id="L72">        } catch (SQLException e) {</span>
+<span class="nc" id="L73">            return null;</span>
         }
     }
 
     @Override
     public String fetchActorIdForAuth(String cred, String service) {
         try {
-<span class="nc" id="L79">            var conn = connector.getConnection();</span>
+<span class="fc" id="L80">            var conn = connectionSupplier.getConnection();</span>
 
-<span class="nc bnc" id="L81" title="All 4 branches missed.">            switch (service.toLowerCase()) {</span>
+<span class="fc bfc" id="L82" title="All 4 branches covered.">            switch (service.toLowerCase()) {</span>
                 case &quot;customer&quot;: {
-<span class="nc" id="L83">                    var stmt = conn.prepareStatement(&quot;&quot;&quot;</span>
+<span class="fc" id="L84">                    var stmt = conn.prepareStatement(&quot;&quot;&quot;</span>
                                 SELECT customer_id FROM customer WHERE customer_creds = ?
                             &quot;&quot;&quot;);
-<span class="nc" id="L86">                    stmt.setString(1, cred);</span>
-<span class="nc" id="L87">                    var rs = stmt.executeQuery();</span>
-<span class="nc bnc" id="L88" title="All 2 branches missed.">                    if (rs.next()) {</span>
-<span class="nc" id="L89">                        int result = rs.getInt(&quot;customer_id&quot;);</span>
-<span class="nc" id="L90">                        return String.valueOf(result);</span>
+<span class="fc" id="L87">                    stmt.setString(1, cred);</span>
+<span class="fc" id="L88">                    var rs = stmt.executeQuery();</span>
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">                    if (rs.next()) {</span>
+<span class="fc" id="L90">                        int result = rs.getInt(&quot;customer_id&quot;);</span>
+<span class="fc" id="L91">                        return String.valueOf(result);</span>
                     }
                 }
                 case &quot;supplier&quot;: {
-<span class="nc" id="L94">                    var stmt = conn.prepareStatement(&quot;&quot;&quot;</span>
+<span class="fc" id="L95">                    var stmt = conn.prepareStatement(&quot;&quot;&quot;</span>
                                 SELECT supplier_id FROM supplier WHERE supplier_creds = ?
                             &quot;&quot;&quot;);
-<span class="nc" id="L97">                    stmt.setString(1, cred);</span>
-<span class="nc" id="L98">                    var rs = stmt.executeQuery();</span>
-<span class="nc bnc" id="L99" title="All 2 branches missed.">                    if (rs.next()) {</span>
-<span class="nc" id="L100">                        int result = rs.getInt(&quot;supplier_id&quot;);</span>
-<span class="nc" id="L101">                        return String.valueOf(result);</span>
+<span class="fc" id="L98">                    stmt.setString(1, cred);</span>
+<span class="fc" id="L99">                    var rs = stmt.executeQuery();</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">                    if (rs.next()) {</span>
+<span class="fc" id="L101">                        int result = rs.getInt(&quot;supplier_id&quot;);</span>
+<span class="fc" id="L102">                        return String.valueOf(result);</span>
                     }
                 }
                 case &quot;courier&quot;: {
-<span class="nc" id="L105">                    var stmt = conn.prepareStatement(&quot;&quot;&quot;</span>
+<span class="fc" id="L106">                    var stmt = conn.prepareStatement(&quot;&quot;&quot;</span>
                                 SELECT courier_id FROM courier WHERE courier_creds = ?
                             &quot;&quot;&quot;);
-<span class="nc" id="L108">                    stmt.setString(1, cred);</span>
-<span class="nc" id="L109">                    var rs = stmt.executeQuery();</span>
-<span class="nc bnc" id="L110" title="All 2 branches missed.">                    if (rs.next()) {</span>
-<span class="nc" id="L111">                        int result = rs.getInt(&quot;courier_id&quot;);</span>
-<span class="nc" id="L112">                        return String.valueOf(result);</span>
+<span class="fc" id="L109">                    stmt.setString(1, cred);</span>
+<span class="fc" id="L110">                    var rs = stmt.executeQuery();</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">                    if (rs.next()) {</span>
+<span class="fc" id="L112">                        int result = rs.getInt(&quot;courier_id&quot;);</span>
+<span class="fc" id="L113">                        return String.valueOf(result);</span>
                     }
                 }
                 case &quot;management&quot;: {
@@ -119,29 +120,29 @@ public class PostgresAuthRepository implements IAuthRepository {
                     //TODO: Implement later
                 }
                 default: {
-<span class="nc" id="L122">                    return String.valueOf(-2);</span>
+<span class="fc" id="L123">                    return String.valueOf(-2);</span>
                 }
             }
-<span class="nc" id="L125">        } catch (SQLException e) {</span>
-<span class="nc" id="L126">            return String.valueOf(-1);</span>
+<span class="nc" id="L126">        } catch (SQLException e) {</span>
+<span class="nc" id="L127">            return String.valueOf(-1);</span>
         }
     }
 
     @Override
     public boolean healthCheck() throws Exception {
 
-<span class="nc bnc" id="L133" title="All 2 branches missed.">        for (int i = 0; i &lt; 10; i++) {</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">        for (int i = 0; i &lt; 10; i++) {</span>
             try {
-<span class="nc" id="L135">                Connection conn = connector.getConnection();</span>
-<span class="nc bnc" id="L136" title="All 2 branches missed.">                if (conn.isValid(2)) {</span>
-<span class="nc" id="L137">                    return true;</span>
+<span class="fc" id="L136">                Connection conn = connectionSupplier.getConnection();</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">                if (conn.isValid(2)) {</span>
+<span class="fc" id="L138">                    return true;</span>
                 }
-<span class="nc" id="L139">            } catch (PSQLException e) {</span>
-<span class="nc" id="L140">                log.warn(&quot;Retrying JDBC connection&quot;);</span>
-<span class="nc" id="L141">                Thread.sleep(2000);</span>
-<span class="nc" id="L142">            }</span>
+<span class="nc" id="L140">            } catch (PSQLException e) {</span>
+<span class="nc" id="L141">                log.warn(&quot;Retrying JDBC connection&quot;);</span>
+<span class="nc" id="L142">                Thread.sleep(2000);</span>
+<span class="fc" id="L143">            }</span>
         }
-<span class="nc" id="L144">        throw new SQLException(&quot;JDBC Connection Failed&quot;);</span>
+<span class="fc" id="L145">        throw new SQLException(&quot;JDBC Connection Failed&quot;);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

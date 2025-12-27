@@ -45,8 +45,8 @@ import mtogo.sql.ports.out.IRpcResponderFactory;
 <span class="nc" id="L45">            ObjectMapper mapper = new ObjectMapper();</span>
 <span class="nc" id="L46">            SQLConnector sqlConnector = new SQLConnector();</span>
 
-<span class="nc" id="L48">            IModelRepository modelRepo = new PostgresModelRepository(sqlConnector);</span>
-<span class="nc" id="L49">            IAuthRepository authRepo = new PostgresAuthRepository(sqlConnector);</span>
+<span class="nc" id="L48">            IModelRepository modelRepo = new PostgresModelRepository(sqlConnector::getConnection);</span>
+<span class="nc" id="L49">            IAuthRepository authRepo = new PostgresAuthRepository(sqlConnector::getConnection);</span>
 
             // Check repo connection and panic on error
 <span class="nc" id="L52">            modelRepo.healthCheck();</span>
@@ -62,22 +62,22 @@ import mtogo.sql.ports.out.IRpcResponderFactory;
 <span class="nc" id="L62">            IRpcResponderFactory rpcFactory = new RabbitMQRpcResponderFactory(mapper, mqConnection);</span>
 
 <span class="nc" id="L64">            Map&lt;String, IMessageHandler&gt; map = Map.of(</span>
-                    &quot;customer:order_creation&quot;,
-                    new CustomerOrderCreationHandler(mapper,
-                            new CustomerOrderCreationService(modelRepo),
-                            new RabbitMQOrderPersistedEventProducer(eventProducer)),
-                    &quot;supplier:order_creation&quot;,
-                    new SupplierOrderCreationHandler(mapper,
-                            new SupplierOrderCreationService(modelRepo),
-                            new RabbitMQOrderCreationEventProducer(eventProducer)),
-                    &quot;customer:menu_request&quot;,
-                    new CustomerMenuRequestHandler(
-                            new CustomerMenuRequestService(modelRepo),
-                            rpcFactory),
-                    &quot;auth:login&quot;,
-                    new AuthLoginHandler(mapper,
-                            new AuthReceiverService(authRepo),
-                            rpcFactory));
+<span class="nc" id="L65">                    &quot;customer:order_creation&quot;,</span>
+<span class="nc" id="L66">                    new CustomerOrderCreationHandler(mapper,</span>
+<span class="nc" id="L67">                            new CustomerOrderCreationService(modelRepo),</span>
+<span class="nc" id="L68">                            new RabbitMQOrderPersistedEventProducer(eventProducer)),</span>
+<span class="nc" id="L69">                    &quot;supplier:order_creation&quot;,</span>
+<span class="nc" id="L70">                    new SupplierOrderCreationHandler(mapper,</span>
+<span class="nc" id="L71">                            new SupplierOrderCreationService(modelRepo),</span>
+<span class="nc" id="L72">                            new RabbitMQOrderCreationEventProducer(eventProducer)),</span>
+<span class="nc" id="L73">                    &quot;customer:menu_request&quot;,</span>
+<span class="nc" id="L74">                    new CustomerMenuRequestHandler(</span>
+<span class="nc" id="L75">                            new CustomerMenuRequestService(modelRepo),</span>
+<span class="nc" id="L76">                            rpcFactory),</span>
+<span class="nc" id="L77">                    &quot;auth:login&quot;,</span>
+<span class="nc" id="L78">                    new AuthLoginHandler(mapper,</span>
+<span class="nc" id="L79">                            new AuthReceiverService(authRepo),</span>
+<span class="nc" id="L80">                            rpcFactory));</span>
 
 <span class="nc" id="L82">            IEventConsumer consumer = new RabbitMQEventConsumer(new MessageRouter(map), mqConnection);</span>
 
@@ -96,7 +96,7 @@ import mtogo.sql.ports.out.IRpcResponderFactory;
 <span class="nc" id="L96">            log.error(&quot;FATAL: Failed to start SQL Driver: {}&quot;, e.getMessage(), e);</span>
 <span class="nc" id="L97">            e.printStackTrace();</span>
 <span class="nc" id="L98">            System.exit(1);</span>
-<span class="nc" id="L99">        }</span>
+        }
 <span class="nc" id="L100">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

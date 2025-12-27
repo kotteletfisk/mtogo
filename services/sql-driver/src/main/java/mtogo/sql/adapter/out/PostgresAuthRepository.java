@@ -9,7 +9,7 @@ import org.postgresql.util.PSQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import mtogo.sql.adapter.persistence.SQLConnector;
+import mtogo.sql.adapter.persistence.IPostgresConnectionSupplier;
 import mtogo.sql.model.DTO.AuthDTO;
 import mtogo.sql.ports.out.IAuthRepository;
 
@@ -17,17 +17,18 @@ public class PostgresAuthRepository implements IAuthRepository {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-    private final SQLConnector connector;
+    // private final SQLConnector connector;
+    private final IPostgresConnectionSupplier connectionSupplier;
 
-    public PostgresAuthRepository(SQLConnector connector) {
-        this.connector = connector;
+    public PostgresAuthRepository(IPostgresConnectionSupplier connectionSupplier) {
+        this.connectionSupplier = connectionSupplier;
     }
 
     @Override
     public AuthDTO fetchAuthPerEmail(String email) {
 
         try {
-            var conn = connector.getConnection();
+            var conn = connectionSupplier.getConnection();
 
             var userStmt = conn.prepareStatement("""
                         SELECT user_id, email, password_hash
@@ -55,7 +56,7 @@ public class PostgresAuthRepository implements IAuthRepository {
     @Override
     public List<String> fetchRolesForAuth(long id) {
         try {
-            var conn = connector.getConnection();
+            var conn = connectionSupplier.getConnection();
 
             var rolesStmt = conn.prepareStatement("""
                         SELECT role_name FROM auth_user_role WHERE user_id = ?
@@ -76,7 +77,7 @@ public class PostgresAuthRepository implements IAuthRepository {
     @Override
     public String fetchActorIdForAuth(String cred, String service) {
         try {
-            var conn = connector.getConnection();
+            var conn = connectionSupplier.getConnection();
 
             switch (service.toLowerCase()) {
                 case "customer": {
@@ -132,7 +133,7 @@ public class PostgresAuthRepository implements IAuthRepository {
 
         for (int i = 0; i < 10; i++) {
             try {
-                Connection conn = connector.getConnection();
+                Connection conn = connectionSupplier.getConnection();
                 if (conn.isValid(2)) {
                     return true;
                 }
