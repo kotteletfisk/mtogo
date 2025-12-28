@@ -11,41 +11,41 @@ import mtogo.sql.ports.out.IAuthRepository;
 
 public class AuthReceiverService {
 
-<span class="nc" id="L14">    private final Logger log = LoggerFactory.getLogger(this.getClass());</span>
+<span class="fc" id="L14">    private final Logger log = LoggerFactory.getLogger(this.getClass());</span>
     private final IAuthRepository repo;
 
-<span class="nc" id="L17">    public AuthReceiverService(IAuthRepository repo) {</span>
-<span class="nc" id="L18">        this.repo = repo;</span>
-<span class="nc" id="L19">    }</span>
+<span class="fc" id="L17">    public AuthReceiverService(IAuthRepository repo) {</span>
+<span class="fc" id="L18">        this.repo = repo;</span>
+<span class="fc" id="L19">    }</span>
 
     public Map&lt;String, Object&gt; handleAuthLookup(String email, String service) {
 
-<span class="nc" id="L23">        AuthDTO auth = repo.fetchAuthPerEmail(email);</span>
+<span class="fc" id="L23">        AuthDTO auth = repo.fetchAuthPerEmail(email);</span>
 
-<span class="nc bnc" id="L25" title="All 2 branches missed.">        if (auth != null) {</span>
-<span class="nc" id="L26">            List&lt;String&gt; roles = repo.fetchRolesForAuth(auth.id);</span>
-<span class="nc bnc" id="L27" title="All 4 branches missed.">            if (roles == null || roles.isEmpty()) {</span>
-<span class="nc" id="L28">                roles = List.of();</span>
+<span class="fc bfc" id="L25" title="All 2 branches covered.">        if (auth != null) {</span>
+<span class="fc" id="L26">            List&lt;String&gt; roles = repo.fetchRolesForAuth(auth.id);</span>
+<span class="pc bpc" id="L27" title="2 of 4 branches missed.">            if (roles == null || roles.isEmpty()) {</span>
+<span class="fc" id="L28">                roles = List.of();</span>
             }
-<span class="nc" id="L30">            String actorId = repo.fetchActorIdForAuth(email, service);</span>
-<span class="nc bnc" id="L31" title="All 2 branches missed.">            if (actorId.equals(&quot;-1&quot;)) {</span>
-<span class="nc" id="L32">                log.info(&quot;SQL error while fetching actor id&quot;);</span>
-<span class="nc bnc" id="L33" title="All 2 branches missed.">            } else if (actorId.equals(&quot;-2&quot;)) {</span>
+<span class="fc" id="L30">            String actorId = repo.fetchActorIdForAuth(email, service);</span>
+<span class="fc bfc" id="L31" title="All 2 branches covered.">            if (actorId.equals(&quot;-1&quot;)) {</span>
+<span class="fc" id="L32">                log.info(&quot;SQL error while fetching actor id&quot;);</span>
+<span class="pc bpc" id="L33" title="1 of 2 branches missed.">            } else if (actorId.equals(&quot;-2&quot;)) {</span>
 <span class="nc" id="L34">                log.info(&quot;Service requester not recognized&quot;);</span>
 <span class="nc" id="L35">                actorId = &quot;none&quot;;</span>
             }
-<span class="nc" id="L37">            Map&lt;String, Object&gt; resp = Map.of(</span>
+<span class="fc" id="L37">            Map&lt;String, Object&gt; resp = Map.of(</span>
                     &quot;status&quot;, &quot;ok&quot;,
-<span class="nc" id="L39">                    &quot;user&quot;, Map.of(</span>
+<span class="fc" id="L39">                    &quot;user&quot;, Map.of(</span>
                             &quot;email&quot;, auth.email,
                             &quot;password_hash&quot;, auth.passwordHash,
                             &quot;roles&quot;, roles,
                             &quot;actor_id&quot;, actorId
                     )
             );
-<span class="nc" id="L46">            return resp;</span>
+<span class="fc" id="L46">            return resp;</span>
         }
-<span class="nc" id="L48">        return Map.of(&quot;status&quot;, &quot;not_found&quot;);</span>
+<span class="fc" id="L48">        return Map.of(&quot;status&quot;, &quot;not_found&quot;);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

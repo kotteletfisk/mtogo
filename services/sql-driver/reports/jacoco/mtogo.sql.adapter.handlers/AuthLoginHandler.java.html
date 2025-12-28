@@ -71,10 +71,10 @@ public class AuthLoginHandler implements IMessageHandler {
             try {
 <span class="fc" id="L72">                responder.replyError();</span>
 <span class="fc" id="L73">                channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, false);</span>
-<span class="pc" id="L74">            } catch (IOException ex1) {</span>
+<span class="nc" id="L74">            } catch (IOException ex1) {</span>
 <span class="nc" id="L75">                log.error(&quot;Error while replyError: {}&quot;, ex1.getLocalizedMessage());</span>
-            }
-        }
+<span class="fc" id="L76">            }</span>
+<span class="fc" id="L77">        }</span>
 <span class="fc" id="L78">    }</span>
 
 }

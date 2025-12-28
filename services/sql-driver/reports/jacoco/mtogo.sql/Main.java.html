@@ -14,8 +14,11 @@ import mtogo.sql.adapter.handlers.CustomerOrderCreationHandler;
 import mtogo.sql.adapter.handlers.IMessageHandler;
 import mtogo.sql.adapter.handlers.SupplierOrderCreationHandler;
 import mtogo.sql.adapter.in.RabbitMQEventConsumer;
+import mtogo.sql.adapter.messaging.RetryingRabbitMQConnectionProvider;
 import mtogo.sql.adapter.messaging.ConnectionManager;
+import mtogo.sql.adapter.messaging.IRabbitMQConnectionProvider;
 import mtogo.sql.adapter.messaging.MessageRouter;
+import mtogo.sql.adapter.messaging.RabbitMQConfig;
 import mtogo.sql.adapter.out.PostgresAuthRepository;
 import mtogo.sql.adapter.out.PostgresModelRepository;
 import mtogo.sql.adapter.out.RabbitMQEventProducer;
@@ -27,6 +30,8 @@ import mtogo.sql.core.AuthReceiverService;
 import mtogo.sql.core.CustomerMenuRequestService;
 import mtogo.sql.core.CustomerOrderCreationService;
 import mtogo.sql.core.SupplierOrderCreationService;
+import mtogo.sql.env.IEnvProvider;
+import mtogo.sql.env.SystemEnvProvider;
 import mtogo.sql.ports.in.IEventConsumer;
 import mtogo.sql.ports.out.IAuthRepository;
 import mtogo.sql.ports.out.IModelRepository;
@@ -34,69 +39,80 @@ import mtogo.sql.ports.out.IRpcResponderFactory;
 
 //TIP To &lt;b&gt;Run&lt;/b&gt; code, press &lt;shortcut actionId=&quot;Run&quot;/&gt; or
 // click the &lt;icon src=&quot;AllIcons.Actions.Execute&quot;/&gt; icon in the gutter.
-<span class="nc" id="L37">public class Main {</span>
+<span class="nc" id="L42">public class Main {</span>
 
-<span class="nc" id="L39">    private static final Logger log = LoggerFactory.getLogger(Main.class);</span>
+<span class="nc" id="L44">    private static final Logger log = LoggerFactory.getLogger(Main.class);</span>
 
     public static void main(String[] args) {
-<span class="nc" id="L42">        log.info(&quot;=== Starting SQL Driver ===&quot;);</span>
+<span class="nc" id="L47">        log.info(&quot;=== Starting SQL Driver ===&quot;);</span>
 
         try {
-<span class="nc" id="L45">            ObjectMapper mapper = new ObjectMapper();</span>
-<span class="nc" id="L46">            SQLConnector sqlConnector = new SQLConnector();</span>
+<span class="nc" id="L50">            ObjectMapper mapper = new ObjectMapper();</span>
+<span class="nc" id="L51">            IEnvProvider env = new SystemEnvProvider();</span>
 
-<span class="nc" id="L48">            IModelRepository modelRepo = new PostgresModelRepository(sqlConnector::getConnection);</span>
-<span class="nc" id="L49">            IAuthRepository authRepo = new PostgresAuthRepository(sqlConnector::getConnection);</span>
+<span class="nc" id="L53">            SQLConnector sqlConnector = new SQLConnector(env);</span>
+
+<span class="nc" id="L55">            IModelRepository modelRepo = new PostgresModelRepository(sqlConnector::getConnection);</span>
+<span class="nc" id="L56">            IAuthRepository authRepo = new PostgresAuthRepository(sqlConnector::getConnection);</span>
 
             // Check repo connection and panic on error
-<span class="nc" id="L52">            modelRepo.healthCheck();</span>
-<span class="nc" id="L53">            authRepo.healthCheck();</span>
+<span class="nc" id="L59">            modelRepo.healthCheck();</span>
+<span class="nc" id="L60">            authRepo.healthCheck();</span>
+
 
             // Get connection to event broker and panic on error
-<span class="nc" id="L56">            Connection mqConnection = ConnectionManager.getConnectionManager().getConnection();</span>
-            
+<span class="nc" id="L64">            RabbitMQConfig config = new RabbitMQConfig(env);</span>
+<span class="nc" id="L65">            IRabbitMQConnectionProvider provider = new RetryingRabbitMQConnectionProvider(</span>
+                    config, 10, 2000);
+
+<span class="nc" id="L68">            ConnectionManager connectionManager = new ConnectionManager(provider);</span>
+<span class="nc" id="L69">            Connection mqConnection = connectionManager.getConnection();</span>
+
+
             // General Event publisher
-<span class="nc" id="L59">            RabbitMQEventProducer eventProducer = new RabbitMQEventProducer(mapper, mqConnection);</span>
+<span class="nc" id="L73">            RabbitMQEventProducer eventProducer = new RabbitMQEventProducer(mapper, mqConnection);</span>
 
             // Rpc request handler factory
-<span class="nc" id="L62">            IRpcResponderFactory rpcFactory = new RabbitMQRpcResponderFactory(mapper, mqConnection);</span>
+<span class="nc" id="L76">            IRpcResponderFactory rpcFactory = new RabbitMQRpcResponderFactory(mapper, mqConnection);</span>
 
-<span class="nc" id="L64">            Map&lt;String, IMessageHandler&gt; map = Map.of(</span>
-<span class="nc" id="L65">                    &quot;customer:order_creation&quot;,</span>
-<span class="nc" id="L66">                    new CustomerOrderCreationHandler(mapper,</span>
-<span class="nc" id="L67">                            new CustomerOrderCreationService(modelRepo),</span>
-<span class="nc" id="L68">                            new RabbitMQOrderPersistedEventProducer(eventProducer)),</span>
-<span class="nc" id="L69">                    &quot;supplier:order_creation&quot;,</span>
-<span class="nc" id="L70">                    new SupplierOrderCreationHandler(mapper,</span>
-<span class="nc" id="L71">                            new SupplierOrderCreationService(modelRepo),</span>
-<span class="nc" id="L72">                            new RabbitMQOrderCreationEventProducer(eventProducer)),</span>
-<span class="nc" id="L73">                    &quot;customer:menu_request&quot;,</span>
-<span class="nc" id="L74">                    new CustomerMenuRequestHandler(</span>
-<span class="nc" id="L75">                            new CustomerMenuRequestService(modelRepo),</span>
-<span class="nc" id="L76">                            rpcFactory),</span>
-<span class="nc" id="L77">                    &quot;auth:login&quot;,</span>
-<span class="nc" id="L78">                    new AuthLoginHandler(mapper,</span>
-<span class="nc" id="L79">                            new AuthReceiverService(authRepo),</span>
-<span class="nc" id="L80">                            rpcFactory));</span>
+<span class="nc" id="L78">            Map&lt;String, IMessageHandler&gt; map = Map.of(</span>
 
-<span class="nc" id="L82">            IEventConsumer consumer = new RabbitMQEventConsumer(new MessageRouter(map), mqConnection);</span>
+                    &quot;customer:order_creation&quot;,
+                    new CustomerOrderCreationHandler(mapper,
+                            new CustomerOrderCreationService(modelRepo),
+                            new RabbitMQOrderPersistedEventProducer(eventProducer)),
+                    &quot;supplier:order_creation&quot;,
+                    new SupplierOrderCreationHandler(mapper,
+                            new SupplierOrderCreationService(modelRepo),
+                            new RabbitMQOrderCreationEventProducer(eventProducer)),
+                    &quot;customer:menu_request&quot;,
+                    new CustomerMenuRequestHandler(
+                            new CustomerMenuRequestService(modelRepo),
+                            rpcFactory),
+                    &quot;auth:login&quot;,
+                    new AuthLoginHandler(mapper,
+                            new AuthReceiverService(authRepo),
+                            rpcFactory)
+                    );
+
+<span class="nc" id="L98">            IEventConsumer consumer = new RabbitMQEventConsumer(new MessageRouter(map), mqConnection);</span>
 
             // Start event consumer and panic on error
-<span class="nc" id="L85">            consumer.start();</span>
+<span class="nc" id="L101">            consumer.start();</span>
 
-<span class="nc" id="L87">            log.info(&quot;SQL-driver started successfully, listening for messages...&quot;);</span>
-<span class="nc" id="L88">            log.debug(&quot;Debug logging is enabled&quot;);</span>
+<span class="nc" id="L103">            log.info(&quot;SQL-driver started successfully, listening for messages...&quot;);</span>
+<span class="nc" id="L104">            log.debug(&quot;Debug logging is enabled&quot;);</span>
 
-<span class="nc" id="L90">            Thread.currentThread().join();</span>
+<span class="nc" id="L106">            Thread.currentThread().join();</span>
 
-<span class="nc" id="L92">        } catch (InterruptedException e) {</span>
-<span class="nc" id="L93">            log.info(&quot;Application interrupted, shutting down...&quot;);</span>
-<span class="nc" id="L94">            Thread.currentThread().interrupt();</span>
-<span class="nc" id="L95">        } catch (Exception e) {</span>
-<span class="nc" id="L96">            log.error(&quot;FATAL: Failed to start SQL Driver: {}&quot;, e.getMessage(), e);</span>
-<span class="nc" id="L97">            e.printStackTrace();</span>
-<span class="nc" id="L98">            System.exit(1);</span>
-        }
-<span class="nc" id="L100">    }</span>
+<span class="nc" id="L108">        } catch (InterruptedException e) {</span>
+<span class="nc" id="L109">            log.info(&quot;Application interrupted, shutting down...&quot;);</span>
+<span class="nc" id="L110">            Thread.currentThread().interrupt();</span>
+<span class="nc" id="L111">        } catch (Exception e) {</span>
+<span class="nc" id="L112">            log.error(&quot;FATAL: Failed to start SQL Driver: {}&quot;, e.getMessage(), e);</span>
+<span class="nc" id="L113">            e.printStackTrace();</span>
+<span class="nc" id="L114">            System.exit(1);</span>
+<span class="nc" id="L115">        }</span>
+<span class="nc" id="L116">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

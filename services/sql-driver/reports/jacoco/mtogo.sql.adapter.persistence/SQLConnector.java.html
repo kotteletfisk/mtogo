@@ -7,26 +7,34 @@ import java.sql.SQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import mtogo.sql.env.IEnvProvider;
 
-<span class="nc" id="L11">public class SQLConnector {</span>
 
-<span class="nc" id="L13">    private final Logger log = LoggerFactory.getLogger(this.getClass());</span>
+public class SQLConnector {
+
+    private final IEnvProvider env;
+
+<span class="fc" id="L17">    public SQLConnector(IEnvProvider env) {</span>
+<span class="fc" id="L18">        this.env = env;</span>
+<span class="fc" id="L19">    }</span>
+
+<span class="fc" id="L21">    private final Logger log = LoggerFactory.getLogger(this.getClass());</span>
 
     public Connection getConnection() throws SQLException {
-<span class="nc" id="L16">        String host = &quot;mtogo-db&quot;;</span>
-<span class="nc" id="L17">        String port = &quot;5432&quot;;</span>
-<span class="nc" id="L18">        String db = envOrDefault(&quot;POSTGRES_DB&quot;, &quot;mtogo&quot;);</span>
-<span class="nc" id="L19">        String user = envOrDefault(&quot;POSTGRES_USER&quot;, &quot;mtogo&quot;);</span>
-<span class="nc" id="L20">        String pass = envOrDefault(&quot;POSTGRES_PASSWORD&quot;, &quot;mtogo&quot;);</span>
+<span class="fc" id="L24">        String host = &quot;mtogo-db&quot;;</span>
+<span class="fc" id="L25">        String port = &quot;5432&quot;;</span>
+<span class="fc" id="L26">        String db = envOrDefault(&quot;POSTGRES_DB&quot;, &quot;mtogo&quot;);</span>
+<span class="fc" id="L27">        String user = envOrDefault(&quot;POSTGRES_USER&quot;, &quot;mtogo&quot;);</span>
+<span class="fc" id="L28">        String pass = envOrDefault(&quot;POSTGRES_PASSWORD&quot;, &quot;mtogo&quot;);</span>
 
-<span class="nc" id="L22">        String url = &quot;jdbc:postgresql://&quot; + host + &quot;:&quot; + port + &quot;/&quot; + db;</span>
-<span class="nc" id="L23">        return DriverManager.getConnection(url, user, pass);</span>
+<span class="fc" id="L30">        String url = &quot;jdbc:postgresql://&quot; + host + &quot;:&quot; + port + &quot;/&quot; + db;</span>
+<span class="nc" id="L31">        return DriverManager.getConnection(url, user, pass);</span>
     }
 
     private String envOrDefault(String key, String defaultValue) {
-<span class="nc" id="L27">        String val = System.getenv(key);</span>
-<span class="nc" id="L28">        log.debug(&quot;Env found for key {}: {}&quot;, key, val);</span>
-<span class="nc bnc" id="L29" title="All 4 branches missed.">        return (val == null || val.isBlank()) ? defaultValue : val;</span>
+<span class="fc" id="L35">        String val = env.getenv(key);</span>
+<span class="fc" id="L36">        log.debug(&quot;Env found for key {}: {}&quot;, key, val);</span>
+<span class="pc bpc" id="L37" title="1 of 4 branches missed.">        return (val == null || val.isBlank()) ? defaultValue : val;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

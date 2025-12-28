@@ -37,8 +37,8 @@ public class RabbitMQEventProducer {
      */
     private final ObjectMapper mapper;
 
-<span class="fc" id="L40">    public RabbitMQEventProducer(ObjectMapper mapper, Connection connection)</span>
-            throws IOException, TimeoutException, InterruptedException {
+    public RabbitMQEventProducer(ObjectMapper mapper, Connection connection)
+<span class="fc" id="L41">            throws IOException, TimeoutException, InterruptedException {</span>
 <span class="fc" id="L42">        this.mapper = mapper;</span>
 <span class="fc" id="L43">        this.connection = connection;</span>
         // fillChannelPool();
@@ -92,7 +92,7 @@ public class RabbitMQEventProducer {
 <span class="fc" id="L92">        } catch (IOException | TimeoutException | InterruptedException e) {</span>
 <span class="fc" id="L93">            log.error(e.getMessage());</span>
 <span class="fc" id="L94">            return false;</span>
-        } finally {
+<span class="nc" id="L95">        } finally {</span>
             // Return channel to pool
             /*
              * if (channel != null &amp;&amp; channel.isOpen()) {
@@ -105,7 +105,7 @@ public class RabbitMQEventProducer {
              * }
              * }
              */
-        }
+<span class="nc" id="L108">        }</span>
     }
 
     public boolean publishObject(String routingKey, Object value) throws IOException {
@@ -129,7 +129,7 @@ public class RabbitMQEventProducer {
 <span class="fc" id="L129">        } catch (IOException | IllegalArgumentException e) {</span>
 <span class="fc" id="L130">            log.error(&quot;Error publishing object: &quot; + e.getMessage());</span>
 <span class="fc" id="L131">            throw e;</span>
-        }
+<span class="fc" id="L132">        }</span>
 <span class="fc" id="L133">        return false;</span>
     }
 
