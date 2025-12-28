@@ -10,9 +10,9 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import mtogo.sql.DTO.OrderDTO;
-import mtogo.sql.DTO.OrderDetailsDTO;
-import mtogo.sql.DTO.OrderLineDTO;
+import mtogo.sql.model.DTO.OrderDTO;
+import mtogo.sql.model.DTO.OrderDetailsDTO;
+import mtogo.sql.model.DTO.OrderLineDTO;
 import mtogo.sql.ports.out.IModelRepository;
 
 /**

@@ -7,7 +7,7 @@ package mtogo.sql.adapter.out;
 
 import java.io.IOException;
 
-import mtogo.sql.event.CustomerOrderCreationEvent;
+import mtogo.sql.model.event.CustomerOrderCreationEvent;
 import mtogo.sql.ports.out.IOrderCreationEventProducer;
 
 /**

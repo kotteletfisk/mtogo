@@ -7,7 +7,7 @@ package mtogo.sql.ports.out;
 
 import java.io.IOException;
 
-import mtogo.sql.event.OrderPersistedEvent;
+import mtogo.sql.model.event.OrderPersistedEvent;
 
 /**
  *

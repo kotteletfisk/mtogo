@@ -6,8 +6,11 @@ import java.util.concurrent.TimeoutException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.rabbitmq.RabbitMQContainer;
 
@@ -17,12 +20,13 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.GetResponse;
 
-import mtogo.sql.DTO.OrderDTO;
 import mtogo.sql.adapter.out.RabbitMQEventProducer;
+import mtogo.sql.model.DTO.OrderDTO;
 /**
  *
  * @author kotteletfisk
  */
+
 class MQIntegrationTest {
 
     @Container
@@ -55,7 +59,7 @@ class MQIntegrationTest {
     }
 
     @Test
-    void publishObjectTest() throws IOException, TimeoutException, InterruptedException {
+    void publishValidObjectTest() throws IOException, TimeoutException, InterruptedException {
 
         UUID id = UUID.randomUUID();
         OrderDTO dto = new OrderDTO(id, 1);

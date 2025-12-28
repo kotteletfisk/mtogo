@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RabbitMQEventProducer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sql-driver</a> &gt; <a href="index.source.html" class="el_package">mtogo.sql.adapter.out</a> &gt; <span class="el_source">RabbitMQEventProducer.java</span></div><h1>RabbitMQEventProducer.java</h1><pre class="source lang-java linenums">/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package mtogo.sql.adapter.out;
+
+import java.io.IOException;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+
+/**
+ *
+ * @author kotteletfisk
+ */
+public class RabbitMQEventProducer {
+
+<span class="fc" id="L26">    private final Logger log = LoggerFactory.getLogger(this.getClass());</span>
+
+    // Default Exchange
+<span class="fc" id="L29">    private final String EXCHANGE_NAME = &quot;order&quot;;</span>
+
+    // Connection pooling
+    private final Connection connection;
+    /*
+     * private BlockingQueue&lt;Channel&gt; channelPool;
+     * private final int POOL_SIZE = 10;
+     * private static final Object initLock = new Object();
+     */
+    private final ObjectMapper mapper;
+
+    public RabbitMQEventProducer(ObjectMapper mapper, Connection connection)
+<span class="fc" id="L41">            throws IOException, TimeoutException, InterruptedException {</span>
+<span class="fc" id="L42">        this.mapper = mapper;</span>
+<span class="fc" id="L43">        this.connection = connection;</span>
+        // fillChannelPool();
+<span class="fc" id="L45">    }</span>
+
+    public boolean publishMessage(String routingKey, String message) {
+
+        /*
+         * try {
+         * fillChannelPool();
+         * } catch (IOException | TimeoutException | InterruptedException ex) {
+         * log.error(&quot;Failed to get producer connection: {}&quot;, ex.getLocalizedMessage());
+         * return false;
+         * }
+         */
+
+        // Channel channel = null;
+        try {
+            // Get channel from pool
+            /*
+             * channel = channelPool.poll(5, TimeUnit.SECONDS);
+             * if (channel == null) {
+             * log.error(&quot;No channels available in pool&quot;);
+             * return false;
+             * }
+             */
+
+            // Recreate channel if closed
+            /*
+             * if (!channel.isOpen()) {
+             * channel = connection.createChannel();
+             * channel.exchangeDeclare(EXCHANGE_NAME, &quot;topic&quot;, true);
+             * channel.confirmSelect();
+             * }
+             */
+
+<span class="fc" id="L78">            try (Channel channel = connection.createChannel()) {</span>
+                
+<span class="fc" id="L80">                channel.exchangeDeclare(EXCHANGE_NAME, &quot;topic&quot;, true);</span>
+<span class="fc" id="L81">                channel.confirmSelect();</span>
+
+<span class="fc" id="L83">                channel.basicPublish(EXCHANGE_NAME, routingKey, null, message.getBytes(&quot;UTF-8&quot;));</span>
+                // Maybe log the message that is being sent?
+
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">                if (!channel.waitForConfirms(5000)) {</span>
+<span class="nc" id="L87">                    throw new IOException(&quot;Confirm wait time exceeded 5000ms&quot;);</span>
+                }
+<span class="fc" id="L89">                return true;</span>
+            }
+
+<span class="fc" id="L92">        } catch (IOException | TimeoutException | InterruptedException e) {</span>
+<span class="fc" id="L93">            log.error(e.getMessage());</span>
+<span class="fc" id="L94">            return false;</span>
+<span class="nc" id="L95">        } finally {</span>
+            // Return channel to pool
+            /*
+             * if (channel != null &amp;&amp; channel.isOpen()) {
+             * channelPool.offer(channel);
+             * } else {
+             * try {
+             * fillChannelPool();
+             * } catch (TimeoutException | InterruptedException | IOException ex) {
+             * log.error(&quot;Error refiling channel pool: {}&quot;, ex.getLocalizedMessage());
+             * }
+             * }
+             */
+<span class="nc" id="L108">        }</span>
+    }
+
+    public boolean publishObject(String routingKey, Object value) throws IOException {
+        try {
+<span class="fc bfc" id="L113" title="All 2 branches covered.">            if (value == null) {</span>
+<span class="fc" id="L114">                throw new IllegalArgumentException(&quot;Object was null!&quot;);</span>
+            }
+
+<span class="fc" id="L117">            String valStr = mapper.writeValueAsString(value);</span>
+<span class="fc" id="L118">            log.debug(&quot;DTO mapped to string:\n&quot; + valStr);</span>
+
+<span class="fc bfc" id="L120" title="All 2 branches covered.">            if (publishMessage(routingKey, valStr)) {</span>
+<span class="fc" id="L121">                log.info(&quot;Object published to MQ&quot;);</span>
+<span class="fc" id="L122">                log.debug(&quot;Payload: \n&quot; + valStr);</span>
+<span class="fc" id="L123">                return true;</span>
+            } else {
+<span class="fc" id="L125">                log.error(&quot;Object publish failed!&quot;);</span>
+<span class="fc" id="L126">                log.debug(&quot;Payload: \n&quot; + valStr);</span>
+            }
+
+<span class="fc" id="L129">        } catch (IOException | IllegalArgumentException e) {</span>
+<span class="fc" id="L130">            log.error(&quot;Error publishing object: &quot; + e.getMessage());</span>
+<span class="fc" id="L131">            throw e;</span>
+<span class="fc" id="L132">        }</span>
+<span class="fc" id="L133">        return false;</span>
+    }
+
+    /*
+     * private void fillChannelPool() throws TimeoutException, InterruptedException,
+     * IOException {
+     * synchronized (initLock) {
+     * try {
+     * 
+     * if (channelPool == null) {
+     * channelPool = new ArrayBlockingQueue&lt;&gt;(POOL_SIZE);
+     * }
+     * 
+     * while (channelPool.size() &lt; POOL_SIZE) {
+     * Channel channel = this.connection.createChannel();
+     * channel.exchangeDeclare(EXCHANGE_NAME, &quot;topic&quot;, true);
+     * channel.confirmSelect();
+     * channelPool.offer(channel);
+     * }
+     * 
+     * log.info(&quot;Producer initialized with {} channels&quot;, POOL_SIZE);
+     * } catch (IOException e) {
+     * log.error(&quot;Failed to initialize Producer&quot;, e);
+     * throw e;
+     * }
+     * 
+     * }
+     * }
+     */
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

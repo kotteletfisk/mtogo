@@ -13,9 +13,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Delivery;
 
-import mtogo.sql.DTO.OrderDetailsDTO;
 import mtogo.sql.core.CustomerOrderCreationService;
-import mtogo.sql.event.OrderPersistedEvent;
+import mtogo.sql.model.DTO.OrderDetailsDTO;
+import mtogo.sql.model.event.OrderPersistedEvent;
 import mtogo.sql.ports.out.IOrderPersistedEventProducer;
 
 /**

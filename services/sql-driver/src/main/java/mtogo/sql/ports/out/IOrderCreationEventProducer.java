@@ -6,7 +6,7 @@ package mtogo.sql.ports.out;
 
 import java.io.IOException;
 
-import mtogo.sql.event.CustomerOrderCreationEvent;
+import mtogo.sql.model.event.CustomerOrderCreationEvent;
 
 /**
  *

@@ -6,11 +6,11 @@ package mtogo.sql.ports.out;
 
 import java.util.List;
 
-import mtogo.sql.DTO.LegacyOrderDetailsDTO;
-import mtogo.sql.DTO.OrderDTO;
-import mtogo.sql.DTO.OrderDetailsDTO;
-import mtogo.sql.DTO.OrderLineDTO;
-import mtogo.sql.DTO.menuItemDTO;
+import mtogo.sql.model.DTO.LegacyOrderDetailsDTO;
+import mtogo.sql.model.DTO.OrderDTO;
+import mtogo.sql.model.DTO.OrderDetailsDTO;
+import mtogo.sql.model.DTO.OrderLineDTO;
+import mtogo.sql.model.DTO.menuItemDTO;
 
 /**
  *

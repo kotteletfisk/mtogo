@@ -9,10 +9,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Delivery;
 
-import mtogo.sql.DTO.LegacyOrderDetailsDTO;
-import mtogo.sql.DTO.OrderDetailsDTO;
 import mtogo.sql.core.SupplierOrderCreationService;
-import mtogo.sql.event.CustomerOrderCreationEvent;
+import mtogo.sql.model.DTO.LegacyOrderDetailsDTO;
+import mtogo.sql.model.DTO.OrderDetailsDTO;
+import mtogo.sql.model.event.CustomerOrderCreationEvent;
 import mtogo.sql.ports.out.IOrderCreationEventProducer;
 
 public class SupplierOrderCreationHandler implements IMessageHandler {
@@ -41,9 +41,11 @@ public class SupplierOrderCreationHandler implements IMessageHandler {
 
             if (producer.orderCreation(new CustomerOrderCreationEvent(enriched))) {
                 log.debug("Published:\n" + enriched.toString());
+                channel.basicAck(tag, false);
             }
 
-            channel.basicAck(tag, false);
+            log.error("Failed to publish enriched order");
+            channel.basicNack(tag, false, false);
 
         } catch (Exception e) {
             log.error(e.getMessage());
