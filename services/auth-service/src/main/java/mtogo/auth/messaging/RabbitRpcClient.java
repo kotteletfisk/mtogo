@@ -11,6 +11,10 @@ import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeoutException;
 
+/**
+ * @author MrJustMeDahl
+ * Class tasked with making an RPC call through RabbitMQ in order to retrieve data needed for the authentication and token creation.
+ */
 public class RabbitRpcClient implements AutoCloseable {
     private final Connection connection;
     private final Channel channel;
@@ -18,13 +22,20 @@ public class RabbitRpcClient implements AutoCloseable {
     private final String EXCHANGE_NAME = "order";
     public static final Logger log = LoggerFactory.getLogger(RabbitRpcClient.class);
 
-
+    /**
+     * @author MrJustMeDahl
+     * @param factory - ConnectionFactory that can provide connections to RabbitMQ.
+     * @throws IOException Can be thrown for various reasons indicating something is wrong with the connection or creation of connections.
+     * @throws TimeoutException Can be thrown if a new connection is requested, and it times out, due to RabbitMQ being unresponsive.
+     * Constructor - Setting up everything needed to make the RPC.
+     */
     public RabbitRpcClient(ConnectionFactory factory) throws IOException, TimeoutException {
         this.connection = factory.newConnection();
         this.channel = connection.createChannel();
         channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
         this.replyQueueName = channel.queueDeclare("", false, true, false, null).getQueue();
     }
+
 
     public String rpcCall(String requestJson, String routingKey) throws IOException, InterruptedException {
         final String corrId = UUID.randomUUID().toString();
