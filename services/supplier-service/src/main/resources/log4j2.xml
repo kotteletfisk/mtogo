@@ -5,11 +5,20 @@
 
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
-            <PatternLayout pattern="[%level]: %msg%n" />
+            <PatternLayout pattern="[%level]: %c: %msg%n" />
         </Console>
     </Appenders>
 
     <Loggers>
+        <!-- Silence Jetty debug -->
+        <Logger name="org.eclipse.jetty" level="info" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <!-- Silence Javalin debug -->
+        <Logger name="io.javalin" level="info" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
         <Root level="${log.level}">
             <AppenderRef ref="Console"/>
         </Root>

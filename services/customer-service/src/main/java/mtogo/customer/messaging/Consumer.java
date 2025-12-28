@@ -24,6 +24,7 @@ public class Consumer {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final String EXCHANGE_NAME = "order";
+    private static final String QUEUE_NAME = "customer-service-queue";
     private static StringWriter sw = new StringWriter();
     private static PrintWriter pw = new PrintWriter(sw);
 
@@ -56,16 +57,24 @@ public class Consumer {
             Channel channel = connection.createChannel();
 
             channel.exchangeDeclare(EXCHANGE_NAME, "topic", true);
-            String queueName = channel.queueDeclare().getQueue();
+
+            channel.queueDeclare(
+                    QUEUE_NAME,
+                    true,
+                    false,
+                    false,
+                    null
+            );
 
             for (String bindingKey : bindingKeys) {
-                channel.queueBind(queueName, EXCHANGE_NAME, bindingKey);
+                channel.queueBind(QUEUE_NAME, EXCHANGE_NAME, bindingKey);
+                log.info("Bound queue '{}' to routing key '{}'", QUEUE_NAME, bindingKey);
             }
 
-            channel.basicConsume(queueName, false, deliverCallback(channel), consumerTag -> {
+            channel.basicConsume(QUEUE_NAME, false, deliverCallback(channel), consumerTag -> {
             });
 
-            log.info("Consumer started, listening on binding keys: {}", String.join(", ", bindingKeys));
+            log.info("Consumer started, listening on queue: {}", QUEUE_NAME);
 
         } catch (IOException | TimeoutException e) {
             log.error("Error consuming message:\n" + e.getMessage());
@@ -99,19 +108,20 @@ public class Consumer {
                         );
 
                         // Expected format: "correlationId::[{...json array...}]"
-                        int separatorIndex = body.indexOf("::");
+/*                         int separatorIndex = body.indexOf("::");
                         if (separatorIndex == -1) {
                             log.error("Invalid menu response format - missing '::' separator");
                             channel.basicNack(deliveryTag, false, false); // Don't requeue malformed messages
                             return;
-                        }
+                        } */
 
-                        String correlationId = body.substring(0, separatorIndex);
-                        String jsonArray = body.substring(separatorIndex + 2);
+                        // String correlationId = body.substring(0, separatorIndex);
+                        // String jsonArray = body.substring(separatorIndex + 2);
+                        String correlationId = delivery.getProperties().getCorrelationId();
 
                         List<menuItemDTO> menuItems =
                                 objectMapper.readValue(
-                                        jsonArray,
+                                        body,
                                         objectMapper.getTypeFactory()
                                                 .constructCollectionType(List.class, menuItemDTO.class)
                                 );

@@ -9,16 +9,17 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
-@Getter @Setter @NoArgsConstructor
+@Getter @Setter @NoArgsConstructor @ToString
 public class OrderDTO {
-    private UUID order_id;
-    private int customer_id;
+    private UUID orderId;
+    private int customerId;
     private int supplierId;
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss.SSS")
-    private Timestamp order_created;
+    private Timestamp orderCreated;
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss.SSS")
-    private Timestamp order_updated;
+    private Timestamp orderUpdated;
     private List<OrderLineDTO> orderlineDTOs;
     public enum orderStatus{
         created,
@@ -30,21 +31,30 @@ public class OrderDTO {
     }
     private orderStatus orderStatus;
 
-    public OrderDTO(UUID order_id, int customer_id, int supplierId, List<OrderLineDTO> orderlineDTOs) {
-        this.order_id = order_id;
-        this.customer_id = customer_id;
-        this.order_created = new Timestamp(System.currentTimeMillis());
-        this.order_updated = new Timestamp(System.currentTimeMillis());
+    public OrderDTO(UUID orderId, int customerId, int supplierId, List<OrderLineDTO> orderlineDTOs) {
+        this.orderId = orderId;
+        this.customerId = customerId;
+        this.orderCreated = new Timestamp(System.currentTimeMillis());
+        this.orderUpdated = new Timestamp(System.currentTimeMillis());
         this.orderStatus = orderStatus.created;
+        this.supplierId = supplierId;
+        this.orderlineDTOs = orderlineDTOs;
+    }    
+    public OrderDTO(UUID orderId, int customerId, int supplierId, orderStatus orderStatus, List<OrderLineDTO> orderlineDTOs) {
+        this.orderId = orderId;
+        this.customerId = customerId;
+        this.orderCreated = new Timestamp(System.currentTimeMillis());
+        this.orderUpdated = new Timestamp(System.currentTimeMillis());
+        this.orderStatus = orderStatus;
         this.supplierId = supplierId;
         this.orderlineDTOs = orderlineDTOs;
     }
     // Used for consumer when order is created
     public OrderDTO(OrderDetailsDTO orderDetailsDTO) {
-        this.order_id = orderDetailsDTO.getOrderId();
-        this.customer_id = orderDetailsDTO.getCustomerId();
-        this.order_created = new Timestamp(System.currentTimeMillis());
-        this.order_updated = new Timestamp(System.currentTimeMillis());
+        this.orderId = orderDetailsDTO.getOrderId();
+        this.customerId = orderDetailsDTO.getCustomerId();
+        this.orderCreated = new Timestamp(System.currentTimeMillis());
+        this.orderUpdated = new Timestamp(System.currentTimeMillis());
         this.orderStatus = orderStatus.created;
         this.supplierId = orderDetailsDTO.getSupplierId();
         this.orderlineDTOs = orderDetailsDTO.getOrderLineDTOS();

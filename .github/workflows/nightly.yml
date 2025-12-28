@@ -60,25 +60,43 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Load DB settings from server .env
+        run: |
+          ENV_FILE="/home/${{ secrets.SERVER_NAME }}/mtogo/.env"
+          echo "Loading DB settings from $ENV_FILE"
 
+          # Extract the values WITHOUT printing them
+          MTOGO_DB=$(grep '^MTOGO_DB=' "$ENV_FILE" | cut -d '=' -f2-)
+          MTOGO_USER=$(grep '^MTOGO_USER=' "$ENV_FILE" | cut -d '=' -f2-)
+          MTOGO_PASS=$(grep '^MTOGO_PASS=' "$ENV_FILE" | cut -d '=' -f2-)
+          
+          echo "::add-mask::$MTOGO_USER"
+          echo "::add-mask::$MTOGO_DB"
+          echo "::add-mask::$MTOGO_PASS"
+          
+          echo "POSTGRES_DB=$MTOGO_DB" >> "$GITHUB_ENV"
+          echo "POSTGRES_USER=$MTOGO_USER" >> "$GITHUB_ENV"
+          echo "POSTGRES_PASSWORD=$MTOGO_PASS" >> "$GITHUB_ENV"
 
-#      - name: Run UI Acceptance Tests
-#        run: |
-#          cd ua-tests
-#          mvn clean test
-#        env:
-#          BASE_URL: http://172.16.0.11:7071
-#          POSTGRES_DB: mtogo
-#          POSTGRES_USER: mtogo-user
-#          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      - name: Run UI Acceptance Tests
+        run: |
+          cd ua-tests
+          mvn clean test
+        env:
+          BASE_URL: http://172.16.0.11:7071
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          REDIS_HOST: localhost
+          REDIS_PORT: 6380
 
-#      - name: Upload Test Reports
-#        if: failure()
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: ui-test-reports-${{ github.run_number }}
-#          path: ua-tests/target/surefire-reports/
-#          retention-days: 7
+      - name: Upload Test Reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-reports-${{ github.run_number }}
+          path: ua-tests/target/surefire-reports/
+          retention-days: 7
 
       - name: Check Test Results
         id: testcheck

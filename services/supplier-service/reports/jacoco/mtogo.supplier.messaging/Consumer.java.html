@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Consumer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">supplier-service</a> &gt; <a href="index.source.html" class="el_package">mtogo.supplier.messaging</a> &gt; <span class="el_source">Consumer.java</span></div><h1>Consumer.java</h1><pre class="source lang-java linenums">package mtogo.supplier.messaging;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.DeliverCallback;
+
+/**
+ * Consumes messages from RabbitMQ
+ */
+<span class="nc" id="L17">public class Consumer {</span>
+
+<span class="nc" id="L19">    private static final Logger log = LoggerFactory.getLogger(Consumer.class);</span>
+
+    private static final String EXCHANGE_NAME = &quot;order&quot;;
+<span class="nc" id="L22">    private static StringWriter sw = new StringWriter();</span>
+<span class="nc" id="L23">    private static PrintWriter pw = new PrintWriter(sw);</span>
+    
+
+    /**
+     * Consumes messages from RabbitMQ based on the provided binding keys.
+     *
+     * @param bindingKeys the routing keys to bind the queue to
+     * @throws Exception if an error occurs while consuming messages
+     */
+    public void consumeMessages(String[] bindingKeys, Connection connection, MessageRouter msgRouter) throws Exception {
+
+<span class="nc" id="L34">        log.debug(&quot;Registering binding keys: {}&quot;, bindingKeys.toString());</span>
+
+        try {
+<span class="nc bnc" id="L37" title="All 2 branches missed.">            if (connection == null) {</span>
+<span class="nc" id="L38">                throw new IOException(&quot;Connection to rabbitmq failed&quot;);</span>
+            }
+<span class="nc" id="L40">            log.info(&quot;Connected to rabbitmq&quot;);</span>
+<span class="nc" id="L41">            Channel channel = connection.createChannel();</span>
+
+<span class="nc" id="L43">            channel.exchangeDeclare(EXCHANGE_NAME, &quot;topic&quot;, true);</span>
+<span class="nc" id="L44">            String queueName = channel.queueDeclare().getQueue();</span>
+
+<span class="nc bnc" id="L46" title="All 2 branches missed.">            for (String bindingKey : bindingKeys) {</span>
+<span class="nc" id="L47">                channel.queueBind(queueName, EXCHANGE_NAME, bindingKey);</span>
+            }
+
+<span class="nc" id="L50">            channel.basicConsume(queueName, false, deliverCallback(channel, msgRouter), consumerTag -&gt; {</span>
+<span class="nc" id="L51">            });</span>
+<span class="nc" id="L52">        } catch (IOException e) {</span>
+<span class="nc" id="L53">            log.error(&quot;Error consuming messages:\n&quot; + e.getMessage());</span>
+<span class="nc" id="L54">            e.printStackTrace(pw);</span>
+<span class="nc" id="L55">            log.error(&quot;Stacktrace:\n&quot; + sw.toString());</span>
+<span class="nc" id="L56">        }</span>
+
+<span class="nc" id="L58">    }</span>
+
+    /**
+     * Creates a DeliverCallback to handle incoming messages. The callbacks
+     * functionality can vary on keyword
+     *
+     * @return the DeliverCallback function
+     */
+    private DeliverCallback deliverCallback(Channel channel, MessageRouter router) {
+<span class="nc" id="L67">        return (consumerTag, delivery) -&gt; {</span>
+<span class="nc" id="L68">            String routingKey = delivery.getEnvelope().getRoutingKey();</span>
+<span class="nc" id="L69">            log.info(&quot;Consumer received message with key: {}&quot;, routingKey);</span>
+
+            try {
+<span class="nc" id="L72">                router.getMessageHandler(routingKey).handle(delivery, channel);</span>
+<span class="nc" id="L73">            } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L74">                log.error(e.getMessage());</span>
+<span class="nc" id="L75">            }</span>
+<span class="nc" id="L76">        };</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

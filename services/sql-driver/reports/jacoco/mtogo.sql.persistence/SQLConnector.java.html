@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SQLConnector.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sql-driver</a> &gt; <a href="index.source.html" class="el_package">mtogo.sql.persistence</a> &gt; <span class="el_source">SQLConnector.java</span></div><h1>SQLConnector.java</h1><pre class="source lang-java linenums">package mtogo.sql.persistence;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.List;
+
+import org.postgresql.util.PSQLException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import mtogo.sql.DTO.LegacyOrderDetailsDTO;
+import mtogo.sql.DTO.OrderDTO;
+import mtogo.sql.DTO.OrderDetailsDTO;
+import mtogo.sql.DTO.OrderLineDTO;
+import mtogo.sql.DTO.menuItemDTO;
+
+<span class="fc" id="L21">public class SQLConnector {</span>
+
+<span class="fc" id="L23">    private final Logger log = LoggerFactory.getLogger(this.getClass());</span>
+
+    /**
+     * Opens a new connection to the Postgres database.
+     *
+     * Uses env vars so it works in Docker and locally: - MTOGO_DB_HOST (e.g.
+     * MToGo-db in docker, localhost locally) - MTOGO_DB_PORT (default 5432) -
+     * MTOGO_DB (db name) - MTOGO_USER (username) - MTOGO_PASS (password)
+     */
+    //Used for local testing
+    /*public Connection getConnection() throws SQLException {
+        String host = &quot;localhost&quot;;
+        String port = &quot;5432&quot;;
+        String db   = &quot;mtogo&quot;;
+        String user = &quot;mtogo&quot;;
+        String pass = &quot;mtogo&quot;;
+
+        String url = &quot;jdbc:postgresql://&quot; + host + &quot;:&quot; + port + &quot;/&quot; + db;
+        return DriverManager.getConnection(url, user, pass);
+    }
+
+     */
+    public Connection getConnection() throws SQLException {
+<span class="nc" id="L46">        String host = &quot;mtogo-db&quot;;</span>
+<span class="nc" id="L47">        String port = &quot;5432&quot;;</span>
+<span class="nc" id="L48">        String db = envOrDefault(&quot;POSTGRES_DB&quot;, &quot;mtogo&quot;);</span>
+<span class="nc" id="L49">        String user = envOrDefault(&quot;POSTGRES_USER&quot;, &quot;mtogo&quot;);</span>
+<span class="nc" id="L50">        String pass = envOrDefault(&quot;POSTGRES_PASSWORD&quot;, &quot;mtogo&quot;);</span>
+
+<span class="nc" id="L52">        String url = &quot;jdbc:postgresql://&quot; + host + &quot;:&quot; + port + &quot;/&quot; + db;</span>
+<span class="nc" id="L53">        return DriverManager.getConnection(url, user, pass);</span>
+    }
+
+    private String envOrDefault(String key, String defaultValue) {
+<span class="nc" id="L57">        String val = System.getenv(key);</span>
+<span class="nc bnc" id="L58" title="All 4 branches missed.">        return (val == null || val.isBlank()) ? defaultValue : val;</span>
+    }
+
+    /**
+     * Creates an order and its order lines in a single transaction.
+     *
+     * The orderId is assumed to be generated in customer-service and passed in
+     * via orderDTO.getOrder_id().
+     *
+     * If anything fails, the transaction is rolled back so that neither the
+     * order or any order_line rows are persisted.
+     */
+    public OrderDTO createOrder(OrderDTO orderDTO,
+            List&lt;OrderLineDTO&gt; orderLineDTOS,
+            Connection connection) throws SQLException {
+
+<span class="fc" id="L74">        boolean originalAutoCommit = connection.getAutoCommit();</span>
+<span class="fc" id="L75">        connection.setAutoCommit(false);</span>
+
+<span class="fc" id="L77">        PreparedStatement orderStmt = null;</span>
+<span class="fc" id="L78">        PreparedStatement lineStmt = null;</span>
+
+        try {
+            // Insert order with provided int orderId
+<span class="fc" id="L82">            String insertOrderSql</span>
+                    = &quot;INSERT INTO \&quot;orders\&quot; &quot;
+                    + &quot;(order_id, customer_id, order_created, order_updated, order_status, supplier_id) &quot;
+                    + &quot;VALUES (?, ?, ?, ?, ?, ?)&quot;;
+
+<span class="fc" id="L87">            orderStmt = connection.prepareStatement(insertOrderSql);</span>
+<span class="fc" id="L88">            orderStmt.setObject(1, orderDTO.getOrder_id());</span>
+<span class="fc" id="L89">            orderStmt.setObject(2, orderDTO.getCustomer_id(), Types.INTEGER);</span>
+<span class="fc" id="L90">            orderStmt.setTimestamp(3, orderDTO.getOrder_created());</span>
+<span class="fc" id="L91">            orderStmt.setTimestamp(4, orderDTO.getOrder_updated());</span>
+<span class="fc" id="L92">            orderStmt.setString(5, orderDTO.getOrderStatus().name());</span>
+
+            // TODO: nullable for compatiblity
+<span class="pc bpc" id="L95" title="1 of 2 branches missed.">            if (orderDTO.getSupplierId() != null) {</span>
+<span class="fc" id="L96">                orderStmt.setInt(6, orderDTO.getSupplierId());</span>
+            } else {
+<span class="nc" id="L98">                orderStmt.setNull(6, 0);</span>
+            }
+
+<span class="fc" id="L101">            int affectedOrders = orderStmt.executeUpdate();</span>
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">            if (affectedOrders != 1) {</span>
+<span class="nc" id="L103">                throw new SQLException(&quot;Failed to insert order, affected rows: &quot; + affectedOrders);</span>
+            }
+
+            // Insert order lines using same order_id
+<span class="fc" id="L107">            String insertLineSql</span>
+                    = &quot;INSERT INTO order_line &quot;
+                    + &quot;(order_id, item_id, price_snapshot, amount) &quot;
+                    + &quot;VALUES (?, ?, ?, ?)&quot;;
+
+<span class="fc" id="L112">            lineStmt = connection.prepareStatement(insertLineSql);</span>
+
+<span class="fc bfc" id="L114" title="All 2 branches covered.">            for (OrderLineDTO lineDTO : orderLineDTOS) {</span>
+<span class="fc" id="L115">                lineStmt.setObject(1, orderDTO.getOrder_id());</span>
+<span class="fc" id="L116">                lineStmt.setInt(2, lineDTO.getItemId());</span>
+<span class="fc" id="L117">                lineStmt.setFloat(3, lineDTO.getPriceSnapshot());</span>
+<span class="fc" id="L118">                lineStmt.setInt(4, lineDTO.getAmount());</span>
+<span class="fc" id="L119">                lineStmt.addBatch();</span>
+<span class="fc" id="L120">            }</span>
+
+<span class="fc" id="L122">            lineStmt.executeBatch();</span>
+
+<span class="fc" id="L124">            connection.commit();</span>
+<span class="fc" id="L125">            return orderDTO;</span>
+
+<span class="fc" id="L127">        } catch (SQLException ex) {</span>
+            try {
+<span class="fc" id="L129">                connection.rollback();</span>
+<span class="nc" id="L130">            } catch (SQLException ignored) {</span>
+<span class="fc" id="L131">            }</span>
+<span class="fc" id="L132">            throw ex;</span>
+        } finally {
+            try {
+<span class="fc" id="L135">                connection.setAutoCommit(originalAutoCommit);</span>
+<span class="nc" id="L136">            } catch (SQLException ignored) {</span>
+<span class="fc" id="L137">            }</span>
+
+<span class="pc bpc" id="L139" title="1 of 2 branches missed.">            if (orderStmt != null) try {</span>
+<span class="fc" id="L140">                orderStmt.close();</span>
+<span class="nc" id="L141">            } catch (SQLException ignored) {</span>
+<span class="fc" id="L142">            }</span>
+<span class="pc bpc" id="L143" title="1 of 2 branches missed.">            if (lineStmt != null) try {</span>
+<span class="fc" id="L144">                lineStmt.close();</span>
+<span class="nc" id="L145">            } catch (SQLException ignored) {</span>
+<span class="fc" id="L146">            }</span>
+        }
+
+    }
+
+    public List&lt;menuItemDTO&gt; getMenuItemsBySupplierId(int supplierId, Connection connection) throws SQLException {
+
+<span class="nc" id="L153">        String sql = &quot;SELECT item_id, item_name, item_price, supplier_id, is_active &quot;</span>
+                + &quot;FROM menu_item WHERE supplier_id = ?&quot;;
+
+<span class="nc" id="L156">        try (var queryStmnt = connection.prepareStatement(sql)) {</span>
+
+<span class="nc" id="L158">            queryStmnt.setInt(1, supplierId);</span>
+
+<span class="nc" id="L160">            ResultSet rs = queryStmnt.executeQuery();</span>
+
+<span class="nc" id="L162">            List&lt;menuItemDTO&gt; items = new java.util.ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L164" title="All 2 branches missed.">            while (rs.next()) {</span>
+<span class="nc" id="L165">                menuItemDTO item = new menuItemDTO(</span>
+<span class="nc" id="L166">                        rs.getInt(&quot;item_id&quot;),</span>
+<span class="nc" id="L167">                        rs.getString(&quot;item_name&quot;),</span>
+<span class="nc" id="L168">                        rs.getDouble(&quot;item_price&quot;),</span>
+<span class="nc" id="L169">                        rs.getInt(&quot;supplier_id&quot;),</span>
+<span class="nc" id="L170">                        rs.getBoolean(&quot;is_active&quot;)</span>
+                );
+<span class="nc" id="L172">                items.add(item);</span>
+<span class="nc" id="L173">            }</span>
+<span class="nc" id="L174">            return items;</span>
+        }
+    }
+
+    public OrderDetailsDTO customerEnrichLegacyOrder(LegacyOrderDetailsDTO legacyDTO,
+            Connection connection) throws SQLException {
+
+<span class="fc" id="L181">        log.info(&quot;Creating legacy order&quot;);</span>
+
+        // Query for existing customer
+<span class="fc" id="L184">        String sql = &quot;SELECT customer_id FROM customer WHERE customer_phone = ?&quot;;</span>
+
+<span class="fc" id="L186">        try (var queryStmnt = connection.prepareStatement(sql)) {</span>
+
+<span class="fc" id="L188">            queryStmnt.setString(1, legacyDTO.getCustomerPhone());</span>
+
+<span class="fc" id="L190">            ResultSet rs = queryStmnt.executeQuery();</span>
+
+<span class="fc" id="L192">            int customerId = 0;</span>
+
+<span class="fc bfc" id="L194" title="All 2 branches covered.">            if (rs.next()) {</span>
+<span class="fc" id="L195">                customerId = rs.getInt(1);</span>
+<span class="fc" id="L196">                log.debug(&quot;Customer id: &quot; + customerId + &quot; matched with phone: &quot; + legacyDTO.getCustomerPhone());</span>
+            } else {
+<span class="fc" id="L198">                log.info(&quot;No match customer match found. Creating anonymously&quot;);</span>
+<span class="fc" id="L199">                createAnonUser(connection);</span>
+            }
+
+<span class="fc" id="L202">            int index = 1;</span>
+<span class="fc bfc" id="L203" title="All 2 branches covered.">            for (var line : legacyDTO.getOrderLineDTOS()) {</span>
+<span class="fc" id="L204">                line.setOrderLineId(index++);</span>
+<span class="fc" id="L205">            }</span>
+<span class="fc" id="L206">            OrderDetailsDTO orderDetailsDTO = OrderDetailsDTO.builder()</span>
+<span class="fc" id="L207">                    .orderId(legacyDTO.getOrderId())</span>
+<span class="fc" id="L208">                    .customerId(customerId)</span>
+<span class="fc" id="L209">                    .status(OrderDetailsDTO.orderStatus.created)</span>
+<span class="fc" id="L210">                    .supplierId(legacyDTO.getSupplierId())</span>
+<span class="fc" id="L211">                    .orderLineDTOS(legacyDTO.getOrderLineDTOS())</span>
+<span class="fc" id="L212">                    .build();</span>
+
+<span class="fc" id="L214">            log.debug(&quot;Enriched dto:\n&quot; + orderDetailsDTO.toString());</span>
+
+<span class="fc" id="L216">            return orderDetailsDTO;</span>
+        }
+    }
+
+    private void createAnonUser(Connection connection) throws SQLException {
+
+        // Insert new anon user if not already exists
+<span class="fc" id="L223">        String insertAnonSql</span>
+                = &quot;INSERT INTO customer &quot;
+                + &quot;(customer_id, customer_name, customer_zip, customer_phone) &quot;
+                + &quot;VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING&quot;;
+
+<span class="fc" id="L228">        try (var stmt = connection.prepareStatement(insertAnonSql)) {</span>
+
+<span class="fc" id="L230">            stmt.setInt(1, 0);</span>
+<span class="fc" id="L231">            stmt.setString(2, &quot;Anonymous&quot;);</span>
+<span class="fc" id="L232">            stmt.setString(3, &quot;0&quot;);</span>
+<span class="fc" id="L233">            stmt.setString(4, &quot;0&quot;);</span>
+
+<span class="pc bpc" id="L235" title="1 of 2 branches missed.">            if (stmt.executeUpdate() == 1) {</span>
+<span class="fc" id="L236">                log.info(&quot;Created new anonymous user&quot;);</span>
+            }
+
+<span class="nc" id="L239">        } catch (SQLException e) {</span>
+<span class="nc" id="L240">            log.error(&quot;Failed to check/create anon user&quot;);</span>
+<span class="nc" id="L241">            throw new SQLException(e);</span>
+<span class="fc" id="L242">        }</span>
+
+<span class="fc" id="L244">    }</span>
+
+    public boolean checkConnection(Connection connection) throws SQLException {
+
+<span class="nc bnc" id="L248" title="All 2 branches missed.">        for (int i = 0; i &lt; 10; i++) {</span>
+            try {
+
+<span class="nc bnc" id="L251" title="All 2 branches missed.">                if (connection.isValid(2)) {</span>
+<span class="nc" id="L252">                    return true;</span>
+                }
+
+<span class="nc" id="L255">            } catch (PSQLException e) {</span>
+<span class="nc" id="L256">                log.warn(e.getLocalizedMessage());</span>
+<span class="nc" id="L257">                log.warn(&quot;Retrying PostgreSQL connection&quot;);</span>
+                try {
+<span class="nc" id="L259">                    Thread.sleep(2000);</span>
+<span class="nc" id="L260">                } catch (InterruptedException ex) {</span>
+<span class="nc" id="L261">                    log.error(ex.getLocalizedMessage());</span>
+<span class="nc" id="L262">                }</span>
+<span class="nc" id="L263">            }</span>
+        }
+<span class="nc" id="L265">        throw new SQLException(&quot;Connection to PosgtreSQL failed!&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

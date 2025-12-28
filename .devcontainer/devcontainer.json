@@ -13,13 +13,14 @@
     "vscode": {
       "extensions": [
         "vscjava.vscode-java-pack",
-        "vscjava.vscode-maven"
+        "vscjava.vscode-maven",
+        "svelte.svelte-vscode"
       ]
     }
   },
   "containerEnv": {
     "MTOGO_WORKSPACE": "${containerWorkspaceFolder}",
-    "LOG_LEVEL": "debug"
+    "MTOGO_LOG_LEVEL": "debug"
   },
   "runArgs": [
     "--env-file",

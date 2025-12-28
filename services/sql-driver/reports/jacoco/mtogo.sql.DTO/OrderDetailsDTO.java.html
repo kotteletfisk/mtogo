@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrderDetailsDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sql-driver</a> &gt; <a href="index.source.html" class="el_package">mtogo.sql.DTO</a> &gt; <span class="el_source">OrderDetailsDTO.java</span></div><h1>OrderDetailsDTO.java</h1><pre class="source lang-java linenums">package mtogo.sql.DTO;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
+@ToString @Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class OrderDetailsDTO {
+
+    private UUID orderId;
+    private int customerId;
+    private int supplierId;
+
+<span class="fc" id="L23">    public enum PaymentMethod {</span>
+<span class="fc" id="L24">        PAYPAL,</span>
+<span class="fc" id="L25">        MOBILEPAY,</span>
+<span class="fc" id="L26">        LEGACY</span>
+    }
+
+<span class="fc" id="L29">    public enum orderStatus {</span>
+<span class="fc" id="L30">        created,</span>
+<span class="fc" id="L31">        rejected,</span>
+<span class="fc" id="L32">        accepted,</span>
+<span class="fc" id="L33">        waiting,</span>
+<span class="fc" id="L34">        delivering,</span>
+<span class="fc" id="L35">        delivered</span>
+    }
+    private orderStatus status;
+    @Builder.Default
+    private List&lt;OrderLineDTO&gt; orderLineDTOS = new ArrayList&lt;&gt;();
+    private PaymentMethod paymentMethod;
+
+
+<span class="nc" id="L43">    public OrderDetailsDTO(int customerId, orderStatus status, List&lt;OrderLineDTO&gt; orderLineDTOS) {</span>
+<span class="nc" id="L44">        this.customerId = customerId;</span>
+<span class="nc" id="L45">        this.status = status;</span>
+<span class="nc" id="L46">        this.orderLineDTOS = orderLineDTOS;</span>
+<span class="nc" id="L47">    }</span>
+
+<span class="nc" id="L49">    public OrderDetailsDTO(int customerId, orderStatus status, List&lt;OrderLineDTO&gt; orderLineDTOS, PaymentMethod paymentMethod) {</span>
+<span class="nc" id="L50">        this.customerId = customerId;</span>
+<span class="nc" id="L51">        this.status = status;</span>
+<span class="nc" id="L52">        this.orderLineDTOS = orderLineDTOS;</span>
+<span class="nc" id="L53">        this.paymentMethod = paymentMethod;</span>
+<span class="nc" id="L54">    }</span>
+
+<span class="fc" id="L56">    public OrderDetailsDTO(UUID orderId, int customerId, orderStatus status, int supplierId, List&lt;OrderLineDTO&gt; orderLineDTOS) {</span>
+<span class="fc" id="L57">        this.orderId = orderId;</span>
+<span class="fc" id="L58">        this.customerId = customerId;</span>
+<span class="fc" id="L59">        this.status = status;</span>
+<span class="fc" id="L60">        this.supplierId = supplierId;</span>
+<span class="fc" id="L61">        this.orderLineDTOS = orderLineDTOS;</span>
+<span class="fc" id="L62">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
