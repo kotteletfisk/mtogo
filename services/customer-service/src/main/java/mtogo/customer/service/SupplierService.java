@@ -58,7 +58,7 @@ public class SupplierService {
                     zipCode, correlationId);
 
             // Wait max 2 seconds for the response
-            List<SupplierDTO> suppliers = future.get(2, TimeUnit.SECONDS);
+            List<SupplierDTO> suppliers = future.get(5, TimeUnit.SECONDS);
             log.debug("Received {} suppliers for zipcode {}", suppliers.size(), zipCode);
             return suppliers;
 
