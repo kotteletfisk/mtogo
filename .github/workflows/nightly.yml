@@ -91,12 +91,14 @@ jobs:
           REDIS_PORT: 6380
 
       - name: Upload Test Reports
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ui-test-reports-${{ github.run_number }}
-          path: ua-tests/target/surefire-reports/
-          retention-days: 7
+          path: | 
+            ua-tests/target/surefire-reports/
+            ua-tests/target/jmeter-results/
+          retention-days: 30
 
       - name: Check Test Results
         id: testcheck
