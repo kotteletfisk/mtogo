@@ -144,16 +144,17 @@ jobs:
           if [ -d "target/jmeter-results" ] && [ -n "$(ls -A target/jmeter-results/*.jtl 2>/dev/null)" ]; then
             LATEST_RESULT=$(ls -t target/jmeter-results/*.jtl | head -1)
           
-            # Parse JTL file for summary (this is a simplified version)
+            # Parse JTL file for summary
             TOTAL=$(wc -l < "$LATEST_RESULT")
             ERRORS=$(grep -c "false" "$LATEST_RESULT" || echo "0")
-            SUCCESS=$((TOTAL - ERRORS - 1)) # -1 for header line
+            REQUESTS=$((TOTAL - 1)) # -1 for header line
+            SUCCESS=$((REQUESTS - ERRORS))
           
-            if [ $TOTAL -gt 1 ]; then
-              ERROR_RATE=$(awk "BEGIN {printf \"%.2f\", ($ERRORS / ($TOTAL - 1)) * 100}")
+            if [ "$REQUESTS" -gt 0 ]; then
+              ERROR_RATE=$(echo "scale=2; ($ERRORS / $REQUESTS) * 100" | bc)
           
               echo "### Summary" >> "$GITHUB_STEP_SUMMARY"
-              echo "- Total Requests: $((TOTAL - 1))" >> "$GITHUB_STEP_SUMMARY"
+              echo "- Total Requests: $REQUESTS" >> "$GITHUB_STEP_SUMMARY"
               echo "- Successful: $SUCCESS" >> "$GITHUB_STEP_SUMMARY"
               echo "- Errors: $ERRORS" >> "$GITHUB_STEP_SUMMARY"
               echo "- Error Rate: ${ERROR_RATE}%" >> "$GITHUB_STEP_SUMMARY"
@@ -161,9 +162,9 @@ jobs:
           
               if [ "$ERRORS" -eq 0 ]; then
                 echo "✅ **All requests successful!**" >> "$GITHUB_STEP_SUMMARY"
-              elif (( $(echo "$ERROR_RATE < 1.0" | bc -l) )); then
+              elif (( $(echo "$ERROR_RATE < 1.0" | bc -l 2>/dev/null || echo 0) )); then
                 echo "✅ **Performance acceptable** (error rate < 1%)" >> "$GITHUB_STEP_SUMMARY"
-              elif (( $(echo "$ERROR_RATE < 5.0" | bc -l) )); then
+              elif (( $(echo "$ERROR_RATE < 5.0" | bc -l 2>/dev/null || echo 0) )); then
                 echo "⚠️ **Performance degraded** (error rate ${ERROR_RATE}%)" >> "$GITHUB_STEP_SUMMARY"
               else
                 echo "❌ **Performance unacceptable** (error rate ${ERROR_RATE}%)" >> "$GITHUB_STEP_SUMMARY"
@@ -197,13 +198,26 @@ jobs:
             TOTAL=$(wc -l < "$LATEST_RESULT")
             ERRORS=$(grep -c "false" "$LATEST_RESULT" || echo "0")
           
-            if [ $TOTAL -gt 1 ]; then
-              ERROR_RATE=$(awk "BEGIN {printf \"%.2f\", ($ERRORS / ($TOTAL - 1)) * 100}")
+            if [ "$TOTAL" -gt 1 ]; then
+              # Avoid division by zero and handle bc properly
+              REQUESTS=$((TOTAL - 1))
+              if [ "$REQUESTS" -gt 0 ]; then
+                ERROR_RATE=$(echo "scale=2; ($ERRORS / $REQUESTS) * 100" | bc)
           
-              # Fail if error rate > 5%
-              if (( $(echo "$ERROR_RATE > 5.0" | bc -l) )); then
-                echo "ERROR: Performance test failed with error rate of ${ERROR_RATE}%"
-                exit 1
+                echo "Performance Summary:"
+                echo "  Total Requests: $REQUESTS"
+                echo "  Errors: $ERRORS"
+                echo "  Error Rate: ${ERROR_RATE}%"
+          
+                # Fail if error rate > 5%
+                if (( $(echo "$ERROR_RATE > 5.0" | bc -l 2>/dev/null || echo 0) )); then
+                  echo "ERROR: Performance test failed with error rate of ${ERROR_RATE}%"
+                  exit 1
+                else
+                  echo "✅ Performance test passed (error rate: ${ERROR_RATE}%)"
+                fi
+              else
+                echo "No requests found in results"
               fi
             fi
           fi
