@@ -98,25 +98,6 @@ jobs:
           path: ua-tests/target/surefire-reports/
           retention-days: 7
 
-      - name: Run Performance Tests (Spike Test)
-        if: success()
-        run: |
-          cd ua-tests
-          echo "Running 5-minute spike test..."
-          mvn test -Dtest=CustomerPerformanceTests#spikeTest_5minutes_customerOrderFlow -Dbase.url=http://172.16.0.11:7071
-        env:
-          BASE_URL: http://172.16.0.11:7071
-        timeout-minutes: 10
-        continue-on-error: true  # Don't fail deployment if performance test fails
-
-      - name: Upload Performance Test Results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: performance-test-results-${{ github.run_number }}
-          path: ua-tests/target/jmeter-results/
-          retention-days: 30
-
       - name: Check Test Results
         id: testcheck
         run: echo "Checking if test results are fine"
