@@ -94,7 +94,7 @@ services:
         protocol: tcp
         mode: host
       - target: 8080
-        published: 8080
+        published: 7076
         protocol: tcp
         mode: host
     depends_on:
@@ -282,6 +282,54 @@ services:
         target: /run/configs/jwt_public.pem
     networks:
       - backend
+  
+  # Stack monitoring
+  monitor-service:
+    image: prom/prometheus:v3.8.1
+    ports:
+      - target: 9090
+        published: 9090
+        protocol: tcp
+        mode: host
+    configs:
+      - source: prometheus_config
+        target: /etc/prometheus/prometheus.yml
+    volumes:
+      - prom-data:/prometheus
+    networks:
+      - backend
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.55.1
+    deploy:
+      mode: global
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    command:
+      - '--housekeeping_interval=10s'
+    networks:
+      - backend
+    
+  grafana:
+    image: grafana/grafana:12.4.0-20585723282
+    ports:
+      - target: 3000
+        published: 3000
+        protocol: tcp
+        mode: host
+  #  environment:
+  #    - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+        - grafana-data:/var/lib/grafana
+    networks:
+      - backend
 
 
 networks:
@@ -295,6 +343,8 @@ volumes:
   applicant_data:
   caddy_data:
   caddy_config:
+  prom-data:
+  grafana-data:
 
 secrets:
   auth_private_pkcs8.pem:
@@ -302,4 +352,6 @@ secrets:
 
 configs:
   jwt_public.pem:
+    external: true
+  prometheus_config:
     external: true
