@@ -1,19 +1,14 @@
+package mtogo.customer.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.Context;
 import io.javalin.validation.BodyValidator;
 import mtogo.customer.DTO.OrderDetailsDTO;
 import mtogo.customer.DTO.OrderLineDTO;
-import mtogo.customer.DTO.menuItemDTO;
-import mtogo.customer.controller.OrderController;
-import mtogo.customer.exceptions.APIException;
 import mtogo.customer.messaging.Producer;
-import mtogo.customer.service.MenuService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
@@ -25,7 +20,7 @@ import static org.mockito.Mockito.*;
 
 
 @ExtendWith(MockitoExtension.class)
-class OrderControllerTest {
+public class OrderControllerTest {
 
     @Mock
     Context ctx;

@@ -1,6 +1,7 @@
+package mtogo.customer.service;
+
 import mtogo.customer.DTO.menuItemDTO;
 import mtogo.customer.messaging.Producer;
-import mtogo.customer.service.MenuService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -15,7 +16,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class MenuServiceTest {
+public class MenuServiceTest {
 
     @Test
     void requestMenuBlocking_successReturnsItems() throws Exception {

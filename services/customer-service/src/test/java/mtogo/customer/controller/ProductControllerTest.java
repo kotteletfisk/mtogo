@@ -1,8 +1,8 @@
+package mtogo.customer.controller;
+
 import io.javalin.http.Context;
 import mtogo.customer.DTO.SupplierDTO;
 import mtogo.customer.DTO.menuItemDTO;
-import mtogo.customer.controller.OrderController;
-import mtogo.customer.controller.ProductController;
 import mtogo.customer.service.MenuService;
 import mtogo.customer.service.SupplierService;
 import org.junit.jupiter.api.Test;

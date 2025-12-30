@@ -1,3 +1,4 @@
+package mtogo;
 
 import java.io.IOException;
 import java.util.List;
@@ -17,9 +18,9 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.GetResponse;
 
-import mtogo.customer.DTO.OrderDetailsDTO;
-import mtogo.customer.DTO.OrderLineDTO;
-import mtogo.customer.messaging.Producer;
+import mtogo.supplier.DTO.LegacyOrderDetailsDTO;
+import mtogo.supplier.DTO.OrderLineDTO;
+import mtogo.supplier.messaging.Producer;
 
 /**
  *
@@ -57,16 +58,31 @@ class MQIntegrationTest {
     }
 
     @Test
+    void succesFullPublisherConnection() {
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setHost(rabbit.getHost());
+        factory.setPort(rabbit.getAmqpPort());
+
+        Producer.setConnectionFactory(factory);
+
+        try {
+            assertTrue(Producer.publishMessage("test:create_order", "hello"));
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+
+    }
+
+    @Test
     void publishObjectTest() {
 
         UUID id = UUID.randomUUID();
-        OrderDetailsDTO dto = new OrderDetailsDTO(
+        LegacyOrderDetailsDTO dto = new LegacyOrderDetailsDTO(
                 id,
-                1,
-                OrderDetailsDTO.orderStatus.created,
+                "11111111",
                 List.of(
-                        new OrderLineDTO(1, id, 1, 1.0f, 1),
-                        new OrderLineDTO(2, id, 2, 2.0f, 2)
+                        new OrderLineDTO(id, 1, 1.0f, 1),
+                        new OrderLineDTO(id, 2, 2.0f, 2)
                 )
         );
 
@@ -74,7 +90,7 @@ class MQIntegrationTest {
         factory.setHost(rabbit.getHost());
         factory.setPort(rabbit.getAmqpPort());
 
-        Producer.setConnectionFactoryForTesting(factory);
+        Producer.setConnectionFactory(factory);
 
         try {
             assertTrue(Producer.publishObject("test:create_order", dto));

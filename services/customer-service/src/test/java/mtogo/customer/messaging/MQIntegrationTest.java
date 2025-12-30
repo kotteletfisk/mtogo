@@ -1,3 +1,4 @@
+package mtogo.customer.messaging;
 
 import java.io.IOException;
 import java.util.List;
@@ -17,15 +18,14 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.GetResponse;
 
-import mtogo.supplier.DTO.LegacyOrderDetailsDTO;
-import mtogo.supplier.DTO.OrderLineDTO;
-import mtogo.supplier.messaging.Producer;
+import mtogo.customer.DTO.OrderDetailsDTO;
+import mtogo.customer.DTO.OrderLineDTO;
 
 /**
  *
  * @author kotteletfisk
  */
-class MQIntegrationTest {
+public class MQIntegrationTest {
 
     @Container
     RabbitMQContainer rabbit = new RabbitMQContainer("rabbitmq:3.13-alpine");
@@ -57,31 +57,16 @@ class MQIntegrationTest {
     }
 
     @Test
-    void succesFullPublisherConnection() {
-        ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost(rabbit.getHost());
-        factory.setPort(rabbit.getAmqpPort());
-
-        Producer.setConnectionFactory(factory);
-
-        try {
-            assertTrue(Producer.publishMessage("test:create_order", "hello"));
-        } catch (Exception e) {
-            fail(e.getMessage());
-        }
-
-    }
-
-    @Test
     void publishObjectTest() {
 
         UUID id = UUID.randomUUID();
-        LegacyOrderDetailsDTO dto = new LegacyOrderDetailsDTO(
+        OrderDetailsDTO dto = new OrderDetailsDTO(
                 id,
-                "11111111",
+                1,
+                OrderDetailsDTO.orderStatus.created,
                 List.of(
-                        new OrderLineDTO(id, 1, 1.0f, 1),
-                        new OrderLineDTO(id, 2, 2.0f, 2)
+                        new OrderLineDTO(1, id, 1, 1.0f, 1),
+                        new OrderLineDTO(2, id, 2, 2.0f, 2)
                 )
         );
 
@@ -89,7 +74,7 @@ class MQIntegrationTest {
         factory.setHost(rabbit.getHost());
         factory.setPort(rabbit.getAmqpPort());
 
-        Producer.setConnectionFactory(factory);
+        Producer.setConnectionFactoryForTesting(factory);
 
         try {
             assertTrue(Producer.publishObject("test:create_order", dto));
