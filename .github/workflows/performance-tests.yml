@@ -1,0 +1,235 @@
+name: Performance Tests
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment to test against'
+        required: true
+        type: string
+      base_url:
+        description: 'Base URL for tests'
+        required: true
+        type: string
+      test_duration_minutes:
+        description: 'Test duration in minutes'
+        required: false
+        type: number
+        default: 5
+    secrets:
+      DB_PASSWORD:
+        required: false
+    outputs:
+      test_result:
+        description: 'Performance test result'
+        value: ${{ jobs.run-performance-tests.outputs.result }}
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to test'
+        required: true
+        type: choice
+        options:
+          - test
+          - prod
+        default: test
+      base_url:
+        description: 'Base URL (optional, uses default for environment)'
+        required: false
+        type: string
+      test_type:
+        description: 'Type of performance test'
+        required: true
+        type: choice
+        options:
+          - spike
+          - capacity
+        default: spike
+
+jobs:
+  run-performance-tests:
+    runs-on:
+      - self-hosted
+      - ${{ inputs.environment || github.event.inputs.environment }}
+
+    name: Performance Tests on ${{ inputs.environment || github.event.inputs.environment }}
+
+    env:
+      ENVIRONMENT: ${{ inputs.environment || github.event.inputs.environment }}
+      BASE_URL_INPUT: ${{ inputs.base_url || github.event.inputs.base_url }}
+      TEST_TYPE: ${{ github.event.inputs.test_type || 'spike' }}
+
+    outputs:
+      result: ${{ steps.test-execution.outcome }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Determine Base URL
+        id: url
+        run: |
+          if [ -n "${BASE_URL_INPUT}" ]; then
+            BASE_URL="${BASE_URL_INPUT}"
+          elif [ "${ENVIRONMENT}" = "prod" ]; then
+            BASE_URL="http://localhost:7071"
+          else
+            BASE_URL="http://172.16.0.11:7071"
+          fi
+
+          echo "BASE_URL=$BASE_URL" >> "$GITHUB_ENV"
+          echo "Testing against: $BASE_URL"
+        env:
+          ENVIRONMENT: ${{ env.ENVIRONMENT }}
+          BASE_URL_INPUT: ${{ env.BASE_URL_INPUT }}
+
+      - name: Wait for Services to be Ready
+        run: |
+          echo "Waiting for services to be ready..."
+          MAX_RETRIES=10
+          SLEEP_TIME=5
+          
+          for i in $(seq 1 $MAX_RETRIES); do
+            if curl -sf "${BASE_URL}/api/health" > /dev/null 2>&1; then
+              echo "Services are ready!"
+              exit 0
+            fi
+            echo "Attempt $i/$MAX_RETRIES: Services not ready yet, waiting ${SLEEP_TIME}s..."
+            sleep $SLEEP_TIME
+          done
+          
+          echo "Services failed to become ready"
+          exit 1
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
+
+      - name: Run Performance Tests
+        id: test-execution
+        run: |
+          cd ua-tests
+          
+          if [ "$TEST_TYPE" = "capacity" ]; then
+            echo "Running Capacity Test (10 minutes)..."
+            mvn test -Dtest=CustomerCapacityTest -Dbase.url="${BASE_URL}"
+          else
+            echo "Running Spike Test (5 minutes)..."
+            mvn test -Dtest=CustomerPerformanceTests#spikeTest_5minutes_customerOrderFlow -Dbase.url="${BASE_URL}"
+          fi
+        env:
+          BASE_URL: ${{ env.BASE_URL }}
+          TEST_TYPE: ${{ env.TEST_TYPE }}
+        timeout-minutes: 15
+
+      - name: Generate Performance Report Summary
+        if: always()
+        run: |
+          cd ua-tests
+          
+          echo "## Performance Test Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Environment: **${ENVIRONMENT}**" >> "$GITHUB_STEP_SUMMARY"
+          echo "Base URL: \`${BASE_URL}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Test Type: **${TEST_TYPE}**" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          
+          # Check if JMeter results exist
+          if [ -d "target/jmeter-results" ] && [ -n "$(ls -A target/jmeter-results/*.jtl 2>/dev/null)" ]; then
+            LATEST_RESULT=$(ls -t target/jmeter-results/*.jtl | head -1)
+          
+            # Parse JTL file - be careful with grep -c when count is 0
+            TOTAL=$(wc -l < "$LATEST_RESULT" 2>/dev/null || echo "0")
+          
+            # grep -c returns 0 with exit code 1 when no matches - handle this properly
+            ERRORS=$(grep -c ",false$" "$LATEST_RESULT" 2>/dev/null || true)
+            ERRORS=${ERRORS:-0}
+          
+            REQUESTS=$((TOTAL > 1 ? TOTAL - 1 : 0))
+            SUCCESS=$((REQUESTS - ERRORS))
+          
+            if [ "$REQUESTS" -gt 0 ]; then
+              # Calculate error rate safely
+              ERROR_RATE=$(awk "BEGIN {printf \"%.2f\", (${ERRORS} * 100.0 / ${REQUESTS})}")
+          
+              echo "### Summary" >> "$GITHUB_STEP_SUMMARY"
+              echo "- Total Requests: $REQUESTS" >> "$GITHUB_STEP_SUMMARY"
+              echo "- Successful: $SUCCESS" >> "$GITHUB_STEP_SUMMARY"
+              echo "- Errors: $ERRORS" >> "$GITHUB_STEP_SUMMARY"
+              echo "- Error Rate: ${ERROR_RATE}%" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+          
+              # Use awk for comparisons to avoid bc issues
+              if [ "$ERRORS" -eq 0 ]; then
+                echo "✅ **All requests successful!**" >> "$GITHUB_STEP_SUMMARY"
+              elif awk "BEGIN {exit !($ERROR_RATE < 1.0)}"; then
+                echo "✅ **Performance acceptable** (error rate < 1%)" >> "$GITHUB_STEP_SUMMARY"
+              elif awk "BEGIN {exit !($ERROR_RATE < 5.0)}"; then
+                echo "⚠️ **Performance degraded** (error rate ${ERROR_RATE}%)" >> "$GITHUB_STEP_SUMMARY"
+              else
+                echo "❌ **Performance unacceptable** (error rate ${ERROR_RATE}%)" >> "$GITHUB_STEP_SUMMARY"
+              fi
+            fi
+          else
+            echo "⚠️ No JMeter results found" >> "$GITHUB_STEP_SUMMARY"
+          fi
+        env:
+          ENVIRONMENT: ${{ env.ENVIRONMENT }}
+          BASE_URL: ${{ env.BASE_URL }}
+          TEST_TYPE: ${{ env.TEST_TYPE }}
+
+      - name: Upload Performance Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-test-results-${{ env.ENVIRONMENT }}-${{ github.run_number }}
+          path: |
+            ua-tests/target/jmeter-results/
+            ua-tests/target/surefire-reports/
+          retention-days: 30
+
+      - name: Check Performance Thresholds
+        if: success()
+        continue-on-error: true
+        run: |
+          cd ua-tests
+          
+          if [ -d "target/jmeter-results" ] && [ -n "$(ls -A target/jmeter-results/*.jtl 2>/dev/null)" ]; then
+            LATEST_RESULT=$(ls -t target/jmeter-results/*.jtl | head -1)
+          
+            TOTAL=$(wc -l < "$LATEST_RESULT" 2>/dev/null || echo "0")
+          
+            # grep -c with proper error handling
+            ERRORS=$(grep -c ",false$" "$LATEST_RESULT" 2>/dev/null || true)
+            ERRORS=${ERRORS:-0}
+          
+            REQUESTS=$((TOTAL > 1 ? TOTAL - 1 : 0))
+          
+            if [ "$REQUESTS" -gt 0 ]; then
+              # Use awk for safe floating point calculation
+              ERROR_RATE=$(awk "BEGIN {printf \"%.2f\", (${ERRORS} * 100.0 / ${REQUESTS})}")
+          
+              echo "Performance Summary:"
+              echo "  Total Requests: $REQUESTS"
+              echo "  Errors: $ERRORS"
+              echo "  Error Rate: ${ERROR_RATE}%"
+          
+              # Check threshold with awk
+              if awk "BEGIN {exit !($ERROR_RATE > 5.0)}"; then
+                echo "ERROR: Performance test failed with error rate of ${ERROR_RATE}%"
+                exit 1
+              else
+                echo "Performance test passed (error rate: ${ERROR_RATE}%)"
+              fi
+            else
+              echo "No requests found in results"
+            fi
+          else
+            echo "No JMeter results found"
+          fi
