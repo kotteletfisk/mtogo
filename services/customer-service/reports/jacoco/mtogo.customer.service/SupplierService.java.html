@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="da"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SupplierService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">customer-service</a> &gt; <a href="index.source.html" class="el_package">mtogo.customer.service</a> &gt; <span class="el_source">SupplierService.java</span></div><h1>SupplierService.java</h1><pre class="source lang-java linenums">package mtogo.customer.service;
+
+import mtogo.customer.DTO.SupplierDTO;
+import mtogo.customer.messaging.Producer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.rabbitmq.client.AMQP;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.*;
+
+public class SupplierService {
+
+<span class="fc" id="L17">    private static final Logger log = LoggerFactory.getLogger(SupplierService.class);</span>
+
+    // Map of correlationId -&gt; CompletableFuture
+<span class="fc" id="L20">    private final Map&lt;String, CompletableFuture&lt;List&lt;SupplierDTO&gt;&gt;&gt; pendingRequests = new ConcurrentHashMap&lt;&gt;();</span>
+
+<span class="fc" id="L22">    private static final SupplierService INSTANCE = new SupplierService();</span>
+
+    public static SupplierService getInstance() {
+<span class="fc" id="L25">        return INSTANCE;</span>
+    }
+
+<span class="fc" id="L28">    private SupplierService() {</span>
+<span class="fc" id="L29">    }</span>
+
+    /**
+     * Requests suppliers for a given zipcode by blocking until a response is
+     * received.
+     * 
+     * @param zipCode the zipcode to search for suppliers
+     * @return a list of SupplierDTO representing active suppliers
+     * @throws Exception if a timeout occurs or an error happens during the request
+     */
+    public List&lt;SupplierDTO&gt; requestSuppliersBlocking(String zipCode) throws Exception {
+<span class="fc" id="L40">        String correlationId = UUID.randomUUID().toString();</span>
+<span class="fc" id="L41">        CompletableFuture&lt;List&lt;SupplierDTO&gt;&gt; future = new CompletableFuture&lt;&gt;();</span>
+
+<span class="fc" id="L43">        pendingRequests.put(correlationId, future);</span>
+
+        try {
+            // Send request with correlation ID
+<span class="fc" id="L47">            String payload = correlationId + &quot;:&quot; + zipCode;</span>
+<span class="fc" id="L48">            String replyQueue = &quot;customer:supplier_response&quot;;</span>
+
+<span class="fc" id="L50">            AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()</span>
+<span class="fc" id="L51">                    .correlationId(correlationId)</span>
+<span class="fc" id="L52">                    .replyTo(replyQueue)</span>
+<span class="fc" id="L53">                    .build();</span>
+
+<span class="fc" id="L55">            Producer.publishMessage(&quot;customer:supplier_request&quot;, payload, props);</span>
+
+<span class="fc" id="L57">            log.debug(&quot;Sent supplier request for zipcode {} with correlation {}&quot;,</span>
+                    zipCode, correlationId);
+
+            // Wait max 2 seconds for the response
+<span class="fc" id="L61">            List&lt;SupplierDTO&gt; suppliers = future.get(2, TimeUnit.SECONDS);</span>
+<span class="fc" id="L62">            log.debug(&quot;Received {} suppliers for zipcode {}&quot;, suppliers.size(), zipCode);</span>
+<span class="fc" id="L63">            return suppliers;</span>
+
+<span class="fc" id="L65">        } catch (TimeoutException e) {</span>
+<span class="fc" id="L66">            log.error(&quot;Timeout waiting for suppliers for zipcode: {}&quot;, zipCode);</span>
+<span class="fc" id="L67">            throw new TimeoutException(&quot;No response from Redis driver for zipcode &quot; + zipCode);</span>
+<span class="nc" id="L68">        } catch (InterruptedException e) {</span>
+<span class="nc" id="L69">            log.error(&quot;Interrupted while waiting for suppliers for zipcode: {}&quot;, zipCode);</span>
+<span class="nc" id="L70">            Thread.currentThread().interrupt();</span>
+<span class="nc" id="L71">            throw e;</span>
+<span class="nc" id="L72">        } catch (ExecutionException e) {</span>
+<span class="nc" id="L73">            log.error(&quot;Error retrieving suppliers for zipcode: {}&quot;, zipCode, e);</span>
+<span class="nc" id="L74">            throw new Exception(&quot;Error retrieving suppliers&quot;, e.getCause());</span>
+        } finally {
+<span class="fc" id="L76">            pendingRequests.remove(correlationId);</span>
+        }
+    }
+
+    /**
+     * Completes the supplier request by resolving the appropriate future.
+     * 
+     * @param correlationId the ID correlating this response to a request
+     * @param suppliers     the list of SupplierDTO received in response to the
+     *                      request
+     */
+    public void completeSupplierRequest(String correlationId, List&lt;SupplierDTO&gt; suppliers) {
+<span class="fc" id="L88">        CompletableFuture&lt;List&lt;SupplierDTO&gt;&gt; future = pendingRequests.get(correlationId);</span>
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">        if (future != null) {</span>
+<span class="fc" id="L90">            future.complete(suppliers);</span>
+<span class="fc" id="L91">            log.debug(&quot;Completed supplier request for correlation {}&quot;, correlationId);</span>
+        } else {
+<span class="nc" id="L93">            log.warn(&quot;Received supplier response for unknown correlation ID: {}&quot;, correlationId);</span>
+        }
+<span class="fc" id="L95">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

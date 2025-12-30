@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="da"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MenuService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">customer-service</a> &gt; <a href="index.source.html" class="el_package">mtogo.customer.service</a> &gt; <span class="el_source">MenuService.java</span></div><h1>MenuService.java</h1><pre class="source lang-java linenums">package mtogo.customer.service;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import com.rabbitmq.client.AMQP;
+
+import mtogo.customer.DTO.menuItemDTO;
+import mtogo.customer.messaging.Producer;
+
+public class MenuService {
+
+<span class="fc" id="L18">    private final Map&lt;String, CompletableFuture&lt;List&lt;menuItemDTO&gt;&gt;&gt; pendingRequests =</span>
+            new ConcurrentHashMap&lt;&gt;();
+
+<span class="fc" id="L21">    private static final MenuService INSTANCE = new MenuService();</span>
+<span class="fc" id="L22">    public static MenuService getInstance() { return INSTANCE; }</span>
+
+<span class="fc" id="L24">    private MenuService() {}</span>
+
+    /**
+     * Requests the menu for a given supplierId by blocking until a response is received.
+     * @param supplierId the ID of the supplier whose menu is being requested.
+     * @return a list of menuItemDTO representing the menu items.
+     * @throws Exception if a timeout occurs or an error happens during the request.
+     */
+    public List&lt;menuItemDTO&gt; requestMenuBlocking(int supplierId) throws Exception {
+<span class="fc" id="L33">        String correlationId = UUID.randomUUID().toString();</span>
+<span class="fc" id="L34">        CompletableFuture&lt;List&lt;menuItemDTO&gt;&gt; future = new CompletableFuture&lt;&gt;();</span>
+
+<span class="fc" id="L36">        pendingRequests.put(correlationId, future);</span>
+
+        try {
+            // Send request with correlation ID
+<span class="fc" id="L40">            String payload = correlationId + &quot;:&quot; + supplierId;</span>
+<span class="fc" id="L41">            String replyQueue = &quot;customer:menu_response&quot;;</span>
+
+<span class="fc" id="L43">            AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()</span>
+<span class="fc" id="L44">                .correlationId(correlationId)</span>
+<span class="fc" id="L45">                .replyTo(replyQueue)</span>
+<span class="fc" id="L46">                .build();</span>
+
+
+<span class="fc" id="L49">            Producer.publishMessage(&quot;customer:menu_request&quot;, payload, props);</span>
+
+<span class="fc" id="L51">            List&lt;menuItemDTO&gt; items = future.get(2, TimeUnit.SECONDS);</span>
+<span class="fc" id="L52">            return items;</span>
+
+<span class="fc" id="L54">        } catch (TimeoutException e) {</span>
+<span class="fc" id="L55">            throw new TimeoutException(&quot;No response from sql-driver for supplier &quot; + supplierId);</span>
+        } finally {
+<span class="fc" id="L57">            pendingRequests.remove(correlationId);</span>
+        }
+    }
+
+    /**
+     * Completes the menu request by resolving the appropriate future.
+     * @param correlationId the ID correlating this response to a request
+     * @param items the list of menuItemDTO received in response to the menu request.
+     */
+    public void completeMenuRequest(String correlationId, List&lt;menuItemDTO&gt; items) {
+<span class="fc" id="L67">        CompletableFuture&lt;List&lt;menuItemDTO&gt;&gt; future = pendingRequests.get(correlationId);</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        if (future != null) {</span>
+<span class="fc" id="L69">            future.complete(items);</span>
+        } else {
+<span class="fc" id="L71">            System.err.println(&quot;Received menu response for unknown correlation ID: &quot; + correlationId);</span>
+        }
+<span class="fc" id="L73">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
