@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="da"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrderLineDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">customer-service</a> &gt; <a href="index.source.html" class="el_package">mtogo.customer.DTO</a> &gt; <span class="el_source">OrderLineDTO.java</span></div><h1>OrderLineDTO.java</h1><pre class="source lang-java linenums">package mtogo.customer.DTO;
+
+import java.util.UUID;
+
+public class OrderLineDTO {
+    private int orderLineId;
+    private UUID orderId;
+    private int itemId;
+    private float priceSnapshot;
+    private int amount;
+
+<span class="nc" id="L12">    public OrderLineDTO() {</span>
+<span class="nc" id="L13">    }</span>
+
+<span class="fc" id="L15">    public OrderLineDTO(int orderLineId, UUID orderId, int itemId, float priceSnapshot, int amount) {</span>
+<span class="fc" id="L16">        this.orderLineId = orderLineId;</span>
+<span class="fc" id="L17">        this.orderId = orderId;</span>
+<span class="fc" id="L18">        this.itemId = itemId;</span>
+<span class="fc" id="L19">        this.priceSnapshot = priceSnapshot;</span>
+<span class="fc" id="L20">        this.amount = amount;</span>
+<span class="fc" id="L21">    }</span>
+
+    public int getOrderLineId() {
+<span class="fc" id="L24">        return orderLineId;</span>
+    }
+
+    public void setOrderLineId(int orderLineId) {
+<span class="fc" id="L28">        this.orderLineId = orderLineId;</span>
+<span class="fc" id="L29">    }</span>
+
+    public UUID getOrderId() {
+<span class="fc" id="L32">        return orderId;</span>
+    }
+
+    public void setOrderId(UUID orderId) {
+<span class="fc" id="L36">        this.orderId = orderId;</span>
+<span class="fc" id="L37">    }</span>
+
+    public int getItemId() {
+<span class="fc" id="L40">        return itemId;</span>
+    }
+
+    public void setItemId(int itemId) {
+<span class="nc" id="L44">        this.itemId = itemId;</span>
+<span class="nc" id="L45">    }</span>
+
+    public float getPriceSnapshot() {
+<span class="fc" id="L48">        return priceSnapshot;</span>
+    }
+
+    public void setPriceSnapshot(float price_snapshot) {
+<span class="nc" id="L52">        this.priceSnapshot = price_snapshot;</span>
+<span class="nc" id="L53">    }</span>
+
+    public int getAmount() {
+<span class="fc" id="L56">        return amount;</span>
+    }
+
+    public void setAmount(int amount) {
+<span class="nc" id="L60">        this.amount = amount;</span>
+<span class="nc" id="L61">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

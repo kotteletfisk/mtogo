@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="da"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrderController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">customer-service</a> &gt; <a href="index.source.html" class="el_package">mtogo.customer.controller</a> &gt; <span class="el_source">OrderController.java</span></div><h1>OrderController.java</h1><pre class="source lang-java linenums">package mtogo.customer.controller;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.javalin.http.Context;
+import mtogo.customer.DTO.OrderDetailsDTO;
+import mtogo.customer.messaging.Producer;
+import mtogo.payment.MobilePayStrategy;
+import mtogo.payment.PaymentService;
+import mtogo.payment.PaypalStrategy;
+import mtogo.payment.RevenueShareCalculator;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * Controller for handling order-related operations.
+ * Uses singleton Pattern.
+ */
+public class OrderController {
+<span class="fc" id="L21">    private static final ObjectMapper objectMapper = new ObjectMapper();</span>
+
+
+    private static OrderController instance;
+    public static OrderController getInstance() {
+<span class="fc bfc" id="L26" title="All 2 branches covered.">        if (instance == null) {</span>
+<span class="fc" id="L27">            instance = new OrderController();</span>
+        }
+<span class="fc" id="L29">        return instance;</span>
+    }
+    private OrderController() {}
+
+    /**
+     * Creates a new order. Publishes an order creation message to the message broker with the OrderDetailsDTO.
+     * The orderId is generated server-side.
+     * @param ctx the Javalin context.
+     */
+    public void createOrder(Context ctx){
+        OrderDetailsDTO orderDetailsDTO;
+
+        try {
+<span class="fc" id="L42">            orderDetailsDTO = validateOrderDTO(ctx);</span>
+<span class="nc" id="L43">        } catch (Exception e) {</span>
+<span class="nc" id="L44">            ctx.status(400).result(&quot;Invalid order data: &quot; + e.getMessage());</span>
+<span class="nc" id="L45">            return;</span>
+<span class="fc" id="L46">        }</span>
+
+        try {
+<span class="fc" id="L49">            double total = orderDetailsDTO.getOrderLines().stream()</span>
+<span class="fc" id="L50">                    .mapToDouble(line -&gt; line.getPriceSnapshot() * line.getAmount())</span>
+<span class="fc" id="L51">                    .sum();</span>
+
+<span class="fc" id="L53">            PaymentService ps = new PaymentService();</span>
+
+<span class="pc bpc" id="L55" title="2 of 3 branches missed.">            switch (orderDetailsDTO.getPaymentMethod()){</span>
+<span class="fc" id="L56">                case PAYPAL -&gt; ps.setPaymentStrategy(new PaypalStrategy());</span>
+<span class="nc" id="L57">                case MOBILEPAY -&gt; ps.setPaymentStrategy(new MobilePayStrategy());</span>
+            }
+
+<span class="fc" id="L60">            boolean pay = ps.pay(total);</span>
+<span class="pc bpc" id="L61" title="1 of 2 branches missed.">            if (!pay){</span>
+<span class="nc" id="L62">                ctx.status(402).result(&quot;Payment failed&quot;);</span>
+<span class="nc" id="L63">                return;</span>
+            }
+
+<span class="fc" id="L66">            LocalDateTime orderTime = LocalDateTime.now();</span>
+<span class="fc" id="L67">            RevenueShareCalculator.printBreakdown(total, orderTime);</span>
+
+            // Generate the orderId
+<span class="fc" id="L70">            UUID orderId = UUID.randomUUID();</span>
+<span class="fc" id="L71">            orderDetailsDTO.setOrderId(orderId);</span>
+
+<span class="fc" id="L73">            AtomicInteger counter = new AtomicInteger(1);</span>
+<span class="pc bpc" id="L74" title="1 of 2 branches missed.">            if (orderDetailsDTO.getOrderLines() != null) {</span>
+<span class="fc" id="L75">                orderDetailsDTO.getOrderLines().forEach(line -&gt; {</span>
+<span class="fc" id="L76">                    line.setOrderId(orderId);</span>
+<span class="fc" id="L77">                    line.setOrderLineId(counter.getAndIncrement());</span>
+<span class="fc" id="L78">                });</span>
+            }
+
+<span class="fc" id="L81">            String payload = objectMapper.writeValueAsString(orderDetailsDTO);</span>
+
+<span class="fc" id="L83">            boolean published = Producer.publishMessage(&quot;customer:order_creation&quot;, payload);</span>
+
+<span class="fc bfc" id="L85" title="All 2 branches covered.">            if (!published) {</span>
+<span class="fc" id="L86">                ctx.status(500).result(&quot;Failed to publish order creation message&quot;);</span>
+<span class="fc" id="L87">                return;</span>
+            }
+
+<span class="fc" id="L90">            ctx.status(201).json(orderDetailsDTO);</span>
+
+<span class="nc" id="L92">        } catch (Exception e) {</span>
+<span class="nc" id="L93">            ctx.status(500).result(&quot;Failed to publish order creation message&quot;);</span>
+<span class="fc" id="L94">        }</span>
+<span class="fc" id="L95">    }</span>
+
+    /**
+     * Validates the OrderDetailsDTO from the request body.
+     * @param ctx the Javalin context
+     * @return the validated OrderDetailsDTO
+     */
+    public OrderDetailsDTO validateOrderDTO(Context ctx){
+<span class="fc" id="L103">        return ctx.bodyValidator(OrderDetailsDTO.class)</span>
+<span class="pc bnc" id="L104" title="All 2 branches missed.">                .check(r -&gt; r != null, &quot;Object is null&quot;)</span>
+<span class="pc bnc" id="L105" title="All 2 branches missed.">                .check(r-&gt; r.getCustomerId() &gt; 0, &quot;Customer ID must be greater than 0&quot;)</span>
+<span class="pc bnc" id="L106" title="All 2 branches missed.">                .check(r-&gt; r.getStatus() == OrderDetailsDTO.orderStatus.created, &quot;Order status must be provided&quot;)</span>
+<span class="pc bnc" id="L107" title="All 4 branches missed.">                .check(r-&gt; r.getOrderLines() != null &amp;&amp; !r.getOrderLines().isEmpty(), &quot;Order must contain at least one order line&quot;)</span>
+<span class="pc bnc" id="L108" title="All 2 branches missed.">                .check(r -&gt; r.getPaymentMethod() != null, &quot;Payment method must be provided&quot;)</span>
+                // .check(r -&gt; r.getSupplierId() != null, &quot;plz give supplierid?&quot;) :o) // TODO: consider this
+<span class="fc" id="L110">                .get();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

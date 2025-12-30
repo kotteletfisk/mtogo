@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="da"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Consumer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">customer-service</a> &gt; <a href="index.source.html" class="el_package">mtogo.customer.messaging</a> &gt; <span class="el_source">Consumer.java</span></div><h1>Consumer.java</h1><pre class="source lang-java linenums">package mtogo.customer.messaging;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.*;
+import mtogo.customer.DTO.SupplierDTO;
+import mtogo.customer.DTO.menuItemDTO;
+import mtogo.customer.service.MenuService;
+import mtogo.customer.service.SupplierService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.List;
+import java.util.concurrent.TimeoutException;
+
+/**
+ * Consumes messages from RabbitMQ
+ */
+<span class="nc" id="L21">public class Consumer {</span>
+
+<span class="nc" id="L23">    public static final Logger log = LoggerFactory.getLogger(Consumer.class);</span>
+
+<span class="nc" id="L25">    private static final ObjectMapper objectMapper = new ObjectMapper();</span>
+    private static final String EXCHANGE_NAME = &quot;order&quot;;
+    private static final String QUEUE_NAME = &quot;customer-service-queue&quot;;
+<span class="nc" id="L28">    private static StringWriter sw = new StringWriter();</span>
+<span class="nc" id="L29">    private static PrintWriter pw = new PrintWriter(sw);</span>
+
+<span class="nc" id="L31">    static ConnectionFactory connectionFactory = createDefaultFactory();</span>
+
+    private static ConnectionFactory createDefaultFactory() {
+<span class="nc" id="L34">        ConnectionFactory factory = new ConnectionFactory();</span>
+<span class="nc" id="L35">        factory.setHost(&quot;rabbitmq&quot;);</span>
+<span class="nc" id="L36">        factory.setPort(5672);</span>
+<span class="nc" id="L37">        factory.setUsername(System.getenv(&quot;RABBITMQ_USER&quot;));</span>
+<span class="nc" id="L38">        factory.setPassword(System.getenv(&quot;RABBITMQ_PASS&quot;));</span>
+<span class="nc" id="L39">        return factory;</span>
+    }
+
+    // Injectable connectionfactory for testing
+    public static void setConnectionFactory(ConnectionFactory factory) {
+<span class="nc" id="L44">        connectionFactory = factory;</span>
+<span class="nc" id="L45">    }</span>
+
+    /**
+     * Consumes messages from RabbitMQ based on the provided binding keys.
+     *
+     * @param bindingKeys the routing keys to bind the queue to
+     * @throws Exception if an error occurs while consuming messages
+     */
+    public static void consumeMessages(String[] bindingKeys) throws Exception {
+
+        try {
+<span class="nc" id="L56">            Connection connection = connectionFactory.newConnection();</span>
+<span class="nc" id="L57">            Channel channel = connection.createChannel();</span>
+
+<span class="nc" id="L59">            channel.exchangeDeclare(EXCHANGE_NAME, &quot;topic&quot;, true);</span>
+
+<span class="nc" id="L61">            channel.queueDeclare(</span>
+                    QUEUE_NAME,
+                    true,
+                    false,
+                    false,
+                    null
+            );
+
+<span class="nc bnc" id="L69" title="All 2 branches missed.">            for (String bindingKey : bindingKeys) {</span>
+<span class="nc" id="L70">                channel.queueBind(QUEUE_NAME, EXCHANGE_NAME, bindingKey);</span>
+<span class="nc" id="L71">                log.info(&quot;Bound queue '{}' to routing key '{}'&quot;, QUEUE_NAME, bindingKey);</span>
+            }
+
+<span class="nc" id="L74">            channel.basicConsume(QUEUE_NAME, false, deliverCallback(channel), consumerTag -&gt; {</span>
+<span class="nc" id="L75">            });</span>
+
+<span class="nc" id="L77">            log.info(&quot;Consumer started, listening on queue: {}&quot;, QUEUE_NAME);</span>
+
+<span class="nc" id="L79">        } catch (IOException | TimeoutException e) {</span>
+<span class="nc" id="L80">            log.error(&quot;Error consuming message:\n&quot; + e.getMessage());</span>
+<span class="nc" id="L81">            e.printStackTrace(pw);</span>
+<span class="nc" id="L82">            log.error(&quot;Stacktrace:\n&quot; + sw.toString());</span>
+<span class="nc" id="L83">            throw e;</span>
+<span class="nc" id="L84">        }</span>
+<span class="nc" id="L85">    }</span>
+
+    /**
+     * Creates a DeliverCallback to handle incoming messages. The callbacks
+     * functionality can vary on keyword
+     *
+     * @param channel the RabbitMQ channel for acknowledging messages
+     * @return the DeliverCallback function
+     */
+    private static DeliverCallback deliverCallback(Channel channel) {
+<span class="nc" id="L95">        return (consumerTag, delivery) -&gt; {</span>
+<span class="nc" id="L96">            String routingKey = delivery.getEnvelope().getRoutingKey();</span>
+<span class="nc" id="L97">            long deliveryTag = delivery.getEnvelope().getDeliveryTag();</span>
+
+<span class="nc" id="L99">            log.debug(&quot;Received message with routing key: {}&quot;, routingKey);</span>
+
+<span class="nc bnc" id="L101" title="All 3 branches missed.">            switch (routingKey) {</span>
+
+                case &quot;customer:menu_response&quot; -&gt; {
+                    try {
+<span class="nc" id="L105">                        String body = new String(</span>
+<span class="nc" id="L106">                                delivery.getBody(),</span>
+                                java.nio.charset.StandardCharsets.UTF_8
+                        );
+
+                        // Expected format: &quot;correlationId::[{...json array...}]&quot;
+/*                         int separatorIndex = body.indexOf(&quot;::&quot;);
+                        if (separatorIndex == -1) {
+                            log.error(&quot;Invalid menu response format - missing '::' separator&quot;);
+                            channel.basicNack(deliveryTag, false, false); // Don't requeue malformed messages
+                            return;
+                        } */
+
+                        // String correlationId = body.substring(0, separatorIndex);
+                        // String jsonArray = body.substring(separatorIndex + 2);
+<span class="nc" id="L120">                        String correlationId = delivery.getProperties().getCorrelationId();</span>
+
+<span class="nc" id="L122">                        List&lt;menuItemDTO&gt; menuItems =</span>
+<span class="nc" id="L123">                                objectMapper.readValue(</span>
+                                        body,
+<span class="nc" id="L125">                                        objectMapper.getTypeFactory()</span>
+<span class="nc" id="L126">                                                .constructCollectionType(List.class, menuItemDTO.class)</span>
+                                );
+
+<span class="nc" id="L129">                        log.info(&quot;Received {} menu items for correlation {}&quot;,</span>
+<span class="nc" id="L130">                                menuItems.size(), correlationId);</span>
+
+<span class="nc" id="L132">                        MenuService.getInstance().completeMenuRequest(correlationId, menuItems);</span>
+
+<span class="nc" id="L134">                        channel.basicAck(deliveryTag, false);</span>
+
+<span class="nc" id="L136">                    } catch (Exception e) {</span>
+<span class="nc" id="L137">                        log.error(&quot;Error handling customer:menu_response&quot;, e);</span>
+                        try {
+<span class="nc" id="L139">                            channel.basicNack(deliveryTag, false, false);</span>
+<span class="nc" id="L140">                        } catch (IOException nackError) {</span>
+<span class="nc" id="L141">                            log.error(&quot;Failed to NACK message&quot;, nackError);</span>
+<span class="nc" id="L142">                        }</span>
+<span class="nc" id="L143">                    }</span>
+<span class="nc" id="L144">                }</span>
+
+                case &quot;customer:supplier_response&quot; -&gt; {
+                    try {
+<span class="nc" id="L148">                        String body = new String(</span>
+<span class="nc" id="L149">                                delivery.getBody(),</span>
+                                java.nio.charset.StandardCharsets.UTF_8
+                        );
+
+<span class="nc" id="L153">                        log.debug(&quot;Received supplier response: {}&quot;, body);</span>
+
+<span class="nc" id="L155">                        int separatorIndex = body.indexOf(&quot;::&quot;);</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">                        if (separatorIndex == -1) {</span>
+<span class="nc" id="L157">                            log.error(&quot;Invalid supplier response format - missing '::' separator&quot;);</span>
+<span class="nc" id="L158">                            channel.basicNack(deliveryTag, false, false);</span>
+<span class="nc" id="L159">                            return;</span>
+                        }
+
+<span class="nc" id="L162">                        String correlationId = body.substring(0, separatorIndex);</span>
+<span class="nc" id="L163">                        String jsonArray = body.substring(separatorIndex + 2);</span>
+
+<span class="nc" id="L165">                        List&lt;SupplierDTO&gt; suppliers = objectMapper.readValue(</span>
+                                jsonArray,
+<span class="nc" id="L167">                                objectMapper.getTypeFactory()</span>
+<span class="nc" id="L168">                                        .constructCollectionType(List.class, SupplierDTO.class)</span>
+                        );
+
+<span class="nc" id="L171">                        log.info(&quot;Received {} suppliers for correlation {}&quot;,</span>
+<span class="nc" id="L172">                                suppliers.size(), correlationId);</span>
+
+<span class="nc" id="L174">                        SupplierService.getInstance().completeSupplierRequest(correlationId, suppliers);</span>
+
+<span class="nc" id="L176">                        channel.basicAck(deliveryTag, false);</span>
+
+<span class="nc" id="L178">                    } catch (Exception e) {</span>
+<span class="nc" id="L179">                        log.error(&quot;Error handling customer:supplier_response&quot;, e);</span>
+                        try {
+<span class="nc" id="L181">                            channel.basicNack(deliveryTag, false, false);</span>
+<span class="nc" id="L182">                        } catch (IOException nackError) {</span>
+<span class="nc" id="L183">                            log.error(&quot;Failed to NACK message&quot;, nackError);</span>
+<span class="nc" id="L184">                        }</span>
+<span class="nc" id="L185">                    }</span>
+<span class="nc" id="L186">                }</span>
+
+                default -&gt; {
+<span class="nc" id="L189">                    log.warn(&quot;Received message with unknown routing key: {}&quot;, routingKey);</span>
+<span class="nc" id="L190">                    channel.basicAck(deliveryTag, false);</span>
+                }
+            }
+<span class="nc" id="L193">        };</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
