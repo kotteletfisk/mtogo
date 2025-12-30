@@ -307,7 +307,6 @@ services:
         limits:
           cpus: '0.5'
           memory: 256M
-    #privileged: true
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
