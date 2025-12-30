@@ -90,14 +90,59 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6380
 
+      - name: Generate Performance Report Summary
+        if: always()
+        run: |
+          cd ua-tests
+
+          echo "## Performance Test Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Environment: **test**" >> "$GITHUB_STEP_SUMMARY"
+          echo "Base URL: \`http://172.16.0.11:7071\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Test Type: **spike**" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -d "target/jmeter-results" ] && [ -n "$(ls -A target/jmeter-results/*.jtl 2>/dev/null)" ]; then
+            LATEST_RESULT=$(ls -t target/jmeter-results/*.jtl | head -1)
+
+            TOTAL=$(wc -l < "$LATEST_RESULT" 2>/dev/null || echo "0")
+            ERRORS=$(grep -c ",false$" "$LATEST_RESULT" 2>/dev/null || true)
+            ERRORS=${ERRORS:-0}
+            REQUESTS=$((TOTAL > 1 ? TOTAL - 1 : 0))
+            SUCCESS=$((REQUESTS - ERRORS))
+
+            if [ "$REQUESTS" -gt 0 ]; then
+              ERROR_RATE=$(awk "BEGIN {printf \"%.2f\", (${ERRORS} * 100.0 / ${REQUESTS})}")
+
+              echo "### Summary" >> "$GITHUB_STEP_SUMMARY"
+              echo "- Total Requests: $REQUESTS" >> "$GITHUB_STEP_SUMMARY"
+              echo "- Successful: $SUCCESS" >> "$GITHUB_STEP_SUMMARY"
+              echo "- Errors: $ERRORS" >> "$GITHUB_STEP_SUMMARY"
+              echo "- Error Rate: ${ERROR_RATE}%" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+
+              if [ "$ERRORS" -eq 0 ]; then
+                echo "✅ **All requests successful!**" >> "$GITHUB_STEP_SUMMARY"
+              elif awk "BEGIN {exit !($ERROR_RATE < 1.0)}"; then
+                echo "✅ **Performance acceptable** (error rate < 1%)" >> "$GITHUB_STEP_SUMMARY"
+              elif awk "BEGIN {exit !($ERROR_RATE < 5.0)}"; then
+                echo "⚠️ **Performance degraded** (error rate ${ERROR_RATE}%)" >> "$GITHUB_STEP_SUMMARY"
+              else
+                echo "❌ **Performance unacceptable** (error rate ${ERROR_RATE}%)" >> "$GITHUB_STEP_SUMMARY"
+              fi
+            fi
+          else
+            echo "⚠️ No JMeter results found" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Upload Test Reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ui-test-reports-${{ github.run_number }}
-          path: | 
-            ua-tests/target/surefire-reports/
+          path: |
             ua-tests/target/jmeter-results/
+            ua-tests/target/surefire-reports/
           retention-days: 30
 
       - name: Check Test Results
