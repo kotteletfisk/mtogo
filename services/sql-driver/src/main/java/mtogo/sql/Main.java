@@ -14,11 +14,11 @@ import mtogo.sql.adapter.handlers.CustomerOrderCreationHandler;
 import mtogo.sql.adapter.handlers.IMessageHandler;
 import mtogo.sql.adapter.handlers.SupplierOrderCreationHandler;
 import mtogo.sql.adapter.in.RabbitMQEventConsumer;
-import mtogo.sql.adapter.messaging.RetryingRabbitMQConnectionProvider;
 import mtogo.sql.adapter.messaging.ConnectionManager;
 import mtogo.sql.adapter.messaging.IRabbitMQConnectionProvider;
 import mtogo.sql.adapter.messaging.MessageRouter;
 import mtogo.sql.adapter.messaging.RabbitMQConfig;
+import mtogo.sql.adapter.messaging.RetryingRabbitMQConnectionProvider;
 import mtogo.sql.adapter.out.PostgresAuthRepository;
 import mtogo.sql.adapter.out.PostgresModelRepository;
 import mtogo.sql.adapter.out.RabbitMQEventProducer;
@@ -75,6 +75,7 @@ public class Main {
             // Rpc request handler factory
             IRpcResponderFactory rpcFactory = new RabbitMQRpcResponderFactory(mapper, mqConnection);
 
+            // Define event consumer routes
             Map<String, IMessageHandler> map = Map.of(
 
                     "customer:order_creation",
