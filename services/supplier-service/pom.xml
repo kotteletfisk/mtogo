@@ -34,7 +34,8 @@
                         <configuration>
                             <finalName>${project.artifactId}</finalName>
                             <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>mtogo.supplier.server.Main</mainClass>
                                 </transformer>
                             </transformers>
@@ -178,4 +179,55 @@
             <version>4.4.0</version>
         </dependency>
     </dependencies>
+    <profiles>
+        <profile>
+            <id>mutation-tests</id>
+
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-maven</artifactId>
+                        <version>1.19.2</version>
+
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.pitest</groupId>
+                                <artifactId>pitest-junit5-plugin</artifactId>
+                                <version>1.2.3</version>
+                            </dependency>
+                        </dependencies>
+
+                        <configuration>
+                            <targetClasses>
+                                <param>mtogo.*</param>
+                            </targetClasses>
+
+                            <targetTests>
+                                <param>mtogo.*</param>
+                            </targetTests>
+
+                            <excludedClasses>
+                                <param>mtogo.supplier.controller.*</param>
+                                <param>mtogo.supplier.DTO.*</param>
+                                <param>mtogo.supplier.factory.*</param>
+                                <param>mtogo.supplier.server.*</param>
+                                <param>mtogo.supplier.messaging.*</param>
+                            </excludedClasses>
+
+                            <threads>4</threads>
+
+                            <outputFormats>
+                                <param>HTML</param>
+                                <param>XML</param>
+                            </outputFormats>
+
+                            <mutationThreshold>0</mutationThreshold>
+                            <timestampedReports>false</timestampedReports>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

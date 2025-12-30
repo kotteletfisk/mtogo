@@ -174,5 +174,57 @@
         </dependency>
     </dependencies>
 
+    <profiles>
+        <profile>
+            <id>mutation-tests</id>
+
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-maven</artifactId>
+                        <version>1.19.2</version>
+
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.pitest</groupId>
+                                <artifactId>pitest-junit5-plugin</artifactId>
+                                <version>1.2.3</version>
+                            </dependency>
+                        </dependencies>
+
+                        <configuration>
+                            <targetClasses>
+                                <param>mtogo.*</param>
+                            </targetClasses>
+
+                            <targetTests>
+                                <param>mtogo.*</param>
+                            </targetTests>
+
+                            <excludedClasses>
+                                <param>mtogo.customer.server.*</param>
+                                <param>mtogo.customer.controller.*</param>
+                                <param>mtogo.customer.DTO.*</param>
+                                <param>mtogo.customer.messaging.*</param>
+                            </excludedClasses>
+
+                            <threads>4</threads>
+
+                            <outputFormats>
+                                <param>HTML</param>
+                                <param>XML</param>
+                            </outputFormats>
+
+                            <mutationThreshold>0</mutationThreshold>
+                            <timestampedReports>false</timestampedReports>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+
 
 </project>

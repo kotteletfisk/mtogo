@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="da"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RevenueShareCalculator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">customer-service</a> &gt; <a href="index.source.html" class="el_package">mtogo.payment</a> &gt; <span class="el_source">RevenueShareCalculator.java</span></div><h1>RevenueShareCalculator.java</h1><pre class="source lang-java linenums">package mtogo.payment;
+
+import java.text.NumberFormat;
+import java.time.*;
+import java.util.Locale;
+
+<span class="nc" id="L7">public class RevenueShareCalculator {</span>
+
+<span class="fc" id="L9">    private static final ZoneId COPENHAGEN = ZoneId.of(&quot;Europe/Copenhagen&quot;);</span>
+<span class="fc" id="L10">    private static final NumberFormat DKK_FORMAT = NumberFormat.getNumberInstance(new Locale(&quot;da&quot;, &quot;DK&quot;));</span>
+
+    static {
+<span class="fc" id="L13">        DKK_FORMAT.setMaximumFractionDigits(2);</span>
+<span class="fc" id="L14">        DKK_FORMAT.setMinimumFractionDigits(2);</span>
+<span class="fc" id="L15">    }</span>
+
+    private static String formatAmount(double amount) {
+<span class="fc" id="L18">        return DKK_FORMAT.format(amount) + &quot; DKK&quot;;</span>
+    }
+
+
+    /**
+     * Progressive MTOGO fee as per assignment.
+     */
+    public static double calculateMtogoFee(double amountBeforeVat) {
+
+<span class="fc bfc" id="L27" title="All 2 branches covered.">        if (amountBeforeVat &lt;= 100){</span>
+<span class="fc" id="L28">            return amountBeforeVat*0.20;</span>
+        }
+<span class="fc bfc" id="L30" title="All 2 branches covered.">        else if (amountBeforeVat &lt;= 500){</span>
+<span class="fc" id="L31">            return amountBeforeVat*0.18;</span>
+        }
+<span class="fc bfc" id="L33" title="All 2 branches covered.">        else if (amountBeforeVat &lt;= 1000){</span>
+<span class="fc" id="L34">            return amountBeforeVat*0.17;</span>
+        }
+        else{
+<span class="fc" id="L37">            return amountBeforeVat*0.15;</span>
+        }
+    }
+
+    /**
+     * Detects if the order time is &quot;late night&quot; (22:00–06:00).
+     */
+    public static boolean isLateNight(LocalDateTime orderTime) {
+<span class="fc" id="L45">        LocalTime t = orderTime.toLocalTime();</span>
+        // after 22:00 OR before 06:00
+<span class="fc bfc" id="L47" title="All 4 branches covered.">        return t.isAfter(LocalTime.of(21, 59)) || t.isBefore(LocalTime.of(6, 0));</span>
+    }
+
+
+    /**
+     * Courier bonus:
+     *  - base 4% of order value
+     *  - +2% extra if late-night
+     */
+    public static double calculateCourierBonus(double amountBeforeVat,
+                                               LocalDateTime orderTime) {
+<span class="fc" id="L58">        double bonus = amountBeforeVat * 0.04;</span>
+
+<span class="fc bfc" id="L60" title="All 2 branches covered.">        if (isLateNight(orderTime)) {</span>
+<span class="fc" id="L61">            bonus += amountBeforeVat * 0.02;</span>
+        }
+
+<span class="fc" id="L64">        return bonus;</span>
+    }
+
+    /**
+     * Print breakdown for demo / exam.
+     */
+    public static void printBreakdown(double amountBeforeVat,
+                                      LocalDateTime orderTime) {
+
+<span class="fc" id="L73">        double mtogoFee = calculateMtogoFee(amountBeforeVat);</span>
+<span class="fc" id="L74">        double courierBonus = calculateCourierBonus(amountBeforeVat, orderTime);</span>
+
+<span class="fc" id="L76">        double restaurantGets = amountBeforeVat - mtogoFee;</span>
+<span class="fc" id="L77">        double mtogoProfit = mtogoFee - courierBonus;</span>
+
+<span class="fc" id="L79">        System.out.printf(&quot;Payment breakdown for order: %s%n&quot;, formatAmount(amountBeforeVat));</span>
+<span class="fc" id="L80">        System.out.printf(&quot;  Late-night          : %s%n&quot;, isLateNight(orderTime));</span>
+<span class="fc" id="L81">        System.out.printf(&quot;  Restaurant receives : %s%n&quot;, formatAmount(restaurantGets));</span>
+<span class="fc" id="L82">        System.out.printf(&quot;  Courier bonus       : %s%n&quot;, formatAmount(courierBonus));</span>
+<span class="fc" id="L83">        System.out.printf(&quot;  MTOGO profit        : %s%n&quot;, formatAmount(mtogoProfit));</span>
+<span class="fc" id="L84">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
