@@ -69,15 +69,4 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: `Mutation score below threshold for ${service}`,
-              body: `
-                    Mutation testing detected insufficient test quality.
-
-Service: ${service}
-Mutation score: ${score}%
-Expected minimum: 60%
-
-Artifact: pitest-${service}
-  
-  Please review surviving mutations and improve tests.
-  `
-  })
+              body: `Mutation testing detected insufficient test quality.\n\nService: ${service}\nMutation score: ${score}%\nExpected minimum: 60%\n\nArtifact: pitest-${service}\n\nPlease review surviving mutations and improve tests.`})
