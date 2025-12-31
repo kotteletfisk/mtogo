@@ -86,7 +86,7 @@ jobs:
 
       - name: Run JMeter performance test via Docker
         run: |
-          docker run --rm \
+          docker run --rm -u $(id -u):$(id -g) \
             -v "$PWD/perf-test:/tests" \
             -v "$PWD/perf-results:/results" \
             justb4/jmeter \
