@@ -89,7 +89,7 @@ jobs:
           docker run --rm \
             -v "$PWD/perf-test:/tests" \
             -v "$PWD/perf-results:/results" \
-            justb4/jmeter:5.6.3 \
+            justb4/jmeter \
             -n \
             -t /tests/orders-test.jmx \
             -l /results/results.jtl \
