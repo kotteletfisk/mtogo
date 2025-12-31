@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   mutation_test:
-    runs-on: [self-hosted, test]
+    runs-on: [ self-hosted, test ]
 
     strategy:
       matrix:
@@ -78,7 +78,7 @@ jobs:
 
   performance_test:
     name: Weekly performance test (JMeter)
-    runs-on: [self-hosted, test]
+    runs-on: [ self-hosted, test ]
     needs: mutation_test
 
     steps:
@@ -86,17 +86,19 @@ jobs:
 
       - name: Run JMeter performance test via Docker
         run: |
-          docker run --rm -u $(id -u):$(id -g) \
+          # Create a temporary container and run JMeter
+          docker run --rm \
             -v "$PWD/perf-test:/tests" \
-            -v "$PWD/perf-test/results:/results" \
             justb4/jmeter \
             -n \
             -t /tests/order_creation_and_supplier_poll_perf-test.jmx \
-            -l /results/results.jtl \
-            -j /results/jmeter.log
+            -l /tests/results.jtl \
+            -j /tests/jmeter.log
 
       - name: Upload JMeter results
         uses: actions/upload-artifact@v4
         with:
           name: jmeter-results
-          path: perf-results
+          path: |
+            perf-test/results.jtl
+            perf-test/jmeter.log
