@@ -91,7 +91,7 @@ jobs:
             -v "$PWD/perf-results:/results" \
             justb4/jmeter \
             -n \
-            -t /tests/orders-test.jmx \
+            -t /tests/order_creation_and_supplier_poll_perf-test.jmx \
             -l /results/results.jtl \
             -j /results/jmeter.log
 
