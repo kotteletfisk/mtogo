@@ -73,4 +73,30 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: `Mutation score below threshold for ${service}`,
-              body: `Mutation testing detected insufficient test quality.\n\nService: ${service}\nMutation score: ${score}%\nExpected minimum: 60%\n\nArtifact: pitest-${service}\n\nPlease review surviving mutations and improve tests.`})
+              body: `Mutation testing detected insufficient test quality.\n\nService: ${service}\nMutation score: ${score}%\nExpected minimum: 60%\n\nArtifact: pitest-${service}\n\nPlease review surviving mutations and improve tests.`
+            })
+
+  performance_test:
+    name: Weekly performance test (JMeter)
+    runs-on: [self-hosted, test]
+    needs: mutation_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run JMeter performance test via Docker
+        run: |
+          docker run --rm \
+            -v "$PWD/perf-test:/tests" \
+            -v "$PWD/perf-results:/results" \
+            justb4/jmeter:5.6.3 \
+            -n \
+            -t /tests/orders-test.jmx \
+            -l /results/results.jtl \
+            -j /results/jmeter.log
+
+      - name: Upload JMeter results
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmeter-results
+          path: perf-results
