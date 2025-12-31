@@ -25,6 +25,12 @@ jobs:
       - name: Deploy Updated Stack File to Test Server
         run: cp docker-stack.yml /home/${{ secrets.SERVER_NAME }}/mtogo/
 
+      - name: Update Monitor configuration
+        run: |
+            mkdir -p /home/${{ secrets.SERVER_NAME }}/mtogo/services/monitor-service
+            cp services/monitor-service/prometheus.yml \
+                /home/${{ secrets.SERVER_NAME }}/mtogo/services/monitor-service/
+
       - name: Docker Login
         uses: docker/login-action@v3
         with:
@@ -180,6 +186,12 @@ jobs:
 
       - name: Copy Stack File to Prod
         run: cp docker-stack.yml /home/${{ secrets.SERVER_NAME }}/mtogo/
+
+      - name: Update Monitor configuration
+        run: |
+            mkdir -p /home/${{ secrets.SERVER_NAME }}/mtogo/services/monitor-service
+            cp services/monitor-service/prometheus.yml \
+                /home/${{ secrets.SERVER_NAME }}/mtogo/services/monitor-service/
 
       - name: Update Prod .env With Promoted Tag
         run: |
