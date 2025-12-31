@@ -349,4 +349,4 @@ configs:
   jwt_public.pem:
     external: true
   prometheus_config:
-    external: true
+    file: ./services/monitor-service/prometheus.yml
