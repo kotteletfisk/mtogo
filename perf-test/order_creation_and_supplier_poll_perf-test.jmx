@@ -11,81 +11,71 @@
         <stringProp name="ThreadGroup.ramp_time">300</stringProp>
         <boolProp name="ThreadGroup.scheduler">true</boolProp>
         <stringProp name="ThreadGroup.duration">600</stringProp>
-      </ThreadGroup>
-      <hashTree>
-
-        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="Customers CSV" enabled="true">
-          <stringProp name="filename">/tests/customers.csv</stringProp>
-          <stringProp name="variableNames">customerId</stringProp>
-          <boolProp name="recycle">true</boolProp>
-          <boolProp name="stopThread">false</boolProp>
-        </CSVDataSet>
-        <hashTree/>
-
-        <!-- Random supplier -->
-        <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Pick Supplier" enabled="true">
-          <stringProp name="scriptLanguage">groovy</stringProp>
-          <stringProp name="script">
-            def suppliers = [1,2,3]
-            vars.put("supplierId", suppliers[new Random().nextInt(suppliers.size())].toString())
-          </stringProp>
-        </JSR223PreProcessor>
-        <hashTree/>
-
-        <!-- Build supplier-consistent order payload -->
-        <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Build Order Payload" enabled="true">
-          <stringProp name="scriptLanguage">groovy</stringProp>
-          <stringProp name="script">
-            def supplierId = vars.get("supplierId") as int
-
-            def lines
-            switch (supplierId) {
-              case 1:
-                lines = [
-                  [itemId: 1, priceSnapshot: 75.0, amount: 2],
-                  [itemId: 2, priceSnapshot: 85.0, amount: 1]
-                ]
-                break
-              case 2:
-                lines = [
-                  [itemId: 3, priceSnapshot: 90.0, amount: 1],
-                  [itemId: 4, priceSnapshot: 95.0, amount: 1]
-                ]
-                break
-              case 3:
-                lines = [
-                  [itemId: 5, priceSnapshot: 40.0, amount: 2],
-                  [itemId: 6, priceSnapshot: 80.0, amount: 1]
-                ]
-                break
-            }
-
-            def payload = [
-              customerId: vars.get("customerId") as int,
-              status: "created",
-              supplierId: supplierId,
-              paymentMethod: "PAYPAL",
-              orderLines: lines
-            ]
-
-            vars.put("orderPayload", new groovy.json.JsonBuilder(payload).toString())
-          </stringProp>
-        </JSR223PreProcessor>
-        <hashTree/>
-
-        <!-- CREATE ORDER -->
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Create Order" enabled="true">
-          <stringProp name="HTTPSampler.domain">localhost</stringProp>
-          <stringProp name="HTTPSampler.port">7071</stringProp>
-          <stringProp name="HTTPSampler.protocol">http</stringProp>
-          <stringProp name="HTTPSampler.path">/api/createorder</stringProp>
-          <stringProp name="HTTPSampler.method">POST</stringProp>
-          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
-          <stringProp name="HTTPSampler.arguments">${orderPayload}</stringProp>
-        </HTTPSamplerProxy>
-
-        <!-- HEADER MANAGER (JSON) -->
         <hashTree>
+          <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="Customers CSV" enabled="true">
+            <stringProp name="filename">/tests/customers.csv</stringProp>
+            <stringProp name="variableNames">customerId</stringProp>
+            <boolProp name="recycle">true</boolProp>
+            <boolProp name="stopThread">false</boolProp>
+          </CSVDataSet>
+
+          <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Pick Supplier" enabled="true">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="script">
+              def suppliers = [1,2,3]
+              vars.put("supplierId", suppliers[new Random().nextInt(suppliers.size())].toString())
+            </stringProp>
+          </JSR223PreProcessor>
+
+          <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Build Order Payload" enabled="true">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="script">
+              def supplierId = vars.get("supplierId") as int
+
+              def lines
+              switch (supplierId) {
+                case 1:
+                  lines = [
+                    [itemId: 1, priceSnapshot: 75.0, amount: 2],
+                    [itemId: 2, priceSnapshot: 85.0, amount: 1]
+                  ]
+                  break
+                case 2:
+                  lines = [
+                    [itemId: 3, priceSnapshot: 90.0, amount: 1],
+                    [itemId: 4, priceSnapshot: 95.0, amount: 1]
+                  ]
+                  break
+                case 3:
+                  lines = [
+                    [itemId: 5, priceSnapshot: 40.0, amount: 2],
+                    [itemId: 6, priceSnapshot: 80.0, amount: 1]
+                  ]
+                  break
+              }
+
+              def payload = [
+                customerId: vars.get("customerId") as int,
+                status: "created",
+                supplierId: supplierId,
+                paymentMethod: "PAYPAL",
+                orderLines: lines
+              ]
+
+              vars.put("orderPayload", new groovy.json.JsonBuilder(payload).toString())
+            </stringProp>
+          </JSR223PreProcessor>
+
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Create Order" enabled="true">
+            <stringProp name="HTTPSampler.domain">localhost</stringProp>
+            <stringProp name="HTTPSampler.port">7071</stringProp>
+            <stringProp name="HTTPSampler.protocol">http</stringProp>
+            <stringProp name="HTTPSampler.path">/api/createorder</stringProp>
+            <stringProp name="HTTPSampler.method">POST</stringProp>
+            <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+            <stringProp name="HTTPSampler.arguments">${orderPayload}</stringProp>
+          </HTTPSamplerProxy>
+
           <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Headers" enabled="true">
             <collectionProp name="HeaderManager.headers">
               <elementProp name="" elementType="Header">
@@ -94,20 +84,16 @@
               </elementProp>
             </collectionProp>
           </HeaderManager>
-          <hashTree/>
+
+          <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Order Rate" enabled="true">
+            <doubleProp>
+              <name>throughput</name>
+              <value>10</value>
+            </doubleProp>
+            <intProp name="calcMode">1</intProp>
+          </ConstantThroughputTimer>
         </hashTree>
-
-        <!-- 50,000 orders / 6h ≈ 139/min -->
-        <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Order Rate" enabled="true">
-          <doubleProp>
-            <name>throughput</name>
-            <value>10</value>
-          </doubleProp>
-          <intProp name="calcMode">1</intProp>
-        </ConstantThroughputTimer>
-        <hashTree/>
-
-      </hashTree>
+      </ThreadGroup>
 
       <!-- ================= SUPPLIERS ================= -->
 
@@ -116,32 +102,27 @@
         <stringProp name="ThreadGroup.ramp_time">120</stringProp>
         <boolProp name="ThreadGroup.scheduler">true</boolProp>
         <stringProp name="ThreadGroup.duration">600</stringProp>
+        <hashTree>
+          <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="Suppliers CSV" enabled="true">
+            <stringProp name="filename">/tests/suppliers.csv</stringProp>
+            <stringProp name="variableNames">supplierId</stringProp>
+            <boolProp name="recycle">true</boolProp>
+            <boolProp name="stopThread">false</boolProp>
+          </CSVDataSet>
+
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Poll Supplier Orders" enabled="true">
+            <stringProp name="HTTPSampler.domain">localhost</stringProp>
+            <stringProp name="HTTPSampler.port">7073</stringProp>
+            <stringProp name="HTTPSampler.protocol">http</stringProp>
+            <stringProp name="HTTPSampler.path">/api/orders?supplierId=${supplierId}</stringProp>
+            <stringProp name="HTTPSampler.method">GET</stringProp>
+          </HTTPSamplerProxy>
+
+          <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Poll Every 5s" enabled="true">
+            <stringProp name="ConstantTimer.delay">5000</stringProp>
+          </ConstantTimer>
+        </hashTree>
       </ThreadGroup>
-      <hashTree>
-
-        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="Suppliers CSV" enabled="true">
-          <stringProp name="filename">/tests/suppliers.csv</stringProp>
-          <stringProp name="variableNames">supplierId</stringProp>
-          <boolProp name="recycle">true</boolProp>
-          <boolProp name="stopThread">false</boolProp>
-        </CSVDataSet>
-        <hashTree/>
-
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Poll Supplier Orders" enabled="true">
-          <stringProp name="HTTPSampler.domain">localhost</stringProp>
-          <stringProp name="HTTPSampler.port">7073</stringProp>
-          <stringProp name="HTTPSampler.protocol">http</stringProp>
-          <stringProp name="HTTPSampler.path">/api/orders?supplierId=${supplierId}</stringProp>
-          <stringProp name="HTTPSampler.method">GET</stringProp>
-        </HTTPSamplerProxy>
-        <hashTree/>
-
-        <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Poll Every 5s" enabled="true">
-          <stringProp name="ConstantTimer.delay">5000</stringProp>
-        </ConstantTimer>
-        <hashTree/>
-
-      </hashTree>
 
     </hashTree>
   </hashTree>
