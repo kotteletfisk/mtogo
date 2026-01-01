@@ -7,7 +7,19 @@
       <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
       <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments">
-        <collectionProp name="Arguments.arguments"/>
+        <collectionProp name="Arguments.arguments">
+          <!-- Hardcoded customer and supplier IDs -->
+          <elementProp name="customerIds" elementType="Argument">
+            <stringProp name="Argument.name">customerIds</stringProp>
+            <stringProp name="Argument.value">1,2,3</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="supplierIds" elementType="Argument">
+            <stringProp name="Argument.name">supplierIds</stringProp>
+            <stringProp name="Argument.value">1,2,3</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+        </collectionProp>
       </elementProp>
     </TestPlan>
     <hashTree>
@@ -21,29 +33,34 @@
         <stringProp name="ThreadGroup.delay">0</stringProp>
       </ThreadGroup>
       <hashTree>
-        <!-- LoopController is required for 5.5 -->
+        <!-- LoopController required for 5.5 -->
         <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
           <boolProp name="LoopController.continue_forever">true</boolProp>
           <stringProp name="LoopController.loops">-1</stringProp>
         </LoopController>
         <hashTree>
-          <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="Customers CSV" enabled="true">
-            <stringProp name="filename">customers.csv</stringProp>
-            <stringProp name="variableNames">customerId</stringProp>
-            <boolProp name="recycle">true</boolProp>
-            <boolProp name="stopThread">false</boolProp>
-          </CSVDataSet>
-          <hashTree/>
 
-          <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Pick Supplier" enabled="true">
+          <!-- Pick a customer from hardcoded list -->
+          <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Pick Customer" enabled="true">
             <stringProp name="scriptLanguage">groovy</stringProp>
             <stringProp name="script"><![CDATA[
-def suppliers = [1,2,3]
-vars.put("supplierId", suppliers[new Random().nextInt(suppliers.size())].toString())
+def customerList = vars.get("customerIds").split(',')
+vars.put("customerId", customerList[new Random().nextInt(customerList.size())])
             ]]></stringProp>
           </JSR223PreProcessor>
           <hashTree/>
 
+          <!-- Pick a supplier from hardcoded list -->
+          <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Pick Supplier" enabled="true">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="script"><![CDATA[
+def suppliers = vars.get("supplierIds").split(',')
+vars.put("supplierId", suppliers[new Random().nextInt(suppliers.size())])
+            ]]></stringProp>
+          </JSR223PreProcessor>
+          <hashTree/>
+
+          <!-- Build Order Payload -->
           <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Build Order Payload" enabled="true">
             <stringProp name="scriptLanguage">groovy</stringProp>
             <stringProp name="script"><![CDATA[
@@ -122,13 +139,17 @@ vars.put("orderPayload", new groovy.json.JsonBuilder([
           <stringProp name="LoopController.loops">-1</stringProp>
         </LoopController>
         <hashTree>
-          <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="Suppliers CSV" enabled="true">
-            <stringProp name="filename">suppliers.csv</stringProp>
-            <stringProp name="variableNames">supplierId</stringProp>
-            <boolProp name="recycle">true</boolProp>
-            <boolProp name="stopThread">false</boolProp>
-          </CSVDataSet>
+
+          <!-- Pick supplier from hardcoded list -->
+          <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Pick Supplier for Polling" enabled="true">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="script"><![CDATA[
+def suppliers = vars.get("supplierIds").split(',')
+vars.put("supplierId", suppliers[new Random().nextInt(suppliers.size())])
+            ]]></stringProp>
+          </JSR223PreProcessor>
           <hashTree/>
+
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Poll Supplier Orders" enabled="true">
             <stringProp name="HTTPSampler.domain">localhost</stringProp>
             <stringProp name="HTTPSampler.port">7073</stringProp>
@@ -137,6 +158,7 @@ vars.put("orderPayload", new groovy.json.JsonBuilder([
             <stringProp name="HTTPSampler.method">GET</stringProp>
           </HTTPSamplerProxy>
           <hashTree/>
+
           <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Poll Every 5s" enabled="true">
             <stringProp name="ConstantTimer.delay">5000</stringProp>
           </ConstantTimer>
