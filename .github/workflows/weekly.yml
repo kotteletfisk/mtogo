@@ -99,6 +99,7 @@ jobs:
         run: |
           rm -rf perf-test/report
           docker run --rm \
+            --user $(id -u):$(id -g) \
             -v "$PWD/perf-test:/tests" \
             justb4/jmeter \
             -g /tests/results.jtl \
