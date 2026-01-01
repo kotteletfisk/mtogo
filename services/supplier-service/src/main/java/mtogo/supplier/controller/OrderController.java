@@ -32,6 +32,10 @@ public class OrderController {
 
         log.debug("received order request for supplierId: {}", supplierId);
 
+        ctx.header("Cache-Control", "no-store, no-cache, must-revalidate");
+        ctx.header("Pragma", "no-cache");
+        ctx.header("Expires", "0");
+
         // TODO: Should be validating jwt token and getting ID from there
         ctx.future(() -> {
             try {
