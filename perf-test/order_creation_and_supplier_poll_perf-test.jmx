@@ -75,11 +75,11 @@ switch (supplierId as int) {
 
 def jsonBody = """
 {
-  "customerId": 1,
-  "supplierId": 1,
+  "customerId": ${customerId},
+  "supplierId": ${supplierId},
   "status": "created",
   "paymentMethod": "PAYPAL",
-  "orderLines": [{"itemId":1,"priceSnapshot":75.0,"amount":2}]
+  "orderLines": [${orderLineJson}]
 }
 """
 
@@ -114,7 +114,6 @@ vars.put("orderPayload", jsonBody.trim())
             </collectionProp>
           </elementProp>
         </HTTPSamplerProxy>
-
 
         <hashTree>
           <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Headers" enabled="true">
