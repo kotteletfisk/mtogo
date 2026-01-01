@@ -97,13 +97,18 @@ jobs:
 
       - name: Generate JMeter HTML report
         run: |
-          rm -rf perf-test/report
+          rm -rf perf-test/report || true
+          mkdir -p perf-test/tmp perf-test/logs
+
           docker run --rm \
             --user $(id -u):$(id -g) \
             -v "$PWD/perf-test:/tests" \
             justb4/jmeter \
+            -Jjmeter.reportgenerator.temp_dir=/tests/tmp \
+            -Jjmeter.logfile=/tests/logs/jmeter-report.log \
             -g /tests/results.jtl \
             -o /tests/report
+      
 
       - name: Upload JMeter results
         uses: actions/upload-artifact@v4
