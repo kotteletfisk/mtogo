@@ -86,7 +86,6 @@ jobs:
 
       - name: Run JMeter performance test via Docker
         run: |
-          # Create a temporary container and run JMeter
           docker run --rm \
             -v "$PWD/perf-test:/tests" \
             justb4/jmeter \
@@ -95,6 +94,15 @@ jobs:
             -l /tests/results.jtl \
             -j /tests/jmeter.log
 
+      - name: Generate JMeter HTML report
+        run: |
+          rm -rf perf-test/report
+          docker run --rm \
+            -v "$PWD/perf-test:/tests" \
+            justb4/jmeter \
+            -g /tests/results.jtl \
+            -o /tests/report
+
       - name: Upload JMeter results
         uses: actions/upload-artifact@v4
         with:
@@ -102,3 +110,5 @@ jobs:
           path: |
             perf-test/results.jtl
             perf-test/jmeter.log
+            perf-test/report
+

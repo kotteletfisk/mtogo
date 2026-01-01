@@ -75,7 +75,7 @@ vars.put("orderPayload", new groovy.json.JsonBuilder([
 
         <!-- Create Order HTTP Sampler -->
         <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Create Order" enabled="true">
-          <stringProp name="HTTPSampler.domain">localhost</stringProp>
+          <stringProp name="HTTPSampler.domain">172.16.0.11</stringProp>
           <stringProp name="HTTPSampler.port">7071</stringProp>
           <stringProp name="HTTPSampler.protocol">http</stringProp>
           <stringProp name="HTTPSampler.path">/api/createorder</stringProp>
@@ -142,7 +142,7 @@ vars.put("supplierId", suppliers[new Random().nextInt(suppliers.size())].toStrin
 
         <!-- Poll Supplier Orders HTTP Sampler -->
         <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Poll Supplier Orders" enabled="true">
-          <stringProp name="HTTPSampler.domain">localhost</stringProp>
+          <stringProp name="HTTPSampler.domain">172.16.0.11</stringProp>
           <stringProp name="HTTPSampler.port">7073</stringProp>
           <stringProp name="HTTPSampler.protocol">http</stringProp>
           <stringProp name="HTTPSampler.path">/api/orders?supplierId=${supplierId}</stringProp>
