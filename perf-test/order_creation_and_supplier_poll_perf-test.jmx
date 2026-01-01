@@ -7,19 +7,7 @@
       <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
       <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments">
-        <collectionProp name="Arguments.arguments">
-          <!-- Hardcoded customer and supplier IDs -->
-          <elementProp name="customerIds" elementType="Argument">
-            <stringProp name="Argument.name">customerIds</stringProp>
-            <stringProp name="Argument.value">1,2,3</stringProp>
-            <stringProp name="Argument.metadata">=</stringProp>
-          </elementProp>
-          <elementProp name="supplierIds" elementType="Argument">
-            <stringProp name="Argument.name">supplierIds</stringProp>
-            <stringProp name="Argument.value">1,2,3</stringProp>
-            <stringProp name="Argument.metadata">=</stringProp>
-          </elementProp>
-        </collectionProp>
+        <collectionProp name="Arguments.arguments"/>
       </elementProp>
     </TestPlan>
     <hashTree>
@@ -33,29 +21,28 @@
         <stringProp name="ThreadGroup.delay">0</stringProp>
       </ThreadGroup>
       <hashTree>
-        <!-- LoopController required for 5.5 -->
         <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
-          <boolProp name="LoopController.continue_forever">true</boolProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
           <stringProp name="LoopController.loops">-1</stringProp>
         </LoopController>
         <hashTree>
 
-          <!-- Pick a customer from hardcoded list -->
+          <!-- Hardcoded Customer IDs -->
           <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Pick Customer" enabled="true">
             <stringProp name="scriptLanguage">groovy</stringProp>
             <stringProp name="script"><![CDATA[
-def customerList = vars.get("customerIds").split(',')
-vars.put("customerId", customerList[new Random().nextInt(customerList.size())])
+def customers = [1,2,3]
+vars.put("customerId", customers[new Random().nextInt(customers.size())].toString())
             ]]></stringProp>
           </JSR223PreProcessor>
           <hashTree/>
 
-          <!-- Pick a supplier from hardcoded list -->
+          <!-- Hardcoded Supplier IDs -->
           <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Pick Supplier" enabled="true">
             <stringProp name="scriptLanguage">groovy</stringProp>
             <stringProp name="script"><![CDATA[
-def suppliers = vars.get("supplierIds").split(',')
-vars.put("supplierId", suppliers[new Random().nextInt(suppliers.size())])
+def suppliers = [1,2,3]
+vars.put("supplierId", suppliers[new Random().nextInt(suppliers.size())].toString())
             ]]></stringProp>
           </JSR223PreProcessor>
           <hashTree/>
@@ -84,6 +71,7 @@ vars.put("orderPayload", new groovy.json.JsonBuilder([
           </JSR223PreProcessor>
           <hashTree/>
 
+          <!-- HTTP Sampler -->
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Create Order" enabled="true">
             <stringProp name="HTTPSampler.domain">localhost</stringProp>
             <stringProp name="HTTPSampler.port">7071</stringProp>
@@ -113,6 +101,7 @@ vars.put("orderPayload", new groovy.json.JsonBuilder([
             <hashTree/>
           </hashTree>
 
+          <!-- Throughput Timer -->
           <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Order Rate" enabled="true">
             <doubleProp>
               <name>throughput</name>
@@ -121,6 +110,7 @@ vars.put("orderPayload", new groovy.json.JsonBuilder([
             <intProp name="calcMode">1</intProp>
           </ConstantThroughputTimer>
           <hashTree/>
+
         </hashTree>
       </hashTree>
 
@@ -133,23 +123,23 @@ vars.put("orderPayload", new groovy.json.JsonBuilder([
         <stringProp name="ThreadGroup.delay">0</stringProp>
       </ThreadGroup>
       <hashTree>
-        <!-- Required LoopController -->
         <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
-          <boolProp name="LoopController.continue_forever">true</boolProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
           <stringProp name="LoopController.loops">-1</stringProp>
         </LoopController>
         <hashTree>
 
-          <!-- Pick supplier from hardcoded list -->
-          <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Pick Supplier for Polling" enabled="true">
+          <!-- Hardcoded Supplier IDs -->
+          <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Pick Supplier for Poll" enabled="true">
             <stringProp name="scriptLanguage">groovy</stringProp>
             <stringProp name="script"><![CDATA[
-def suppliers = vars.get("supplierIds").split(',')
-vars.put("supplierId", suppliers[new Random().nextInt(suppliers.size())])
+def suppliers = [1,2,3]
+vars.put("supplierId", suppliers[new Random().nextInt(suppliers.size())].toString())
             ]]></stringProp>
           </JSR223PreProcessor>
           <hashTree/>
 
+          <!-- Poll Supplier Orders -->
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Poll Supplier Orders" enabled="true">
             <stringProp name="HTTPSampler.domain">localhost</stringProp>
             <stringProp name="HTTPSampler.port">7073</stringProp>
@@ -159,10 +149,12 @@ vars.put("supplierId", suppliers[new Random().nextInt(suppliers.size())])
           </HTTPSamplerProxy>
           <hashTree/>
 
+          <!-- Poll Timer -->
           <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Poll Every 5s" enabled="true">
             <stringProp name="ConstantTimer.delay">5000</stringProp>
           </ConstantTimer>
           <hashTree/>
+
         </hashTree>
       </hashTree>
 
