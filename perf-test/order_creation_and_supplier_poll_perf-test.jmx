@@ -49,10 +49,10 @@ vars.put("supplierId", suppliers[new Random().nextInt(suppliers.size())].toStrin
         </JSR223PreProcessor>
         <hashTree/>
 
-        <!-- Build Order Payload (RAW JSON) -->
+        <!-- Build Order Payload -->
         <JSR223PreProcessor guiclass="TestBeanGUI"
                             testclass="JSR223PreProcessor"
-                            testname="Build Order Payload (RAW JSON)"
+                            testname="Build Order Payload"
                             enabled="true">
           <stringProp name="scriptLanguage">groovy</stringProp>
           <stringProp name="script"><![CDATA[
