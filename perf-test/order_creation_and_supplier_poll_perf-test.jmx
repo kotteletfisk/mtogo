@@ -15,12 +15,11 @@
       <!-- ================= CUSTOMERS ================= -->
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Customers - Create Orders" enabled="true">
         <stringProp name="ThreadGroup.num_threads">3</stringProp>
-        <stringProp name="ThreadGroup.ramp_time">300</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">3</stringProp>
         <boolProp name="ThreadGroup.scheduler">true</boolProp>
-        <stringProp name="ThreadGroup.duration">600</stringProp>
+        <stringProp name="ThreadGroup.duration">60</stringProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
 
-        <!-- LoopController as main_controller -->
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController"
                      guiclass="LoopControlPanel" testclass="LoopController"
                      testname="Loop Controller" enabled="true">
@@ -29,7 +28,8 @@
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <!-- Hardcoded customerId values -->
+
+        <!-- Pick Customer -->
         <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Pick Customer" enabled="true">
           <stringProp name="scriptLanguage">groovy</stringProp>
           <stringProp name="script"><![CDATA[
@@ -49,72 +49,66 @@ vars.put("supplierId", suppliers[new Random().nextInt(suppliers.size())].toStrin
         </JSR223PreProcessor>
         <hashTree/>
 
-        <!-- Build Order Payload -->
-        <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Build Order Payload" enabled="true">
+        <!-- Build Order Payload (RAW JSON) -->
+        <JSR223PreProcessor guiclass="TestBeanGUI"
+                            testclass="JSR223PreProcessor"
+                            testname="Build Order Payload (RAW JSON)"
+                            enabled="true">
           <stringProp name="scriptLanguage">groovy</stringProp>
           <stringProp name="script"><![CDATA[
-import groovy.json.JsonOutput
+def customerId = vars.get("customerId")
+def supplierId = vars.get("supplierId")
 
-def supplierId = vars.get("supplierId") as int
-def customerId = vars.get("customerId") as int
+def orderLineJson
 
-def orderLines = []
-switch (supplierId) {
-    case 1:
-        orderLines = [
-            [itemId:1, priceSnapshot:75.0, amount:2],
-            [itemId:2, priceSnapshot:85.0, amount:1]
-        ]
-        break
-    case 2:
-        orderLines = [
-            [itemId:3, priceSnapshot:90.0, amount:1],
-            [itemId:4, priceSnapshot:95.0, amount:1]
-        ]
-        break
-    case 3:
-        orderLines = [
-            [itemId:5, priceSnapshot:40.0, amount:2],
-            [itemId:6, priceSnapshot:80.0, amount:1]
-        ]
-        break
+switch (supplierId as int) {
+  case 1:
+    orderLineJson = '{"itemId":1,"priceSnapshot":75.0,"amount":2}'
+    break
+  case 2:
+    orderLineJson = '{"itemId":3,"priceSnapshot":90.0,"amount":1}'
+    break
+  case 3:
+    orderLineJson = '{"itemId":5,"priceSnapshot":40.0,"amount":2}'
+    break
 }
 
-def orderPayloadMap = [
-    customerId: customerId,
-    supplierId: supplierId,
-    status: "created",
-    paymentMethod: "PAYPAL",
-    orderLines: orderLines
-]
+def jsonBody = """
+{
+  "customerId": ${customerId},
+  "supplierId": ${supplierId},
+  "status": "created",
+  "paymentMethod": "PAYPAL",
+  "orderLines": [ ${orderLineJson} ]
+}
+"""
 
-// Convert to properly formatted JSON string
-vars.put("orderPayload", JsonOutput.toJson(orderPayloadMap))
+vars.put("orderPayload", jsonBody.trim())
           ]]></stringProp>
         </JSR223PreProcessor>
         <hashTree/>
 
-        <!-- Create Order HTTP Sampler -->
+        <!-- Create Order -->
         <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Create Order" enabled="true">
-            <stringProp name="HTTPSampler.domain">172.16.0.11</stringProp>
-            <stringProp name="HTTPSampler.port">7071</stringProp>
-            <stringProp name="HTTPSampler.protocol">http</stringProp>
-            <stringProp name="HTTPSampler.path">/api/createorder</stringProp>
-            <stringProp name="HTTPSampler.method">POST</stringProp>
-            <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
-            <stringProp name="HTTPSampler.postBody">${orderPayload}</stringProp>
+          <stringProp name="HTTPSampler.domain">172.16.0.11</stringProp>
+          <stringProp name="HTTPSampler.port">7071</stringProp>
+          <stringProp name="HTTPSampler.protocol">http</stringProp>
+          <stringProp name="HTTPSampler.path">/api/createorder</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <stringProp name="HTTPSampler.postBody">${orderPayload}</stringProp>
         </HTTPSamplerProxy>
 
         <hashTree>
-            <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Headers" enabled="true">
-                <collectionProp name="HeaderManager.headers">
-                    <elementProp name="Content-Type" elementType="Header">
-                        <stringProp name="Header.name">Content-Type</stringProp>
-                        <stringProp name="Header.value">application/json</stringProp>
-                    </elementProp>
-                </collectionProp>
-            </HeaderManager>
-            <hashTree/>
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Headers" enabled="true">
+            <collectionProp name="HeaderManager.headers">
+              <elementProp name="Content-Type" elementType="Header">
+                <stringProp name="Header.name">Content-Type</stringProp>
+                <stringProp name="Header.value">application/json</stringProp>
+              </elementProp>
+            </collectionProp>
+          </HeaderManager>
+          <hashTree/>
         </hashTree>
 
         <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Order Rate" enabled="true">
@@ -125,17 +119,17 @@ vars.put("orderPayload", JsonOutput.toJson(orderPayloadMap))
           <intProp name="calcMode">1</intProp>
         </ConstantThroughputTimer>
         <hashTree/>
+
       </hashTree>
 
       <!-- ================= SUPPLIERS ================= -->
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Suppliers - Poll Orders" enabled="true">
         <stringProp name="ThreadGroup.num_threads">2</stringProp>
-        <stringProp name="ThreadGroup.ramp_time">120</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">3</stringProp>
         <boolProp name="ThreadGroup.scheduler">true</boolProp>
-        <stringProp name="ThreadGroup.duration">600</stringProp>
+        <stringProp name="ThreadGroup.duration">60</stringProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
 
-        <!-- LoopController as main_controller -->
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController"
                      guiclass="LoopControlPanel" testclass="LoopController"
                      testname="Loop Controller" enabled="true">
@@ -144,7 +138,7 @@ vars.put("orderPayload", JsonOutput.toJson(orderPayloadMap))
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <!-- Hardcoded supplierId for polling -->
+
         <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Pick Supplier" enabled="true">
           <stringProp name="scriptLanguage">groovy</stringProp>
           <stringProp name="script"><![CDATA[
@@ -154,7 +148,6 @@ vars.put("supplierId", suppliers[new Random().nextInt(suppliers.size())].toStrin
         </JSR223PreProcessor>
         <hashTree/>
 
-        <!-- Poll Supplier Orders HTTP Sampler -->
         <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Poll Supplier Orders" enabled="true">
           <stringProp name="HTTPSampler.domain">172.16.0.11</stringProp>
           <stringProp name="HTTPSampler.port">7073</stringProp>
@@ -168,8 +161,8 @@ vars.put("supplierId", suppliers[new Random().nextInt(suppliers.size())].toStrin
           <stringProp name="ConstantTimer.delay">5000</stringProp>
         </ConstantTimer>
         <hashTree/>
-      </hashTree>
 
+      </hashTree>
     </hashTree>
   </hashTree>
 </jmeterTestPlan>
