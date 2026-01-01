@@ -88,6 +88,7 @@ jobs:
         run: |
           docker run --rm \
             -v "$PWD/perf-test:/tests" \
+            --user $(id -u):$(id -g) \
             justb4/jmeter \
             -n \
             -t /tests/order_creation_and_supplier_poll_perf-test.jmx \
