@@ -93,12 +93,16 @@ vars.put("orderPayload", jsonBody.trim())
                           testclass="HTTPSamplerProxy"
                           testname="Create Order"
                           enabled="true">
+
           <stringProp name="HTTPSampler.domain">172.16.0.11</stringProp>
           <stringProp name="HTTPSampler.port">7071</stringProp>
           <stringProp name="HTTPSampler.protocol">http</stringProp>
           <stringProp name="HTTPSampler.path">/api/createorder</stringProp>
           <stringProp name="HTTPSampler.method">POST</stringProp>
+
           <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
 
           <elementProp name="HTTPSampler.Arguments" elementType="Arguments">
             <collectionProp name="Arguments.arguments">
@@ -110,6 +114,7 @@ vars.put("orderPayload", jsonBody.trim())
             </collectionProp>
           </elementProp>
         </HTTPSamplerProxy>
+
 
         <hashTree>
           <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Headers" enabled="true">
