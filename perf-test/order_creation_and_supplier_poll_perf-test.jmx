@@ -75,11 +75,11 @@ switch (supplierId as int) {
 
 def jsonBody = """
 {
-  "customerId": ${customerId},
-  "supplierId": ${supplierId},
+  "customerId": 1,
+  "supplierId": 1,
   "status": "created",
   "paymentMethod": "PAYPAL",
-  "orderLines": [ ${orderLineJson} ]
+  "orderLines": [{"itemId":1,"priceSnapshot":75.0,"amount":2}]
 }
 """
 
@@ -104,7 +104,7 @@ vars.put("orderPayload", jsonBody.trim())
           <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
           <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
 
-          <elementProp name="HTTPSampler.Arguments" elementType="Arguments">
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
             <collectionProp name="Arguments.arguments">
               <elementProp name="" elementType="HTTPArgument">
                 <boolProp name="HTTPArgument.always_encode">false</boolProp>
