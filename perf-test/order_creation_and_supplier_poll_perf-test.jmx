@@ -18,39 +18,47 @@
         <stringProp name="ThreadGroup.ramp_time">300</stringProp>
         <boolProp name="ThreadGroup.scheduler">true</boolProp>
         <stringProp name="ThreadGroup.duration">600</stringProp>
-        <stringProp name="ThreadGroup.loops">-1</stringProp>
       </ThreadGroup>
       <hashTree>
 
-        <CSVDataSet guiclass="TestBeanGUI"
-                    testclass="CSVDataSet"
-                    testname="Customers CSV"
-                    enabled="true">
-          <stringProp name="filename">customers.csv</stringProp>
-          <stringProp name="variableNames">customerId</stringProp>
-          <boolProp name="recycle">true</boolProp>
-          <boolProp name="stopThread">false</boolProp>
-        </CSVDataSet>
-        <hashTree/>
+        <LoopController guiclass="LoopControlPanel"
+                        testclass="LoopController"
+                        testname="Loop Controller"
+                        enabled="true">
+          <boolProp name="LoopController.continue_forever">true</boolProp>
+          <stringProp name="LoopController.loops">-1</stringProp>
+        </LoopController>
+        <hashTree>
 
-        <JSR223PreProcessor guiclass="TestBeanGUI"
-                            testclass="JSR223PreProcessor"
-                            testname="Pick Supplier"
-                            enabled="true">
-          <stringProp name="scriptLanguage">groovy</stringProp>
-          <stringProp name="script"><![CDATA[
+          <CSVDataSet guiclass="TestBeanGUI"
+                      testclass="CSVDataSet"
+                      testname="Customers CSV"
+                      enabled="true">
+            <stringProp name="filename">customers.csv</stringProp>
+            <stringProp name="variableNames">customerId</stringProp>
+            <boolProp name="recycle">true</boolProp>
+            <boolProp name="stopThread">false</boolProp>
+          </CSVDataSet>
+          <hashTree/>
+
+          <JSR223PreProcessor guiclass="TestBeanGUI"
+                              testclass="JSR223PreProcessor"
+                              testname="Pick Supplier"
+                              enabled="true">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="script"><![CDATA[
 def suppliers = [1,2,3]
 vars.put("supplierId", suppliers[new Random().nextInt(suppliers.size())].toString())
-          ]]></stringProp>
-        </JSR223PreProcessor>
-        <hashTree/>
+            ]]></stringProp>
+          </JSR223PreProcessor>
+          <hashTree/>
 
-        <JSR223PreProcessor guiclass="TestBeanGUI"
-                            testclass="JSR223PreProcessor"
-                            testname="Build Order Payload"
-                            enabled="true">
-          <stringProp name="scriptLanguage">groovy</stringProp>
-          <stringProp name="script"><![CDATA[
+          <JSR223PreProcessor guiclass="TestBeanGUI"
+                              testclass="JSR223PreProcessor"
+                              testname="Build Order Payload"
+                              enabled="true">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="script"><![CDATA[
 def supplierId = vars.get("supplierId") as int
 
 def lines
@@ -78,58 +86,59 @@ vars.put("orderPayload",
     orderLines: lines
   ]).toString()
 )
-          ]]></stringProp>
-        </JSR223PreProcessor>
-        <hashTree/>
-
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui"
-                          testclass="HTTPSamplerProxy"
-                          testname="Create Order"
-                          enabled="true">
-          <stringProp name="HTTPSampler.domain">localhost</stringProp>
-          <stringProp name="HTTPSampler.port">7071</stringProp>
-          <stringProp name="HTTPSampler.protocol">http</stringProp>
-          <stringProp name="HTTPSampler.path">/api/createorder</stringProp>
-          <stringProp name="HTTPSampler.method">POST</stringProp>
-          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
-
-          <elementProp name="HTTPSampler.arguments" elementType="Arguments">
-            <collectionProp name="Arguments.arguments">
-              <elementProp name="" elementType="HTTPArgument">
-                <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                <stringProp name="Argument.value">${orderPayload}</stringProp>
-                <stringProp name="Argument.metadata">=</stringProp>
-              </elementProp>
-            </collectionProp>
-          </elementProp>
-        </HTTPSamplerProxy>
-        <hashTree>
-          <HeaderManager guiclass="HeaderPanel"
-                         testclass="HeaderManager"
-                         testname="HTTP Headers"
-                         enabled="true">
-            <collectionProp name="HeaderManager.headers">
-              <elementProp name="Content-Type" elementType="Header">
-                <stringProp name="Header.name">Content-Type</stringProp>
-                <stringProp name="Header.value">application/json</stringProp>
-              </elementProp>
-            </collectionProp>
-          </HeaderManager>
+            ]]></stringProp>
+          </JSR223PreProcessor>
           <hashTree/>
+
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui"
+                            testclass="HTTPSamplerProxy"
+                            testname="Create Order"
+                            enabled="true">
+            <stringProp name="HTTPSampler.domain">localhost</stringProp>
+            <stringProp name="HTTPSampler.port">7071</stringProp>
+            <stringProp name="HTTPSampler.protocol">http</stringProp>
+            <stringProp name="HTTPSampler.path">/api/createorder</stringProp>
+            <stringProp name="HTTPSampler.method">POST</stringProp>
+            <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+
+            <elementProp name="HTTPSampler.arguments" elementType="Arguments">
+              <collectionProp name="Arguments.arguments">
+                <elementProp name="" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                  <stringProp name="Argument.value">${orderPayload}</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                </elementProp>
+              </collectionProp>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <HeaderManager guiclass="HeaderPanel"
+                           testclass="HeaderManager"
+                           testname="HTTP Headers"
+                           enabled="true">
+              <collectionProp name="HeaderManager.headers">
+                <elementProp name="Content-Type" elementType="Header">
+                  <stringProp name="Header.name">Content-Type</stringProp>
+                  <stringProp name="Header.value">application/json</stringProp>
+                </elementProp>
+              </collectionProp>
+            </HeaderManager>
+            <hashTree/>
+          </hashTree>
+
+          <ConstantThroughputTimer guiclass="TestBeanGUI"
+                                   testclass="ConstantThroughputTimer"
+                                   testname="Order Rate"
+                                   enabled="true">
+            <doubleProp>
+              <name>throughput</name>
+              <value>10</value>
+            </doubleProp>
+            <intProp name="calcMode">1</intProp>
+          </ConstantThroughputTimer>
+          <hashTree/>
+
         </hashTree>
-
-        <ConstantThroughputTimer guiclass="TestBeanGUI"
-                                 testclass="ConstantThroughputTimer"
-                                 testname="Order Rate"
-                                 enabled="true">
-          <doubleProp>
-            <name>throughput</name>
-            <value>10</value>
-          </doubleProp>
-          <intProp name="calcMode">1</intProp>
-        </ConstantThroughputTimer>
-        <hashTree/>
-
       </hashTree>
 
       <!-- ================= SUPPLIERS ================= -->
@@ -142,41 +151,50 @@ vars.put("orderPayload",
         <stringProp name="ThreadGroup.ramp_time">120</stringProp>
         <boolProp name="ThreadGroup.scheduler">true</boolProp>
         <stringProp name="ThreadGroup.duration">600</stringProp>
-        <stringProp name="ThreadGroup.loops">-1</stringProp>
       </ThreadGroup>
       <hashTree>
 
-        <CSVDataSet guiclass="TestBeanGUI"
-                    testclass="CSVDataSet"
-                    testname="Suppliers CSV"
-                    enabled="true">
-          <stringProp name="filename">suppliers.csv</stringProp>
-          <stringProp name="variableNames">supplierId</stringProp>
-          <boolProp name="recycle">true</boolProp>
-          <boolProp name="stopThread">false</boolProp>
-        </CSVDataSet>
-        <hashTree/>
+        <LoopController guiclass="LoopControlPanel"
+                        testclass="LoopController"
+                        testname="Loop Controller"
+                        enabled="true">
+          <boolProp name="LoopController.continue_forever">true</boolProp>
+          <stringProp name="LoopController.loops">-1</stringProp>
+        </LoopController>
+        <hashTree>
 
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui"
-                          testclass="HTTPSamplerProxy"
-                          testname="Poll Supplier Orders"
-                          enabled="true">
-          <stringProp name="HTTPSampler.domain">localhost</stringProp>
-          <stringProp name="HTTPSampler.port">7073</stringProp>
-          <stringProp name="HTTPSampler.protocol">http</stringProp>
-          <stringProp name="HTTPSampler.path">/api/orders?supplierId=${supplierId}</stringProp>
-          <stringProp name="HTTPSampler.method">GET</stringProp>
-        </HTTPSamplerProxy>
-        <hashTree/>
+          <CSVDataSet guiclass="TestBeanGUI"
+                      testclass="CSVDataSet"
+                      testname="Suppliers CSV"
+                      enabled="true">
+            <stringProp name="filename">suppliers.csv</stringProp>
+            <stringProp name="variableNames">supplierId</stringProp>
+            <boolProp name="recycle">true</boolProp>
+            <boolProp name="stopThread">false</boolProp>
+          </CSVDataSet>
+          <hashTree/>
 
-        <ConstantTimer guiclass="ConstantTimerGui"
-                       testclass="ConstantTimer"
-                       testname="Poll Every 5s"
-                       enabled="true">
-          <stringProp name="ConstantTimer.delay">5000</stringProp>
-        </ConstantTimer>
-        <hashTree/>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui"
+                            testclass="HTTPSamplerProxy"
+                            testname="Poll Supplier Orders"
+                            enabled="true">
+            <stringProp name="HTTPSampler.domain">localhost</stringProp>
+            <stringProp name="HTTPSampler.port">7073</stringProp>
+            <stringProp name="HTTPSampler.protocol">http</stringProp>
+            <stringProp name="HTTPSampler.path">/api/orders?supplierId=${supplierId}</stringProp>
+            <stringProp name="HTTPSampler.method">GET</stringProp>
+          </HTTPSamplerProxy>
+          <hashTree/>
 
+          <ConstantTimer guiclass="ConstantTimerGui"
+                         testclass="ConstantTimer"
+                         testname="Poll Every 5s"
+                         enabled="true">
+            <stringProp name="ConstantTimer.delay">5000</stringProp>
+          </ConstantTimer>
+          <hashTree/>
+
+        </hashTree>
       </hashTree>
 
     </hashTree>
