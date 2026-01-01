@@ -88,6 +88,7 @@ jobs:
         run: |
           docker run --rm \
             -v "$PWD/perf-test:/tests" \
+            -e JVM_ARGS="-Dlog_level.jmeter.protocol.http=DEBUG -Dlog_level.jmeter.protocol.http.wire=DEBUG" \
             --user $(id -u):$(id -g) \
             justb4/jmeter \
             -n \
