@@ -18,6 +18,7 @@
         <stringProp name="ThreadGroup.ramp_time">300</stringProp>
         <boolProp name="ThreadGroup.scheduler">true</boolProp>
         <stringProp name="ThreadGroup.duration">600</stringProp>
+        <stringProp name="ThreadGroup.loops">-1</stringProp>
       </ThreadGroup>
       <hashTree>
 
@@ -37,10 +38,10 @@
                             testname="Pick Supplier"
                             enabled="true">
           <stringProp name="scriptLanguage">groovy</stringProp>
-          <stringProp name="script">
-            def suppliers = [1,2,3]
-            vars.put("supplierId", suppliers[new Random().nextInt(suppliers.size())].toString())
-          </stringProp>
+          <stringProp name="script"><![CDATA[
+def suppliers = [1,2,3]
+vars.put("supplierId", suppliers[new Random().nextInt(suppliers.size())].toString())
+          ]]></stringProp>
         </JSR223PreProcessor>
         <hashTree/>
 
@@ -49,35 +50,35 @@
                             testname="Build Order Payload"
                             enabled="true">
           <stringProp name="scriptLanguage">groovy</stringProp>
-          <stringProp name="script">
-            def supplierId = vars.get("supplierId") as int
+          <stringProp name="script"><![CDATA[
+def supplierId = vars.get("supplierId") as int
 
-            def lines
-            switch (supplierId) {
-              case 1:
-                lines = [[itemId:1, priceSnapshot:75.0, amount:2],
-                         [itemId:2, priceSnapshot:85.0, amount:1]]
-                break
-              case 2:
-                lines = [[itemId:3, priceSnapshot:90.0, amount:1],
-                         [itemId:4, priceSnapshot:95.0, amount:1]]
-                break
-              case 3:
-                lines = [[itemId:5, priceSnapshot:40.0, amount:2],
-                         [itemId:6, priceSnapshot:80.0, amount:1]]
-                break
-            }
+def lines
+switch (supplierId) {
+  case 1:
+    lines = [[itemId:1, priceSnapshot:75.0, amount:2],
+             [itemId:2, priceSnapshot:85.0, amount:1]]
+    break
+  case 2:
+    lines = [[itemId:3, priceSnapshot:90.0, amount:1],
+             [itemId:4, priceSnapshot:95.0, amount:1]]
+    break
+  case 3:
+    lines = [[itemId:5, priceSnapshot:40.0, amount:2],
+             [itemId:6, priceSnapshot:80.0, amount:1]]
+    break
+}
 
-            vars.put("orderPayload",
-              new groovy.json.JsonBuilder([
-                customerId: vars.get("customerId") as int,
-                status: "created",
-                supplierId: supplierId,
-                paymentMethod: "PAYPAL",
-                orderLines: lines
-              ]).toString()
-            )
-          </stringProp>
+vars.put("orderPayload",
+  new groovy.json.JsonBuilder([
+    customerId: vars.get("customerId") as int,
+    status: "created",
+    supplierId: supplierId,
+    paymentMethod: "PAYPAL",
+    orderLines: lines
+  ]).toString()
+)
+          ]]></stringProp>
         </JSR223PreProcessor>
         <hashTree/>
 
@@ -91,7 +92,16 @@
           <stringProp name="HTTPSampler.path">/api/createorder</stringProp>
           <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
-          <stringProp name="HTTPSampler.arguments">${orderPayload}</stringProp>
+
+          <elementProp name="HTTPSampler.arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">${orderPayload}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
         </HTTPSamplerProxy>
         <hashTree>
           <HeaderManager guiclass="HeaderPanel"
@@ -132,6 +142,7 @@
         <stringProp name="ThreadGroup.ramp_time">120</stringProp>
         <boolProp name="ThreadGroup.scheduler">true</boolProp>
         <stringProp name="ThreadGroup.duration">600</stringProp>
+        <stringProp name="ThreadGroup.loops">-1</stringProp>
       </ThreadGroup>
       <hashTree>
 
