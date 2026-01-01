@@ -89,14 +89,26 @@ vars.put("orderPayload", jsonBody.trim())
         <hashTree/>
 
         <!-- Create Order -->
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Create Order" enabled="true">
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui"
+                          testclass="HTTPSamplerProxy"
+                          testname="Create Order"
+                          enabled="true">
           <stringProp name="HTTPSampler.domain">172.16.0.11</stringProp>
           <stringProp name="HTTPSampler.port">7071</stringProp>
           <stringProp name="HTTPSampler.protocol">http</stringProp>
           <stringProp name="HTTPSampler.path">/api/createorder</stringProp>
           <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
-          <stringProp name="HTTPSampler.postBody">${orderPayload}</stringProp>
+
+          <elementProp name="HTTPSampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">${orderPayload}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
         </HTTPSamplerProxy>
 
         <hashTree>
