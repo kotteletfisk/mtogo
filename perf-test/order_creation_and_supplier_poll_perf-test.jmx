@@ -53,22 +53,43 @@ vars.put("supplierId", suppliers[new Random().nextInt(suppliers.size())].toStrin
         <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Build Order Payload" enabled="true">
           <stringProp name="scriptLanguage">groovy</stringProp>
           <stringProp name="script"><![CDATA[
-def supplierId = vars.get("supplierId") as int
+import groovy.json.JsonOutput
 
-def lines
+def supplierId = vars.get("supplierId") as int
+def customerId = vars.get("customerId") as int
+
+def orderLines = []
 switch (supplierId) {
-  case 1: lines = [[itemId:1, priceSnapshot:75.0, amount:2], [itemId:2, priceSnapshot:85.0, amount:1]]; break
-  case 2: lines = [[itemId:3, priceSnapshot:90.0, amount:1], [itemId:4, priceSnapshot:95.0, amount:1]]; break
-  case 3: lines = [[itemId:5, priceSnapshot:40.0, amount:2], [itemId:6, priceSnapshot:80.0, amount:1]]; break
+    case 1:
+        orderLines = [
+            [itemId:1, priceSnapshot:75.0, amount:2],
+            [itemId:2, priceSnapshot:85.0, amount:1]
+        ]
+        break
+    case 2:
+        orderLines = [
+            [itemId:3, priceSnapshot:90.0, amount:1],
+            [itemId:4, priceSnapshot:95.0, amount:1]
+        ]
+        break
+    case 3:
+        orderLines = [
+            [itemId:5, priceSnapshot:40.0, amount:2],
+            [itemId:6, priceSnapshot:80.0, amount:1]
+        ]
+        break
 }
 
-vars.put("orderPayload", new groovy.json.JsonBuilder([
-    customerId: vars.get("customerId") as int,
-    status: "created",
+def orderPayloadMap = [
+    customerId: customerId,
     supplierId: supplierId,
+    status: "created",
     paymentMethod: "PAYPAL",
-    orderLines: lines
-]).toString())
+    orderLines: orderLines
+]
+
+// Convert to properly formatted JSON string
+vars.put("orderPayload", JsonOutput.toJson(orderPayloadMap))
           ]]></stringProp>
         </JSR223PreProcessor>
         <hashTree/>
