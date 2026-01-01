@@ -14,10 +14,10 @@
 
       <!-- ================= CUSTOMERS ================= -->
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Customers - Create Orders" enabled="true">
-        <stringProp name="ThreadGroup.num_threads">3</stringProp>
+        <stringProp name="ThreadGroup.num_threads">5</stringProp>
         <stringProp name="ThreadGroup.ramp_time">3</stringProp>
         <boolProp name="ThreadGroup.scheduler">true</boolProp>
-        <stringProp name="ThreadGroup.duration">60</stringProp>
+        <stringProp name="ThreadGroup.duration">600</stringProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
 
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController"
@@ -140,10 +140,10 @@ vars.put("orderPayload", jsonBody.trim())
 
       <!-- ================= SUPPLIERS ================= -->
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Suppliers - Poll Orders" enabled="true">
-        <stringProp name="ThreadGroup.num_threads">2</stringProp>
+        <stringProp name="ThreadGroup.num_threads">5</stringProp>
         <stringProp name="ThreadGroup.ramp_time">3</stringProp>
         <boolProp name="ThreadGroup.scheduler">true</boolProp>
-        <stringProp name="ThreadGroup.duration">60</stringProp>
+        <stringProp name="ThreadGroup.duration">600</stringProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
 
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController"
