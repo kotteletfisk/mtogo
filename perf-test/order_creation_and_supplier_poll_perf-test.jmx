@@ -17,7 +17,7 @@
         <stringProp name="ThreadGroup.num_threads">5</stringProp>
         <stringProp name="ThreadGroup.ramp_time">30</stringProp>
         <boolProp name="ThreadGroup.scheduler">true</boolProp>
-        <stringProp name="ThreadGroup.duration">21600</stringProp>
+        <stringProp name="ThreadGroup.duration">18000</stringProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
 
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController"
@@ -143,7 +143,7 @@ vars.put("orderPayload", jsonBody.trim())
         <stringProp name="ThreadGroup.num_threads">200</stringProp>
         <stringProp name="ThreadGroup.ramp_time">120</stringProp>
         <boolProp name="ThreadGroup.scheduler">true</boolProp>
-        <stringProp name="ThreadGroup.duration">21600</stringProp>
+        <stringProp name="ThreadGroup.duration">18000</stringProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
 
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController"
