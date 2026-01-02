@@ -7,7 +7,7 @@ import com.rabbitmq.client.Delivery;
 import mtogo.sql.ports.out.IRpcResponder;
 import mtogo.sql.ports.out.IRpcResponderFactory;
 
-public class RabbitMQRpcResponderFactory implements IRpcResponderFactory {
+public class RabbitMQRpcResponderFactory implements IRpcResponderFactory<Delivery> {
 
     private final ObjectMapper mapper;
     private final Connection connection;
