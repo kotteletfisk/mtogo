@@ -1,7 +1,5 @@
 package mtogo.sql.ports.out;
 
-import com.rabbitmq.client.Delivery;
-
-public interface IRpcResponderFactory {
-        IRpcResponder create(Delivery delivery);
+public interface IRpcResponderFactory<T> {
+        IRpcResponder create(T delivery);
 }
