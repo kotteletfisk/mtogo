@@ -37,20 +37,20 @@ public class RevenueCalculatorTest {
     void calculateMtogoFee_upTo500() {
         // 18 percent
         assertEquals(90.0, RevenueShareCalculator.calculateMtogoFee(500.0), acceptableDelta);
-        assertEquals(45.0, RevenueShareCalculator.calculateMtogoFee(250.0), acceptableDelta);
+        assertEquals(18.0018, RevenueShareCalculator.calculateMtogoFee(100.01), acceptableDelta);
     }
 
     @Test
     void calculateMtogoFee_upTo1000() {
         // 17 percent
         assertEquals(170.0, RevenueShareCalculator.calculateMtogoFee(1000.0), acceptableDelta);
-        assertEquals(102.0, RevenueShareCalculator.calculateMtogoFee(600.0), acceptableDelta);
+        assertEquals(85.0017, RevenueShareCalculator.calculateMtogoFee(500.01), acceptableDelta);
     }
 
     @Test
     void calculateMtogoFee_above1000() {
         // 15 percent
-        assertEquals(180.0, RevenueShareCalculator.calculateMtogoFee(1200.0), acceptableDelta);
+        assertEquals(150.0015, RevenueShareCalculator.calculateMtogoFee(1000.01), acceptableDelta);
         assertEquals(300.0, RevenueShareCalculator.calculateMtogoFee(2000.0), acceptableDelta);
     }
     @Test
